@@ -1,0 +1,58 @@
+name: الاختبارات
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  javascript:
+    name: جافاسكربت — المحرك المرجعي
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # data/*.json هي المصدر الوحيد، ولها ثلاث نسخ مولَّدة: وحدة
+      # للمتصفح، وموارد حزمة Swift، والملف الواحد. هذا يمنع انحرافها.
+      - name: النسخ المولَّدة تطابق المصدر
+        run: |
+          node tools/bundle-data.js --check
+          node tools/build-standalone.js --check
+
+      - name: الاختبارات
+        run: node tests/run.js
+
+      - name: صحة ملفات JSON
+        run: |
+          for f in data/*.json; do
+            node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" \
+              || { echo "✗ JSON غير صالح: $f"; exit 1; }
+            echo "✓ $f"
+          done
+
+  swift:
+    name: Swift — حزمة المحرك
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: البناء
+        working-directory: swift
+        run: swift build
+      # صورة swift تشغّل sh (dash) ولا pipefail فيها.
+      - name: الاختبارات
+        working-directory: swift
+        shell: bash
+        run: |
+          set -o pipefail
+          swift test 2>&1 | tee test-output.txt || {
+            echo "───────── السطور الدالّة ─────────"
+            grep -nE "Test Case|Fatal error|error:|XCTAssert|failed" test-output.txt | tail -40
+            exit 1
+          }
