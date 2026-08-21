@@ -199,55 +199,99 @@ struct FootMatch {
 }
 
 enum FootMatcher {
+    /// خطوة رجوع مصغَّرة: أعداد فقط، بلا نصوص ولا مراجع.
+    ///
+    /// هذه أسخن حلقة في المحرك — تُستدعى ملايين المرات عند ترتيب البحور
+    /// كلها. تخزين `AlignOp` هنا (وفيه نصوص) كان يُحدث تخصيصًا وعدَّ
+    /// مراجع عند كل تحسين، فأبطأ اختبارات Swift إبطاءً شديدًا. صارت
+    /// العمليات تُبنى بعد انتهاء الحساب، للمسار الفائز وحده.
+    private struct Back {
+        var prev: Int32 = -1
+        var op: UInt8 = 0     // 0 لا شيء، 1 مطابقة، 2 إبدال، 3 زيادة، 4 نقص
+        var node: Int32 = -1  // موضع الحافة: dag.edges[node][slot]
+        var slot: Int32 = -1
+    }
+
     /// محاذاة بأقل كلفة بين مسارات المخطّط ونمط صورة واحدة.
     static func match(dag: SyllableDag, from: Int, pattern: [SyllableWeight], scorer: Scorer) -> [Int: FootMatch] {
         let n = dag.size
+        guard from <= n else { return [:] }
         let P = pattern.count
         let w = scorer.config.weights
-        func key(_ u: Int, _ p: Int) -> Int { u * (P + 1) + p }
+        let stride = P + 1
+        @inline(__always) func key(_ u: Int, _ p: Int) -> Int { u * stride + p }
 
-        var dist: [Int: Double] = [key(from, 0): 0]
-        var back: [Int: (prev: Int, op: AlignOp)] = [:]
-
-        func relax(_ u: Int, _ p: Int, _ cost: Double, _ prevKey: Int, _ op: AlignOp) {
-            let k = key(u, p)
-            if let cur = dist[k], cost >= cur - 1e-12 { return }
-            dist[k] = cost
-            back[k] = (prevKey, op)
-        }
+        // مصفوفتان مسطَّحتان بدل قاموسين: لا تجزئة ولا تخصيص في الحلقة.
+        var dist = [Double](repeating: .infinity, count: (n + 1) * stride)
+        var back = [Back](repeating: Back(), count: (n + 1) * stride)
+        dist[key(from, 0)] = 0
 
         // الحواف تتقدّم بموضع الوحدات، والنقص بموضع النمط، فترتيب
         // (u تصاعديًا ثم p تصاعديًا) كافٍ بلا طابور أولوية.
         for u in from...n {
+            let edges = dag.edges[u]
             for p in 0...P {
                 let k = key(u, p)
-                guard let c = dist[k] else { continue }
+                let c = dist[k]
+                if c == .infinity { continue }
+
                 if p < P {
-                    relax(u, p + 1, c + w.deletion, k,
-                          AlignOp(op: "delete", expected: pattern[p], actual: nil, edge: nil))
+                    let nk = key(u, p + 1)
+                    let nc = c + w.deletion
+                    if nc < dist[nk] - 1e-12 {
+                        dist[nk] = nc
+                        back[nk] = Back(prev: Int32(k), op: 4, node: -1, slot: -1)
+                    }
                 }
-                for e in dag.edges[u] {
+
+                for (slot, e) in edges.enumerated() {
                     if p < P {
                         let sc = scorer.substitutionCost(e.weight, pattern[p])
-                        relax(e.to, p + 1, c + sc, k,
-                              AlignOp(op: sc == 0 ? "match" : "substitute",
-                                      expected: pattern[p], actual: e.weight, edge: e))
+                        let nk = key(e.to, p + 1)
+                        let nc = c + sc
+                        if nc < dist[nk] - 1e-12 {
+                            dist[nk] = nc
+                            back[nk] = Back(prev: Int32(k), op: sc == 0 ? 1 : 2,
+                                            node: Int32(u), slot: Int32(slot))
+                        }
                     }
-                    relax(e.to, p, c + w.insertion, k,
-                          AlignOp(op: "insert", expected: nil, actual: e.weight, edge: e))
+                    let nk = key(e.to, p)
+                    let nc = c + w.insertion
+                    if nc < dist[nk] - 1e-12 {
+                        dist[nk] = nc
+                        back[nk] = Back(prev: Int32(k), op: 3, node: Int32(u), slot: Int32(slot))
+                    }
                 }
             }
         }
 
         var results: [Int: FootMatch] = [:]
+        let start = key(from, 0)
         for u in from...n {
-            guard let c = dist[key(u, P)] else { continue }
+            let k = key(u, P)
+            let c = dist[k]
+            if c == .infinity { continue }
+
             var ops: [AlignOp] = []
-            var cur = key(u, P)
-            let start = key(from, 0)
-            while cur != start, let bp = back[cur] {
-                ops.append(bp.op)
-                cur = bp.prev
+            var cur = k
+            while cur != start {
+                let b = back[cur]
+                if b.prev < 0 { break }
+                let edge: SyllableEdge? = b.node >= 0
+                    ? dag.edges[Int(b.node)][Int(b.slot)] : nil
+                // موضع النمط قبل الانتقال هو الذي يحدّد المقطع المتوقَّع.
+                let prevP = Int(b.prev) % stride
+                let expected: SyllableWeight? = (b.op == 3 || prevP >= P) ? nil : pattern[prevP]
+                let name: String
+                switch b.op {
+                case 1: name = "match"
+                case 2: name = "substitute"
+                case 3: name = "insert"
+                default: name = "delete"
+                }
+                ops.append(AlignOp(op: name, expected: expected,
+                                   actual: edge?.weight, edge: edge))
+                cur = Int(b.prev)
             }
             ops.reverse()
             let actual = ops.compactMap { $0.actual }

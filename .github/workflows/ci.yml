@@ -8,6 +8,12 @@ on:
 permissions:
   contents: read
 
+# دفعة جديدة تُلغي تشغيلًا سابقًا على الفرع نفسه — لا فائدة من انتظار
+# نتيجة كود تجاوزناه.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   javascript:
     name: جافاسكربت — المحرك المرجعي
@@ -42,16 +48,21 @@ jobs:
     container: swift:6.0
     steps:
       - uses: actions/checkout@v4
+      # وضع الإصدار مقصود: مصفوفة الاختبار تمرّ على ٦٥ صيغة × ٣٤ بحرًا،
+      # وبناء التصحيح غير المحسَّن يجعلها بطيئة إلى حدّ غير عملي.
+      # -enable-testing يبقي @testable عاملًا في وضع الإصدار.
       - name: البناء
         working-directory: swift
-        run: swift build
+        run: swift build -c release -Xswiftc -enable-testing
+
       # صورة swift تشغّل sh (dash) ولا pipefail فيها.
       - name: الاختبارات
         working-directory: swift
         shell: bash
+        timeout-minutes: 20
         run: |
           set -o pipefail
-          swift test 2>&1 | tee test-output.txt || {
+          swift test -c release -Xswiftc -enable-testing 2>&1 | tee test-output.txt || {
             echo "───────── السطور الدالّة ─────────"
             grep -nE "Test Case|Fatal error|error:|XCTAssert|failed" test-output.txt | tail -40
             exit 1
