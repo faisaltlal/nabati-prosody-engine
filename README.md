@@ -20,7 +20,7 @@ https://faisaltlal.github.io/-/web/
 
 ### ملف واحد مكتفٍ بذاته
 
-`web/standalone.html` — المحرك كله (١٢٩ كيلوبايت) في ملف HTML واحد:
+`web/standalone.html` — المحرك كله (١٧٤ كيلوبايت) في ملف HTML واحد:
 لا استيراد وحدات، ولا ملفات جانبية، ولا إنترنت. حمّله وافتحه من أي
 مكان، أو مرّره عبر أي خدمة معاينة. مفيد قبل أن يصير للمشروع موقع
 منشور، ومجرَّب فعليًا من `file://` بلا خادم.
@@ -35,9 +35,11 @@ https://faisaltlal.github.io/-/web/
 ## التشغيل محليًا
 
 ```bash
-node tests/run.js            # الاختبارات
-node tools/bundle-data.js    # إعادة توليد نسخ البيانات بعد تعديل data/
-DEBUG_PROSODY=true node …           # وضع التتبّع
+node tests/run.js                  # الاختبارات
+node tools/bundle-data.js          # نسخ البيانات، بعد تعديل data/
+node tools/build-meters-doc.js     # جدول البحور في docs/METERS.md
+node tools/build-standalone.js     # الملف الواحد
+DEBUG_PROSODY=true node …          # وضع التتبّع
 ```
 
 ```bash
@@ -59,6 +61,7 @@ const engine = createEngine(DATA);
 const r = engine.analyze('مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ');
 r.bestMeter.name       // 'المسحوب'
 r.bestMeter.score      // 1
+r.bestMeter.formRoles  // ['sadr'] — صيغة كل شطر: صدر أو عجز
 r.verdict              // 'sound'
 r.internalPattern      // 'LLSLLLSLLSLL'
 r.tafaeel              // كل تفعيلة مع صورتها وكلماتها
@@ -142,9 +145,9 @@ r.bestMeter?.name   // "المسحوب"
 | المرحلة | الحالة |
 |---|---|
 | PHASE 1 — نواة العروض | ✅ |
-| PHASE 2 — قاعدة الأوزان | ✅ ١٢ مفعَّل + ١ معطَّل بوعي |
+| PHASE 2 — قاعدة الأوزان | ✅ ٣٣ بحرًا بـ٦٤ صيغة، كلها مفعَّلة |
 | PHASE 3 — المطابقة والدرجة | ✅ |
-| PHASE 4 — الاختبارات | ✅ ٨٥ اختبارًا |
+| PHASE 4 — الاختبارات | ✅ ٩٠ اختبارًا |
 | PHASE 5 — تحليل القصيدة | ✅ |
 | PHASE 6 — طبقة الخدمة | ✅ واجهة برمجية مستقلة عن العرض |
 | PHASE 7 — تطبيق iOS | ⏳ آخر مرحلة، بعد أن يثبت المحرك نفسه |

@@ -56,7 +56,7 @@ if (check) {
   if (current !== generated) stale.push('engine/js/data.generated.js');
 } else {
   writeFileSync(target, generated);
-  console.log(`✓ كُتب ${target} (${(generated.length / 1024).toFixed(1)} كيلوبايت)`);
+  console.log(`✓ كُتب ${target} (${(Buffer.byteLength(generated, "utf8") / 1024).toFixed(1)} كيلوبايت)`);
 }
 
 // نسخ Swift

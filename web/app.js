@@ -77,6 +77,19 @@ const VERDICT_LABEL = {
   unrecognized: 'غير محدَّد',
 };
 
+/**
+ * شارة صيغة كل شطر. الصدر والعجز صورتان للبحر الواحد لا بحران، فالمهمّ
+ * إظهار أن البيت عُرِف وعلى أي صورة جاء كل شطر منه.
+ */
+const FORM_LABEL = { sadr: 'صدر', ajz: 'عجز' };
+function formBadges(m) {
+  const roles = (m.formRoles && m.formRoles.length ? m.formRoles : [m.formRole])
+    .filter(Boolean);
+  if (!roles.length) return '';
+  if (roles.length === 1) return `<span class="badge">${FORM_LABEL[roles[0]] || roles[0]}</span>`;
+  return `<span class="badge">${roles.map((x) => FORM_LABEL[x] || x).join(' + ')}</span>`;
+}
+
 function renderResult(r) {
   if (!r.bestMeter) {
     return `<div class="panel"><div class="note warn"><strong>${esc(r.explanation.title)}</strong><br>${esc(r.explanation.text)}</div></div>`;
@@ -89,8 +102,7 @@ function renderResult(r) {
       <span class="name">${esc(m.name)}</span>
       <span class="badge ${r.verdict}">${VERDICT_LABEL[r.verdict] || r.verdict}</span>
       ${m.repeat > 1 ? '<span class="badge">شطران</span>' : ''}
-      ${m.formRole === 'sadr' ? '<span class="badge">صدر</span>' : ''}
-      ${m.formRole === 'ajz' ? '<span class="badge">عجز — مذيَّل</span>' : ''}
+      ${formBadges(m)}
       ${m.status === 'NEEDS_VALIDATION' ? '<span class="badge broken">تعريفه يحتاج تحقّقًا</span>' : ''}
     </div>
     <div class="scores">

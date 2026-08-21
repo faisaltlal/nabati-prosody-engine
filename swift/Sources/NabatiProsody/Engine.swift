@@ -36,6 +36,10 @@ public struct BestMeter: Sendable {
     public let verdict: String
     public let repeatCount: Int
     public let status: String?
+    /// دور صيغة الشطر الأول — صدر أو عجز.
+    public let formRole: String?
+    /// دور صيغة كل شطر على حدة ومرتَّبًا.
+    public let formRoles: [String?]
 }
 
 public struct Alternative: Sendable {
@@ -126,11 +130,14 @@ public struct ProsodyEngine: Sendable {
         return (units, dag, SyllableParser.freeSyllabify(dag))
     }
 
+    /// `form` صيغة كل الأشطر، و`forms` تُفصّلها شطرًا شطرًا حين تختلف.
     public func matchPattern(_ pattern: [SyllableWeight], meter: String,
-                             repeatCount: Int = 1, form: Int = 0) throws -> MeterMatch {
+                             repeatCount: Int = 1, form: Int = 0,
+                             forms: [Int]? = nil) throws -> MeterMatch {
         guard let m = registry.find(meter) else { throw EngineError.unknownMeter(meter) }
+        let chosen = forms ?? Array(repeating: form, count: max(repeatCount, 1))
         guard let r = MeterMatcher.match(dag: SyllableDag.fromPattern(pattern), meter: m,
-                                         scorer: scorer, repeatCount: repeatCount, form: form) else {
+                                         scorer: scorer, forms: chosen) else {
             throw EngineError.unknownMeter(meter)
         }
         return r
@@ -214,7 +221,8 @@ public struct ProsodyEngine: Sendable {
             bestMeter: best.map {
                 BestMeter(id: $0.meterId, name: $0.name, aliases: $0.aliases, score: $0.score,
                           confidence: confidence, verdict: $0.verdict,
-                          repeatCount: $0.repeatCount, status: $0.status)
+                          repeatCount: $0.repeatCount, status: $0.status,
+                          formRole: $0.formRole, formRoles: $0.formRoles)
             },
             verdict: best?.verdict ?? "unrecognized",
             tafaeel: tafaeel,

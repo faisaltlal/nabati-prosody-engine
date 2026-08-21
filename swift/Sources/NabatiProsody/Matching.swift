@@ -346,6 +346,12 @@ public struct MeterMatch: Sendable {
     public let aliases: [String]
     public let status: String?
     public let repeatCount: Int
+    /// صيغة كل شطر: فهرسها في `meter.forms`، مرتَّبةً بترتيب الأشطر.
+    public let forms: [Int]
+    /// دور صيغة الشطر الأول — صدر أو عجز.
+    public let formRole: String?
+    /// دور صيغة كل شطر على حدة ومرتَّبًا.
+    public let formRoles: [String?]
     public let score: Double
     public let confidence: Double
     public let cost: Double
@@ -360,20 +366,21 @@ public struct MeterMatch: Sendable {
 public enum MeterMatcher {
     private struct State { let cost: Double; let chosen: [ChosenFoot] }
 
-    /// شطر واحد → الصيغة المطلوبة وحدها. بيت كامل → الصدر ثم العجز.
+    /// الصدر والعجز صورتان للبحر الواحد لا بحران، فيختار كل شطر صيغته
+    /// باستقلال: `forms[i]` فهرس صيغة الشطر i.
     public static func match(dag: SyllableDag, meter: Meter, scorer: Scorer,
-                             repeatCount: Int = 1, form formIndex: Int = 0) -> MeterMatch? {
+                             forms: [Int]) -> MeterMatch? {
         struct ExpandedFoot {
             let foot: Foot
             let hemistich: Int
             let isFirst: Bool
             let isArudDarb: Bool
         }
-        guard !meter.forms.isEmpty else { return nil }
+        guard !meter.forms.isEmpty, !forms.isEmpty else { return nil }
+        let repeatCount = forms.count
         var expanded: [ExpandedFoot] = []
-        for r in 0..<repeatCount {
-            let idx = repeatCount == 1 ? min(formIndex, meter.forms.count - 1)
-                                       : min(r, meter.forms.count - 1)
+        for (r, wanted) in forms.enumerated() {
+            let idx = min(max(wanted, 0), meter.forms.count - 1)
             let feet = meter.forms[idx].feet
             for (i, f) in feet.enumerated() {
                 expanded.append(ExpandedFoot(foot: f, hemistich: r, isFirst: i == 0,
@@ -442,7 +449,10 @@ public enum MeterMatcher {
 
         return MeterMatch(
             meterId: meter.id, name: meter.name, aliases: meter.aliases, status: meter.status,
-            repeatCount: repeatCount, score: f.score, confidence: f.confidence,
+            repeatCount: repeatCount, forms: forms,
+            formRole: meter.forms[min(max(forms[0], 0), meter.forms.count - 1)].role,
+            formRoles: forms.map { meter.forms[min(max($0, 0), meter.forms.count - 1)].role },
+            score: f.score, confidence: f.confidence,
             cost: round6(b.total), normalizer: f.normalizer,
             verdict: scorer.classify(score: f.score, brokenFeet: broken.count, totalFeet: b.state.chosen.count),
             feet: b.state.chosen, brokenFeet: broken,
@@ -477,17 +487,31 @@ public enum MeterMatcher {
         for meter in registry.enabled {
             var bestForMeter: MeterMatch?
             for r in repeats {
-                // الشطر الواحد قد يكون صدرًا وقد يكون عجزًا، فتُجرَّب الصيغتان.
-                let forms = r == 1 ? Array(0..<meter.forms.count) : [0]
-                for f in forms {
+                // كل شطر يختار صدرًا أو عجزًا باستقلال، فتُجرَّب كل التوليفات.
+                for combo in formCombinations(formCount: meter.forms.count, repeatCount: r) {
                     guard let m = match(dag: dag, meter: meter, scorer: scorer,
-                                        repeatCount: r, form: f) else { continue }
+                                        forms: combo) else { continue }
                     if bestForMeter == nil || m.score > bestForMeter!.score { bestForMeter = m }
                 }
             }
             if let b = bestForMeter { out.append(b) }
         }
         out.sort { $0.score != $1.score ? $0.score > $1.score : $0.meterId < $1.meterId }
+        return out
+    }
+
+    /// كل توليفات الصيغ الممكنة لعدد أشطر معلوم.
+    /// بحرٌ بصيغتين في بيت من شطرين يعطي أربع توليفات، والوزن يحسم أيّها.
+    static func formCombinations(formCount: Int, repeatCount: Int) -> [[Int]] {
+        guard formCount > 0, repeatCount > 0 else { return [] }
+        var out: [[Int]] = [[]]
+        for _ in 0..<repeatCount {
+            var next: [[Int]] = []
+            for prefix in out {
+                for f in 0..<formCount { next.append(prefix + [f]) }
+            }
+            out = next
+        }
         return out
     }
 }

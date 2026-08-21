@@ -24,12 +24,14 @@ jobs:
         with:
           node-version: '20'
 
-      # data/*.json هي المصدر الوحيد، ولها ثلاث نسخ مولَّدة: وحدة
-      # للمتصفح، وموارد حزمة Swift، والملف الواحد. هذا يمنع انحرافها.
+      # data/*.json هي المصدر الوحيد، ولها أربع نسخ مولَّدة: وحدة
+      # للمتصفح، وموارد حزمة Swift، والملف الواحد، وجدول البحور في
+      # التوثيق. هذا يمنع انحراف أيٍّ منها عن المصدر بصمت.
       - name: النسخ المولَّدة تطابق المصدر
         run: |
           node tools/bundle-data.js --check
           node tools/build-standalone.js --check
+          node tools/build-meters-doc.js --check
 
       - name: الاختبارات
         run: node tests/run.js
@@ -48,7 +50,7 @@ jobs:
     container: swift:6.0
     steps:
       - uses: actions/checkout@v4
-      # وضع الإصدار مقصود: مصفوفة الاختبار تمرّ على ٦٥ صيغة × ٣٤ بحرًا،
+      # وضع الإصدار مقصود: مصفوفة الاختبار تمرّ على كل صيغة × كل بحر،
       # وبناء التصحيح غير المحسَّن يجعلها بطيئة إلى حدّ غير عملي.
       # -enable-testing يبقي @testable عاملًا في وضع الإصدار.
       - name: البناء

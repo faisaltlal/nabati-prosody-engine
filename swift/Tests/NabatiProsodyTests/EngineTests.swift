@@ -89,6 +89,36 @@ final class EngineTests: XCTestCase {
         }
     }
 
+    /// بيت شطراه على صيغتين مختلفتين يظل بحرًا واحدًا.
+    /// الصدر والعجز صورتان للبحر الواحد، فيختار كل شطر صيغته باستقلال.
+    func testBaytMixesFormsAndStaysOneMeter() throws {
+        let engine = try makeEngine()
+        var tested = 0
+        for meter in engine.registry.enabled where meter.forms.count >= 2 {
+            let sadr = meter.forms[0], ajz = meter.forms[1]
+            // بحورٌ صدرها وعجزها سواء في المصدر لا فرق فيها يُفحص.
+            if sadr.pattern == ajz.pattern { continue }
+            let r = try engine.matchPattern(sadr.pattern + ajz.pattern,
+                                            meter: meter.id, forms: [0, 1])
+            XCTAssertEqual(r.score, 1.0, accuracy: 1e-9,
+                           "\(meter.name) صدرًا فعجزًا لا يطابق نفسه")
+            XCTAssertEqual(r.formRoles.map { $0 ?? "?" }, [sadr.role ?? "?", ajz.role ?? "?"],
+                           "\(meter.name) لم يُنسب كل شطر إلى صيغته")
+            tested += 1
+        }
+        XCTAssertGreaterThan(tested, 0, "لا بحر بصيغتين مختلفتين — الفحص بلا معنى")
+    }
+
+    /// توليفات الصيغ: بحر بصيغتين في بيت من شطرين يعطي أربع توليفات.
+    func testFormCombinationsCoverEveryHemistichIndependently() {
+        XCTAssertEqual(MeterMatcher.formCombinations(formCount: 2, repeatCount: 1),
+                       [[0], [1]])
+        XCTAssertEqual(MeterMatcher.formCombinations(formCount: 2, repeatCount: 2),
+                       [[0, 0], [0, 1], [1, 0], [1, 1]])
+        XCTAssertEqual(MeterMatcher.formCombinations(formCount: 1, repeatCount: 2), [[0, 0]])
+        XCTAssertEqual(MeterMatcher.formCombinations(formCount: 0, repeatCount: 2), [])
+    }
+
     func testEveryFormTopsItsOwnPattern() throws {
         let engine = try makeEngine()
         for meter in engine.registry.enabled {

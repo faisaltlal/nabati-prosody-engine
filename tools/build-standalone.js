@@ -134,5 +134,5 @@ if (process.argv.includes('--check')) {
   console.log('✓ standalone.html محدَّث');
 } else {
   writeFileSync(target, out);
-  console.log(`✓ standalone.html — ${modules.length} وحدة، ${(out.length / 1024).toFixed(0)} كيلوبايت`);
+  console.log(`✓ standalone.html — ${modules.length} وحدة، ${(Buffer.byteLength(out, "utf8") / 1024).toFixed(0)} كيلوبايت`);
 }

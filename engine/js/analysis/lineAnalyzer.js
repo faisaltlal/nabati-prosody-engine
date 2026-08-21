@@ -110,6 +110,10 @@ export function analyzeLine(input, engine, options = {}) {
         perHemistich: hemistichRuns.map(
           (h) => h.ranking.find((x) => x.meterId === meterId)?.score ?? 0
         ),
+        // كل شطر اختار صيغته باستقلال، فتُجمع اختياراتهم بالترتيب.
+        formRoles: hemistichRuns.map(
+          (h) => h.ranking.find((x) => x.meterId === meterId)?.formRole ?? null
+        ),
       }))
       .sort((a, b) => b.score - a.score || a.meterId.localeCompare(b.meterId));
     unitsAnalysis = hemistichRuns[0];
@@ -179,6 +183,7 @@ export function analyzeLine(input, engine, options = {}) {
           score: best.score, confidence: best.confidence,
           verdict: best.verdict, repeat: best.repeat, status: best.status,
           formRole: best.formRole || null,
+          formRoles: best.formRoles || (best.formRole ? [best.formRole] : []),
         }
       : null,
     verdict,

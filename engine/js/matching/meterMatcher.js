@@ -22,8 +22,11 @@ import { matchFoot, minSyllablesToEnd } from './footMatcher.js';
  */
 export function matchMeter(dag, meter, scorer, options = {}) {
   const repeat = options.repeat || 1;
-  const formIndex = options.form || 0;
-  const feet = expandFeet(meter, repeat, formIndex);
+  // forms[i] = صيغة الشطر i. الصدر والعجز صورتان للبحر نفسه لا بحران،
+  // فلكل شطر أن يأتي على أيّهما.
+  const forms = options.forms
+    || Array.from({ length: repeat }, () => options.form || 0);
+  const feet = expandFeet(meter, forms);
   if (!feet.length) return null;
   const tailCost = minSyllablesToEnd(dag);
 
@@ -127,8 +130,15 @@ export function matchMeter(dag, meter, scorer, options = {}) {
     aliases: meter.aliases,
     status: meter.status,
     repeat,
-    form: formIndex,
+    forms,
     formRole: feet[0] && feet[0].formRole,
+    // صيغة كل شطر على حدة ومرتَّبة، لا مجموعةً مبهمة: البيت قد يأتي
+    // صدرًا ثم عجزًا، وقد يأتي شطراه على الصيغة نفسها.
+    formRoles: forms.map((i) => {
+      const available = meter.forms && meter.forms.length ? meter.forms : [];
+      const f = available[Math.min(i, available.length - 1)];
+      return (f && f.role) || null;
+    }),
     matched: true,
     score,
     confidence,
@@ -147,17 +157,17 @@ export function matchMeter(dag, meter, scorer, options = {}) {
 /**
  * يبسط تفعيلات البحر على الأشطر المطلوبة.
  *
- * شطر واحد  → الصيغة المطلوبة وحدها (صدر أو عجز).
- * بيت كامل   → الصدر ثم العجز، وهو ترتيبهما في البيت النبطي.
- * وإن لم يكن للبحر إلا صيغة واحدة كُرِّرت، لأن المصدر سوّى بين الشطرين.
+ * الصدر والعجز صورتان للبحر الواحد لا بحران، والعجز هو الصدر مع تذييل.
+ * فيختار كل شطر صيغته باستقلال: شطر واحد قد يأتي على أيّهما، والبيت
+ * الكامل قد يأتي شطراه على صيغتين مختلفتين أو على واحدة.
  */
-function expandFeet(meter, repeat, formIndex) {
-  const forms = meter.forms && meter.forms.length ? meter.forms : [{ feet: meter.feet }];
+function expandFeet(meter, forms) {
+  const available = meter.forms && meter.forms.length
+    ? meter.forms
+    : [{ feet: meter.feet }];
   const out = [];
-  for (let r = 0; r < repeat; r++) {
-    const form = repeat === 1
-      ? forms[Math.min(formIndex || 0, forms.length - 1)]
-      : forms[Math.min(r, forms.length - 1)];
+  forms.forEach((formIndex, r) => {
+    const form = available[Math.min(formIndex, available.length - 1)];
     form.feet.forEach((foot, i) => {
       out.push({
         ...foot,
@@ -168,7 +178,7 @@ function expandFeet(meter, repeat, formIndex) {
         isArudDarb: i === form.feet.length - 1,
       });
     });
-  }
+  });
   return out;
 }
 
@@ -213,11 +223,8 @@ export function rankMeters(dag, registry, scorer, options = {}) {
     let bestForMeter = null;
     const formCount = meter.forms ? meter.forms.length : 1;
     for (const repeat of repeats) {
-      // الشطر الواحد قد يكون صدرًا وقد يكون عجزًا، فتُجرَّب الصيغتان.
-      // والبيت الكامل ترتيبه مثبَّت: صدر ثم عجز، فصيغة واحدة تكفي.
-      const forms = repeat === 1 ? Array.from({ length: formCount }, (_, i) => i) : [0];
-      for (const form of forms) {
-        const r = matchMeter(dag, meter, scorer, { repeat, form });
+      for (const forms of formCombinations(formCount, repeat)) {
+        const r = matchMeter(dag, meter, scorer, { repeat, forms });
         if (!r || !r.matched) continue;
         if (!bestForMeter || r.score > bestForMeter.score) bestForMeter = r;
       }
@@ -227,6 +234,23 @@ export function rankMeters(dag, registry, scorer, options = {}) {
 
   results.sort((a, b) => b.score - a.score || a.meterId.localeCompare(b.meterId));
   return results;
+}
+
+/**
+ * كل توزيعات الصيغ على الأشطر. لبحر بصيغتين وبيتٍ من شطرين تُنتج أربعة:
+ * صدر‑عجز، وصدر‑صدر، وعجز‑صدر، وعجز‑عجز. عددها صغير دائمًا (٢ أو ٤)
+ * لأن الصيغ لا تتجاوز اثنتين والأشطر لا تتجاوز شطرين.
+ */
+function formCombinations(formCount, repeat) {
+  let out = [[]];
+  for (let r = 0; r < repeat; r++) {
+    const next = [];
+    for (const prefix of out) {
+      for (let f = 0; f < formCount; f++) next.push([...prefix, f]);
+    }
+    out = next;
+  }
+  return out;
 }
 
 function round(x) {

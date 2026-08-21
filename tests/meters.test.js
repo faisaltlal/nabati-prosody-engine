@@ -95,13 +95,30 @@ describe('قاعدة الأوزان — التناسق', () => {
     }
   });
 
-  it('تعارض اسم «البسيط» مُعلَن لا مُسكَت عنه', () => {
-    const same = engine.registry.meters.filter((m) => m.name === 'البسيط');
-    equal(same.length, 2, 'الاسم ورد مرتين في المصدر');
-    assert(
-      same.some((m) => m.status === 'NEEDS_VALIDATION' && m.validation),
-      'يجب وسم التعارض وبيان ما يحسمه'
-    );
+  it('لا اسمان متطابقان في القاعدة', () => {
+    // «البسيط» ورد ثلاث مرات في المصدر بتفعيلات مختلفة، فسُمّي كلٌّ
+    // باسم مميِّز (البسيط، البسيط - طرق 1، البسيط - طرق 2). اسمان
+    // متطابقان لبحرين مختلفين يجعل النتيجة ملتبسة على القارئ، ويكسر
+    // البحث بالاسم. فيُمنع مرورهما بصمت.
+    const seen = new Map();
+    for (const m of engine.registry.meters) {
+      if (seen.has(m.name)) {
+        assert(false, `الاسم «${m.name}» يحمله ${seen.get(m.name)} و${m.id}`);
+      }
+      seen.set(m.name, m.id);
+    }
+  });
+
+  it('كل اسم بديل يوصل إلى بحره', () => {
+    // دمج مدخلين لا يجوز أن يُضيّع الاسم القديم: من بحث عن «غير مصنف - 4»
+    // يجب أن يجد «البسيط - طرق 2».
+    for (const raw of DATA.meters.meters) {
+      for (const alias of raw.aliases || []) {
+        const found = engine.registry.find(alias);
+        assert(found, `الاسم البديل «${alias}» لا يوصل إلى شيء`);
+        equal(found.id, raw.id, `«${alias}» يوصل إلى ${found.id} لا ${raw.id}`);
+      }
+    }
   });
 
   it('البحور ذات الصيغة الواحدة موثَّق سببها', () => {
@@ -133,6 +150,70 @@ describe('قاعدة الأوزان — التناسق', () => {
         );
       }
     }
+  });
+
+  // ============================================================
+  // الصدر والعجز صورتان للبحر الواحد لا بحران.
+  // الهدف المعلَن: من كتب شطرًا على صورة الصدر أو على صورة العجز
+  // ظهر له البحر نفسه باسمه ونسبة مطابقته. هذه الفحوص تحرس ذلك
+  // نصًّا لا نمطًا: تُبنى الأشطر من التفعيلات المشكولة ثم تُحلَّل
+  // من مدخل المحرك العامّ كما يفعل المستخدم.
+  // ============================================================
+
+  /** يبني شطرًا مشكولًا من تفعيلات صيغة ما. */
+  function hemistichText(form) {
+    const byId = new Map(DATA.tafaeel.tafaeel.map((t) => [t.id, t]));
+    return form.feet.map((f) => byId.get(f.tafilaId).vocalized).join(' ');
+  }
+
+  it('كل صيغة — صدرًا كانت أو عجزًا — تُظهر بحرها ودرجته', () => {
+    for (const m of engine.registry.enabled) {
+      for (const form of m.forms) {
+        const r = engine.analyze(hemistichText(form));
+        assert(r.bestMeter, `${m.name} (${form.role}) لم يُعرَف أصلًا`);
+
+        // المطلوب أن يكون البحر في صدارة الترتيب، لا أن ينفرد بها:
+        // بعض البحور تتطابق أنماطها فعلًا (شطر بحر طويل قد يساوي بيتًا
+        // كاملًا من بحر مجزوء)، والمحرك يُعلن التعادل بدل أن يخفيه.
+        const top = [r.bestMeter, ...(r.ambiguity ? r.ambiguity.tiedWith : [])];
+        const hit = top.find((x) => x.id === m.id);
+        assert(hit,
+          `${m.name} (${form.role}) لم يتصدّر — تصدّره ${r.bestMeter.name}`);
+        equal(hit.score, 1,
+          `${m.name} (${form.role}) لم يطابق صورته مطابقة تامّة`);
+
+        // نسبة الصيغة لا تُفحص إلا حين ينفرد البحر بالصدارة، لأن
+        // بيانات الصيغة لا تُرجَع إلا للبحر الأول. والمطلوب أن تكون
+        // الصيغة المُرجَعة صيغةً نمطها هو هذا النمط — لا أن تحمل الاسم
+        // نفسه: بحرٌ صدره وعجزه سواء في المصدر لا يميّزه المحرك بينهما،
+        // وادّعاء التمييز هنا ادّعاءُ ما ليس في البيانات.
+        if (r.bestMeter.id === m.id) {
+          const key = form.pattern.join('');
+          const roles = m.forms.filter((f) => f.pattern.join('') === key).map((f) => f.role);
+          assert(roles.includes(r.bestMeter.formRole),
+            `${m.name} أُرجِع بصيغة ${r.bestMeter.formRole} ونمطها ليس نمط ${form.role}`);
+        }
+      }
+    }
+  });
+
+  it('بيت شطراه على صيغتين مختلفتين يظل بحرًا واحدًا', () => {
+    // لكل بحر له صدر وعجز: صدرٌ ثم عجز — وهي الصورة الطبيعية للبيت.
+    let tested = 0;
+    for (const m of engine.registry.enabled) {
+      if (m.forms.length < 2) continue;
+      const [sadr, ajz] = m.forms;
+      // بحور صدرها وعجزها سواء في المصدر (لا تذييل) لا فرق فيها يُفحص.
+      if (sadr.pattern.join('') === ajz.pattern.join('')) continue;
+      const r = engine.analyze(`${hemistichText(sadr)} ... ${hemistichText(ajz)}`);
+      assert(r.bestMeter, `${m.name} بيتًا كاملًا لم يُعرَف`);
+      equal(r.bestMeter.id, m.id, `${m.name} بيتًا كاملًا ظهر ${r.bestMeter.name}`);
+      equal(r.bestMeter.score, 1, `${m.name} بيتًا كاملًا لم يطابق تمامًا`);
+      equal(r.bestMeter.formRoles.join('+'), `${sadr.role}+${ajz.role}`,
+        `${m.name} لم يُنسب كل شطر إلى صيغته`);
+      tested++;
+    }
+    assert(tested > 0, 'لا بحر بصيغتين في القاعدة — الفحص بلا معنى');
   });
 
   it('كل تفعيلة يستعملها بحر لها صور مسجَّلة', () => {

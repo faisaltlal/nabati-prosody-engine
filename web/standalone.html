@@ -1493,8 +1493,11 @@ const { matchFoot, minSyllablesToEnd } = __M;
  */
 function matchMeter(dag, meter, scorer, options = {}) {
   const repeat = options.repeat || 1;
-  const formIndex = options.form || 0;
-  const feet = expandFeet(meter, repeat, formIndex);
+  // forms[i] = صيغة الشطر i. الصدر والعجز صورتان للبحر نفسه لا بحران،
+  // فلكل شطر أن يأتي على أيّهما.
+  const forms = options.forms
+    || Array.from({ length: repeat }, () => options.form || 0);
+  const feet = expandFeet(meter, forms);
   if (!feet.length) return null;
   const tailCost = minSyllablesToEnd(dag);
 
@@ -1598,8 +1601,15 @@ function matchMeter(dag, meter, scorer, options = {}) {
     aliases: meter.aliases,
     status: meter.status,
     repeat,
-    form: formIndex,
+    forms,
     formRole: feet[0] && feet[0].formRole,
+    // صيغة كل شطر على حدة ومرتَّبة، لا مجموعةً مبهمة: البيت قد يأتي
+    // صدرًا ثم عجزًا، وقد يأتي شطراه على الصيغة نفسها.
+    formRoles: forms.map((i) => {
+      const available = meter.forms && meter.forms.length ? meter.forms : [];
+      const f = available[Math.min(i, available.length - 1)];
+      return (f && f.role) || null;
+    }),
     matched: true,
     score,
     confidence,
@@ -1618,17 +1628,17 @@ function matchMeter(dag, meter, scorer, options = {}) {
 /**
  * يبسط تفعيلات البحر على الأشطر المطلوبة.
  *
- * شطر واحد  → الصيغة المطلوبة وحدها (صدر أو عجز).
- * بيت كامل   → الصدر ثم العجز، وهو ترتيبهما في البيت النبطي.
- * وإن لم يكن للبحر إلا صيغة واحدة كُرِّرت، لأن المصدر سوّى بين الشطرين.
+ * الصدر والعجز صورتان للبحر الواحد لا بحران، والعجز هو الصدر مع تذييل.
+ * فيختار كل شطر صيغته باستقلال: شطر واحد قد يأتي على أيّهما، والبيت
+ * الكامل قد يأتي شطراه على صيغتين مختلفتين أو على واحدة.
  */
-function expandFeet(meter, repeat, formIndex) {
-  const forms = meter.forms && meter.forms.length ? meter.forms : [{ feet: meter.feet }];
+function expandFeet(meter, forms) {
+  const available = meter.forms && meter.forms.length
+    ? meter.forms
+    : [{ feet: meter.feet }];
   const out = [];
-  for (let r = 0; r < repeat; r++) {
-    const form = repeat === 1
-      ? forms[Math.min(formIndex || 0, forms.length - 1)]
-      : forms[Math.min(r, forms.length - 1)];
+  forms.forEach((formIndex, r) => {
+    const form = available[Math.min(formIndex, available.length - 1)];
     form.feet.forEach((foot, i) => {
       out.push({
         ...foot,
@@ -1639,7 +1649,7 @@ function expandFeet(meter, repeat, formIndex) {
         isArudDarb: i === form.feet.length - 1,
       });
     });
-  }
+  });
   return out;
 }
 
@@ -1684,11 +1694,8 @@ function rankMeters(dag, registry, scorer, options = {}) {
     let bestForMeter = null;
     const formCount = meter.forms ? meter.forms.length : 1;
     for (const repeat of repeats) {
-      // الشطر الواحد قد يكون صدرًا وقد يكون عجزًا، فتُجرَّب الصيغتان.
-      // والبيت الكامل ترتيبه مثبَّت: صدر ثم عجز، فصيغة واحدة تكفي.
-      const forms = repeat === 1 ? Array.from({ length: formCount }, (_, i) => i) : [0];
-      for (const form of forms) {
-        const r = matchMeter(dag, meter, scorer, { repeat, form });
+      for (const forms of formCombinations(formCount, repeat)) {
+        const r = matchMeter(dag, meter, scorer, { repeat, forms });
         if (!r || !r.matched) continue;
         if (!bestForMeter || r.score > bestForMeter.score) bestForMeter = r;
       }
@@ -1698,6 +1705,23 @@ function rankMeters(dag, registry, scorer, options = {}) {
 
   results.sort((a, b) => b.score - a.score || a.meterId.localeCompare(b.meterId));
   return results;
+}
+
+/**
+ * كل توزيعات الصيغ على الأشطر. لبحر بصيغتين وبيتٍ من شطرين تُنتج أربعة:
+ * صدر‑عجز، وصدر‑صدر، وعجز‑صدر، وعجز‑عجز. عددها صغير دائمًا (٢ أو ٤)
+ * لأن الصيغ لا تتجاوز اثنتين والأشطر لا تتجاوز شطرين.
+ */
+function formCombinations(formCount, repeat) {
+  let out = [[]];
+  for (let r = 0; r < repeat; r++) {
+    const next = [];
+    for (const prefix of out) {
+      for (let f = 0; f < formCount; f++) next.push([...prefix, f]);
+    }
+    out = next;
+  }
+  return out;
 }
 
 function round(x) {
@@ -1821,6 +1845,10 @@ function analyzeLine(input, engine, options = {}) {
         perHemistich: hemistichRuns.map(
           (h) => h.ranking.find((x) => x.meterId === meterId)?.score ?? 0
         ),
+        // كل شطر اختار صيغته باستقلال، فتُجمع اختياراتهم بالترتيب.
+        formRoles: hemistichRuns.map(
+          (h) => h.ranking.find((x) => x.meterId === meterId)?.formRole ?? null
+        ),
       }))
       .sort((a, b) => b.score - a.score || a.meterId.localeCompare(b.meterId));
     unitsAnalysis = hemistichRuns[0];
@@ -1890,6 +1918,7 @@ function analyzeLine(input, engine, options = {}) {
           score: best.score, confidence: best.confidence,
           verdict: best.verdict, repeat: best.repeat, status: best.status,
           formRole: best.formRole || null,
+          formRoles: best.formRoles || (best.formRole ? [best.formRole] : []),
         }
       : null,
     verdict,
@@ -2703,6 +2732,19 @@ const DATA = {
         "khalilLetters": "101100",
         "family": "maqsur",
         "note": "محذوفة من فاعلاتن لا مذيَّلة عنها: فاعلاتن أربعة مقاطع وهذه ثلاثة. تنتهي بمقطع مفرط لأنها صيغة عجز، ونمطها يطابق «فاعلان» — والاسمان مختلفان في المصدر فحُفظا كما وردا."
+      },
+      {
+        "id": "failan_short",
+        "plain": "فعلان",
+        "vocalized": "فَعِلَانْ",
+        "syllables": [
+          "S",
+          "S",
+          "X"
+        ],
+        "khalilLetters": "11100",
+        "family": "mudhayyal",
+        "baseOf": "failun_short"
       }
     ]
   },
@@ -3326,6 +3368,21 @@ const DATA = {
           "result": "فَاعِلَاتْ",
           "syllables": [
             "L",
+            "S",
+            "X"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        }
+      ],
+      "failan_short": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "فَعِلَانْ",
+          "syllables": [
+            "S",
             "S",
             "X"
           ],
@@ -4078,9 +4135,11 @@ const DATA = {
         "status": "OK"
       },
       {
-        "id": "ghayr_musannaf_4",
-        "name": "غير مصنف - 4",
-        "aliases": [],
+        "id": "al_baseet_2",
+        "name": "البسيط - طرق 2",
+        "aliases": [
+          "غير مصنف - 4"
+        ],
         "enabled": true,
         "sourceIndex": 26,
         "forms": [
@@ -4093,17 +4152,21 @@ const DATA = {
               "failun_short"
             ],
             "sourceQuote": "مستفعلن فاعلن مستفعلن فعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "failun",
+              "mustafilun",
+              "failan_short"
+            ],
+            "sourceQuote": "مستفعلن فاعلن مستفعلن فعلان"
           }
         ],
         "expectedSyllableCount": 14,
-        "status": "NEEDS_VALIDATION",
-        "note": "صُحّح بتأكيد المستخدم: المصدر كتب «مستفعلن فاعلن مستفعلن فاعلن» والصواب «مستفعلن فاعلن مستفعلن فعلن». ولم يُعطَ سطر عجز مع التصحيح، فلم يُستنتج له عجز.",
-        "duplicateOf": "al_baseet_b",
-        "validation": {
-          "issue": "بعد تصحيح المستخدم صار هذا مطابقًا تطابقًا تامًّا للوجه الثاني من «البسيط» في القائمة: كلاهما «مستفعلن فاعلن مستفعلن فعلن»، وكلاهما بصيغة واحدة بلا عجز. وهذا يرجّح أنهما مدخل واحد: «غير مصنف - 4» هو البسيط، وعلامة التنبيه ⚠️ في المصدر تدعم ذلك.",
-          "kept": "حُفظ المدخلان. لم يُدمجا ولم يُحذف أحدهما — التسمية قرار المستخدم.",
-          "resolvedBy": "تأكيد أنهما واحد، فيُبقى مدخل واحد ويصير الآخر اسمًا بديلًا"
-        }
+        "status": "OK",
+        "note": "دُمج من مدخلين وردا في القائمة بالوزن نفسه: «البسيط» (السطر الأخير) و«غير مصنف - 4» بعد تصحيحه. أكّد المستخدم أنهما واحد وأعطى سطر العجز. وصف «طرق 2» تسمية تمييز أضفتُها لأن «البسيط» و«البسيط - طرق 1» مأخوذان؛ الاسمان المصدريان محفوظان: «البسيط» في التسمية و«غير مصنف - 4» في aliases."
       },
       {
         "id": "al_hajini_taweel_4",
@@ -4308,34 +4371,6 @@ const DATA = {
         ],
         "expectedSyllableCount": 16,
         "status": "OK"
-      },
-      {
-        "id": "al_baseet_b",
-        "name": "البسيط",
-        "aliases": [],
-        "enabled": true,
-        "sourceIndex": 34,
-        "forms": [
-          {
-            "role": "sadr",
-            "feet": [
-              "mustafilun",
-              "failun",
-              "mustafilun",
-              "failun_short"
-            ],
-            "sourceQuote": "مستفعلن فاعلن مستفعلن فعلن"
-          }
-        ],
-        "expectedSyllableCount": 14,
-        "status": "NEEDS_VALIDATION",
-        "validation": {
-          "issue": "بعد تصحيح المستخدم صار هذا مطابقًا تطابقًا تامًّا للوجه الثاني من «البسيط» في القائمة: كلاهما «مستفعلن فاعلن مستفعلن فعلن»، وكلاهما بصيغة واحدة بلا عجز. وهذا يرجّح أنهما مدخل واحد: «غير مصنف - 4» هو البسيط، وعلامة التنبيه ⚠️ في المصدر تدعم ذلك.",
-          "kept": "حُفظ المدخلان. لم يُدمجا ولم يُحذف أحدهما.",
-          "resolvedBy": "تأكيد أنهما واحد"
-        },
-        "note": "المصدر أعطى سطرًا واحدًا لهذا الوجه، ولم يذكر له عجزًا.",
-        "duplicateOf": "ghayr_musannaf_4"
       }
     ],
     "notInSource": []
@@ -4888,6 +4923,19 @@ const VERDICT_LABEL = {
   unrecognized: 'غير محدَّد',
 };
 
+/**
+ * شارة صيغة كل شطر. الصدر والعجز صورتان للبحر الواحد لا بحران، فالمهمّ
+ * إظهار أن البيت عُرِف وعلى أي صورة جاء كل شطر منه.
+ */
+const FORM_LABEL = { sadr: 'صدر', ajz: 'عجز' };
+function formBadges(m) {
+  const roles = (m.formRoles && m.formRoles.length ? m.formRoles : [m.formRole])
+    .filter(Boolean);
+  if (!roles.length) return '';
+  if (roles.length === 1) return `<span class="badge">${FORM_LABEL[roles[0]] || roles[0]}</span>`;
+  return `<span class="badge">${roles.map((x) => FORM_LABEL[x] || x).join(' + ')}</span>`;
+}
+
 function renderResult(r) {
   if (!r.bestMeter) {
     return `<div class="panel"><div class="note warn"><strong>${esc(r.explanation.title)}</strong><br>${esc(r.explanation.text)}</div></div>`;
@@ -4900,8 +4948,7 @@ function renderResult(r) {
       <span class="name">${esc(m.name)}</span>
       <span class="badge ${r.verdict}">${VERDICT_LABEL[r.verdict] || r.verdict}</span>
       ${m.repeat > 1 ? '<span class="badge">شطران</span>' : ''}
-      ${m.formRole === 'sadr' ? '<span class="badge">صدر</span>' : ''}
-      ${m.formRole === 'ajz' ? '<span class="badge">عجز — مذيَّل</span>' : ''}
+      ${formBadges(m)}
       ${m.status === 'NEEDS_VALIDATION' ? '<span class="badge broken">تعريفه يحتاج تحقّقًا</span>' : ''}
     </div>
     <div class="scores">

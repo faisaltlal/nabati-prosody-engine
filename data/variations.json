@@ -625,6 +625,21 @@
         "scope": "any",
         "severity": 1
       }
+    ],
+    "failan_short": [
+      {
+        "id": "salim",
+        "name": "سالم",
+        "result": "فَعِلَانْ",
+        "syllables": [
+          "S",
+          "S",
+          "X"
+        ],
+        "kind": "salim",
+        "scope": "any",
+        "severity": 1
+      }
     ]
   }
 }
