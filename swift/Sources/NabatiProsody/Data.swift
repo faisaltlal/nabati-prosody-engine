@@ -35,13 +35,19 @@ struct VariationsFile: Codable { let variations: [String: [Variation]] }
 
 // MARK: - البحور
 
+/// صيغة واحدة من صيغتَي البحر: صدر أو عجز.
+public struct MeterForm: Codable, Sendable {
+    public let role: String?
+    public let feet: [String]
+    public let sourceQuote: String?
+}
+
 public struct MeterDef: Codable, Sendable {
     public let id: String
     public let name: String
     public let aliases: [String]?
     public let enabled: Bool?
-    public let sourceQuote: String?
-    public let feet: [String]?
+    public let forms: [MeterForm]?
     public let expectedSyllableCount: Int?
     public let status: String?
     public let note: String?

@@ -126,10 +126,11 @@ public struct ProsodyEngine: Sendable {
         return (units, dag, SyllableParser.freeSyllabify(dag))
     }
 
-    public func matchPattern(_ pattern: [SyllableWeight], meter: String, repeatCount: Int = 1) throws -> MeterMatch {
+    public func matchPattern(_ pattern: [SyllableWeight], meter: String,
+                             repeatCount: Int = 1, form: Int = 0) throws -> MeterMatch {
         guard let m = registry.find(meter) else { throw EngineError.unknownMeter(meter) }
         guard let r = MeterMatcher.match(dag: SyllableDag.fromPattern(pattern), meter: m,
-                                         scorer: scorer, repeatCount: repeatCount) else {
+                                         scorer: scorer, repeatCount: repeatCount, form: form) else {
             throw EngineError.unknownMeter(meter)
         }
         return r

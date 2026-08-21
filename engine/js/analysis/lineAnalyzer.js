@@ -178,6 +178,7 @@ export function analyzeLine(input, engine, options = {}) {
           id: best.meterId, name: best.name, aliases: best.aliases,
           score: best.score, confidence: best.confidence,
           verdict: best.verdict, repeat: best.repeat, status: best.status,
+          formRole: best.formRole || null,
         }
       : null,
     verdict,

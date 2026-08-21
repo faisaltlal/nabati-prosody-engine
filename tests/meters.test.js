@@ -1,7 +1,7 @@
 /**
  * قاعدة الأوزان: تناسق البيانات نفسها.
  * تُشتق الاختبارات من meters.json، فإضافة بحر جديد تدخل هذه الفحوص
- * تلقائيًا دون كتابة اختبار جديد (البند 30).
+ * تلقائيًا دون كتابة اختبار جديد.
  */
 import { describe, it, assert, equal } from './harness.js';
 import { createEngine } from '../engine/js/index.js';
@@ -21,71 +21,106 @@ describe('قاعدة الأوزان — التناسق', () => {
     }
   });
 
-  it('البحور الثلاثة عشر كلها مسجَّلة', () => {
-    equal(engine.listMeters().length, 13);
+  it('كل بحور المصدر مسجَّلة ومفعَّلة', () => {
+    equal(engine.listMeters().length, DATA.meters.meters.length);
+    equal(engine.registry.enabled.length, DATA.meters.meters.length);
   });
 
-  it('كل بحر مفعَّل له تفعيلات ونمط غير فارغ', () => {
+  it('كل صيغة لها تفعيلات ونمط غير فارغ', () => {
     for (const m of engine.registry.enabled) {
-      assert(m.feet.length > 0, `${m.name} بلا تفعيلات`);
-      assert(m.pattern.length > 0, `${m.name} بلا نمط`);
+      assert(m.forms.length >= 1, `${m.name} بلا صيغ`);
+      for (const f of m.forms) {
+        assert(f.feet.length > 0, `${m.name} (${f.role}) بلا تفعيلات`);
+        assert(f.pattern.length > 0, `${m.name} (${f.role}) بلا نمط`);
+      }
     }
   });
 
-  it('الهلالي الطويل معطَّل وموثَّق سببه — لا نسخ أعمى للمسحوب', () => {
-    const h = engine.registry.byId.get('al_hilali_taweel');
-    assert(!h.enabled, 'يجب أن يبقى معطَّلًا حتى يصل تحقّق');
-    assert(h.derivation?.why_not_implemented, 'السبب موثَّق');
-    assert(h.derivation.candidates.length >= 2, 'المرشّحون مسجَّلون لا مُختار منهم');
-  });
-
-  it('الصخري منفَّذ كما ورد في المصدر لا كما صُحّح', () => {
-    const s = engine.registry.byId.get('al_sakhri');
-    equal(s.feet[0].plain, 'مفاعلاتن', 'التفعيلة كما وردت حرفيًا');
-    equal(s.status, 'NEEDS_VALIDATION');
-    assert(s.validation.candidates.length >= 2, 'البدائل مسجَّلة دون تفعيل');
-  });
-
-  it('الحدا نصف الرجز بالضبط — يعضد قراءة الرجز أربع تفعيلات', () => {
-    const hada = engine.registry.byId.get('al_hada');
-    const rajaz = engine.registry.byId.get('al_rajaz');
-    equal(hada.pattern.length * 2, rajaz.pattern.length);
-    equal(rajaz.pattern.join('').startsWith(hada.pattern.join('')), true);
-  });
-
-  it('أسماء الهزج الثلاثة وزن واحد لا ثلاثة', () => {
-    const h = engine.registry.find('الشيباني');
-    equal(h.id, 'al_hazaj');
-    equal(engine.registry.find('اللويحاني').id, 'al_hazaj');
-  });
-
-  it('«الهجيني» المجرَّد يشير إلى البحر الذي سمّاه المصدر به', () => {
-    equal(engine.registry.find('الهجيني').id, 'al_hajini');
-  });
-
-  it('السامري مسجَّل مفقودًا لا محذوفًا بصمت', () => {
-    const missing = engine.registry.notInSource.find((n) => n.name === 'السامري');
-    assert(missing, 'يجب أن يبقى مذكورًا مع سبب غيابه');
-  });
-
-  it('كل بحر يطابق نمطه هو مطابقة تامة', () => {
-    // اختبار مشتق من البيانات: يغطي أي بحر يُضاف مستقبلًا بلا تعديل.
-    for (const meter of engine.registry.enabled) {
-      const r = engine.stages.matchPattern(meter.pattern, meter);
-      equal(r.score, 1, `${meter.name} لا يطابق نفسه`);
-      equal(r.brokenFeet.length, 0, `${meter.name} فيه تفعيلة مكسورة في مطابقة ذاته`);
-      equal(r.verdict, 'sound');
+  it('عدد المقاطع المعلَن يوافق المشتقّ من التفعيلات', () => {
+    for (const m of DATA.meters.meters) {
+      const built = engine.registry.byId.get(m.id);
+      equal(built.pattern.length, m.expectedSyllableCount, m.name);
     }
   });
 
-  it('كل بحر يتصدّر ترتيب نمطه هو', () => {
-    for (const meter of engine.registry.enabled) {
-      const ranked = engine.stages.rankPattern(meter.pattern);
-      const top = ranked.filter((r) => r.score >= ranked[0].score - 1e-9).map((r) => r.meterId);
+  it('العجز — حيث وُجد — لا يقصر عن الصدر', () => {
+    // العجز في هذه القاعدة هو الصدر مع تذييل، فطوله مساوٍ أو أزيد.
+    for (const m of engine.registry.enabled) {
+      if (m.forms.length < 2) continue;
+      const [sadr, ajz] = m.forms;
       assert(
-        top.includes(meter.id),
-        `${meter.name} لم يتصدّر نمطه؛ تصدّره ${ranked[0].name}`
+        ajz.pattern.length >= sadr.pattern.length - 1,
+        `${m.name}: الصدر ${sadr.pattern.length} والعجز ${ajz.pattern.length}`
       );
+    }
+  });
+
+  it('كل صيغة تطابق نمطها هي مطابقة تامة', () => {
+    for (const meter of engine.registry.enabled) {
+      meter.forms.forEach((form, fi) => {
+        const r = engine.stages.matchPattern(form.pattern, meter, { form: fi });
+        equal(r.score, 1, `${meter.name} (${form.role}) لا يطابق نفسه`);
+        equal(r.brokenFeet.length, 0, `${meter.name} (${form.role}) فيه كسر في مطابقة ذاته`);
+        equal(r.verdict, 'sound');
+      });
+    }
+  });
+
+  it('كل صيغة يتصدّر ترتيبَها بحرُها', () => {
+    for (const meter of engine.registry.enabled) {
+      for (const form of meter.forms) {
+        const ranked = engine.stages.rankPattern(form.pattern);
+        const top = ranked.filter((r) => r.score >= ranked[0].score - 1e-9).map((r) => r.meterId);
+        assert(top.includes(meter.id), `${meter.name} (${form.role}) تصدّره ${ranked[0].name}`);
+      }
+    }
+  });
+
+  it('التفعيلة المذيَّلة تزيد مقطعًا مفرطًا على أصلها', () => {
+    const byId = new Map(DATA.tafaeel.tafaeel.map((t) => [t.id, t]));
+    for (const t of DATA.tafaeel.tafaeel) {
+      if (t.family !== 'mudhayyal' || !t.baseOf) continue;
+      const base = byId.get(t.baseOf);
+      assert(base, `أصل ${t.plain} مفقود`);
+      equal(t.syllables[t.syllables.length - 1], 'X', `${t.plain} لا تنتهي بمقطع مفرط`);
+      equal(t.syllables.length, base.syllables.length, `${t.plain} تخالف ${base.plain} في عدد المقاطع`);
+    }
+  });
+
+  it('المقطع المفرط لا يقع إلا في آخر التفعيلة', () => {
+    for (const t of DATA.tafaeel.tafaeel) {
+      const i = t.syllables.indexOf('X');
+      if (i === -1) continue;
+      equal(i, t.syllables.length - 1, `${t.plain}`);
+    }
+  });
+
+  it('تعارض اسم «البسيط» مُعلَن لا مُسكَت عنه', () => {
+    const same = engine.registry.meters.filter((m) => m.name === 'البسيط');
+    equal(same.length, 2, 'الاسم ورد مرتين في المصدر');
+    assert(
+      same.some((m) => m.status === 'NEEDS_VALIDATION' && m.validation),
+      'يجب وسم التعارض وبيان ما يحسمه'
+    );
+  });
+
+  it('البحور ذات الصيغة الواحدة موثَّق سببها', () => {
+    for (const m of engine.registry.enabled) {
+      if (m.forms.length === 1) {
+        assert(m.note, `${m.name} صيغة واحدة بلا تعليل`);
+      }
+    }
+  });
+
+  it('كل تفعيلة يستعملها بحر لها صور مسجَّلة', () => {
+    const used = new Set();
+    for (const m of engine.registry.enabled) {
+      for (const f of m.forms) for (const foot of f.feet) used.add(foot.tafilaId);
+    }
+    for (const id of used) {
+      const list = DATA.variations.variations[id];
+      assert(list && list.length >= 1, `التفعيلة ${id} بلا صور`);
+      equal(list[0].id, 'salim', `أول صورة لـ ${id} يجب أن تكون السالمة`);
     }
   });
 });

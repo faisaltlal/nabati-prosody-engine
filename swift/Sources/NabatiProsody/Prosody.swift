@@ -117,15 +117,17 @@ public enum SyllableParser {
                         onset: onset.consonant, coda: coda.consonant,
                         assumed: codaAssumed, rule: nil, ishbaa: false
                     ))
+                } else if afterNucleus + 1 == n {
+                    // آخر الشطر: التقاء الساكنين جائز، فيثبت المدّ ويبقى
+                    // المقطع مفرطًا. ولا قراءة مقصورة هنا، لأن القصر إنما
+                    // هو فرارٌ من التقاء ساكنين ممنوع — وهو هنا مأذون فيه.
+                    edges[i].append(SyllableEdge(
+                        from: i, to: afterNucleus + 1, weight: .X, shape: "CVVC",
+                        onset: onset.consonant, coda: coda.consonant,
+                        assumed: codaAssumed, rule: nil, ishbaa: false
+                    ))
                 } else {
-                    if afterNucleus + 1 == n {
-                        edges[i].append(SyllableEdge(
-                            from: i, to: afterNucleus + 1, weight: .X, shape: "CVVC",
-                            onset: onset.consonant, coda: coda.consonant,
-                            assumed: codaAssumed, rule: nil, ishbaa: false
-                        ))
-                    }
-                    // التقاء الساكنين: حرف المدّ يسقط فيقصر المقطع.
+                    // وسط الشطر: التقاء الساكنين ممنوع فيسقط حرف المدّ.
                     edges[i].append(SyllableEdge(
                         from: i, to: afterNucleus + 1, weight: .L, shape: "CVC",
                         onset: onset.consonant, coda: coda.consonant,

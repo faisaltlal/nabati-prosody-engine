@@ -14,6 +14,15 @@ public struct Foot: Sendable {
     public let variants: [Variation]
 }
 
+/// صيغة مبنيّة: تفعيلاتها ونمطها.
+public struct BuiltForm: Sendable {
+    public let role: String?
+    public let sourceQuote: String?
+    public let feet: [Foot]
+    public let pattern: [SyllableWeight]
+    public let tafaeelNames: [String]
+}
+
 public struct Meter: Sendable {
     public let id: String
     public let name: String
@@ -22,9 +31,12 @@ public struct Meter: Sendable {
     public let status: String?
     public let sourceQuote: String?
     public let note: String?
-    public let feet: [Foot]
-    public let pattern: [SyllableWeight]
-    public let tafaeelNames: [String]
+    /// forms[0] صدر و forms[1] عجز — والعجز هو الصدر مع تذييل.
+    public let forms: [BuiltForm]
+    /// الصدر هو الصيغة المرجعية.
+    public var feet: [Foot] { forms.first?.feet ?? [] }
+    public var pattern: [SyllableWeight] { forms.first?.pattern ?? [] }
+    public var tafaeelNames: [String] { forms.first?.tafaeelNames ?? [] }
 }
 
 public struct IntegrityProblem: Sendable {
@@ -57,11 +69,12 @@ public struct MeterRegistry: Sendable {
 
         var built: [Meter] = []
         for m in data.meters {
-            var feet: [Foot] = []
-            var pattern: [SyllableWeight] = []
-            var names: [String] = []
-            if let ids = m.feet {
-                for (i, fid) in ids.enumerated() {
+            var forms: [BuiltForm] = []
+            for form in m.forms ?? [] {
+                var feet: [Foot] = []
+                var pattern: [SyllableWeight] = []
+                var names: [String] = []
+                for (i, fid) in form.feet.enumerated() {
                     guard let t = tafilaById[fid] else {
                         problems.append(.init(kind: "unknown_tafila", detail: "\(m.id) → \(fid)"))
                         continue
@@ -71,16 +84,20 @@ public struct MeterRegistry: Sendable {
                     pattern.append(contentsOf: weights(t.syllables))
                     names.append(t.plain)
                 }
-                if let declared = m.expectedSyllableCount, declared != pattern.count {
-                    problems.append(.init(kind: "syllable_count_mismatch",
-                                          detail: "\(m.id): declared \(declared), derived \(pattern.count)"))
-                }
+                forms.append(BuiltForm(role: form.role, sourceQuote: form.sourceQuote,
+                                       feet: feet, pattern: pattern, tafaeelNames: names))
+            }
+            let sadrCount = forms.first?.pattern.count ?? 0
+            if let declared = m.expectedSyllableCount, declared != sadrCount {
+                problems.append(.init(kind: "syllable_count_mismatch",
+                                      detail: "\(m.id): declared \(declared), derived \(sadrCount)"))
             }
             built.append(Meter(
                 id: m.id, name: m.name, aliases: m.aliases ?? [],
-                enabled: (m.enabled ?? true) && !pattern.isEmpty,
-                status: m.status, sourceQuote: m.sourceQuote, note: m.note,
-                feet: feet, pattern: pattern, tafaeelNames: names
+                enabled: (m.enabled ?? true) && sadrCount > 0,
+                status: m.status,
+                sourceQuote: forms.compactMap { $0.sourceQuote }.joined(separator: "  /  "),
+                note: m.note, forms: forms
             ))
         }
 
@@ -299,18 +316,24 @@ public struct MeterMatch: Sendable {
 public enum MeterMatcher {
     private struct State { let cost: Double; let chosen: [ChosenFoot] }
 
-    public static func match(dag: SyllableDag, meter: Meter, scorer: Scorer, repeatCount: Int = 1) -> MeterMatch? {
+    /// شطر واحد → الصيغة المطلوبة وحدها. بيت كامل → الصدر ثم العجز.
+    public static func match(dag: SyllableDag, meter: Meter, scorer: Scorer,
+                             repeatCount: Int = 1, form formIndex: Int = 0) -> MeterMatch? {
         struct ExpandedFoot {
             let foot: Foot
             let hemistich: Int
             let isFirst: Bool
             let isArudDarb: Bool
         }
+        guard !meter.forms.isEmpty else { return nil }
         var expanded: [ExpandedFoot] = []
         for r in 0..<repeatCount {
-            for (i, f) in meter.feet.enumerated() {
+            let idx = repeatCount == 1 ? min(formIndex, meter.forms.count - 1)
+                                       : min(r, meter.forms.count - 1)
+            let feet = meter.forms[idx].feet
+            for (i, f) in feet.enumerated() {
                 expanded.append(ExpandedFoot(foot: f, hemistich: r, isFirst: i == 0,
-                                             isArudDarb: i == meter.feet.count - 1))
+                                             isArudDarb: i == feet.count - 1))
             }
         }
         guard !expanded.isEmpty else { return nil }
@@ -356,7 +379,7 @@ public enum MeterMatcher {
         }
         guard let b = best else { return nil }
 
-        let meterSyllables = meter.pattern.count * repeatCount
+        let meterSyllables = expanded.reduce(0) { $0 + $1.foot.salim.count }
         let f = scorer.finalize(cost: b.total, meterSyllables: meterSyllables,
                                 assumedVocalization: dag.assumedVocalization)
 
@@ -410,8 +433,13 @@ public enum MeterMatcher {
         for meter in registry.enabled {
             var bestForMeter: MeterMatch?
             for r in repeats {
-                guard let m = match(dag: dag, meter: meter, scorer: scorer, repeatCount: r) else { continue }
-                if bestForMeter == nil || m.score > bestForMeter!.score { bestForMeter = m }
+                // الشطر الواحد قد يكون صدرًا وقد يكون عجزًا، فتُجرَّب الصيغتان.
+                let forms = r == 1 ? Array(0..<meter.forms.count) : [0]
+                for f in forms {
+                    guard let m = match(dag: dag, meter: meter, scorer: scorer,
+                                        repeatCount: r, form: f) else { continue }
+                    if bestForMeter == nil || m.score > bestForMeter!.score { bestForMeter = m }
+                }
             }
             if let b = bestForMeter { out.append(b) }
         }

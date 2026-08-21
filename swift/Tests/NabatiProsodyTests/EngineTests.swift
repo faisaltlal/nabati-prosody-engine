@@ -13,8 +13,10 @@ final class EngineTests: XCTestCase {
 
     func testDataLoads() throws {
         let engine = try makeEngine()
-        XCTAssertEqual(engine.registry.meters.count, 13, "البحور الثلاثة عشر")
-        XCTAssertEqual(engine.registry.enabled.count, 12, "اثنا عشر مفعَّلًا والهلالي معطَّل")
+        XCTAssertEqual(engine.registry.meters.count, engine.data.meters.count)
+        XCTAssertEqual(engine.registry.enabled.count, engine.data.meters.count,
+                       "كل بحور المصدر مفعَّلة")
+        XCTAssertGreaterThan(engine.registry.meters.count, 30)
     }
 
     func testNoIntegrityProblems() throws {
@@ -25,24 +27,20 @@ final class EngineTests: XCTestCase {
         )
     }
 
-    func testHilaliStaysDisabled() throws {
+    func testEveryMeterHasAtLeastOneForm() throws {
         let engine = try makeEngine()
-        let h = engine.registry.meters.first { $0.id == "al_hilali_taweel" }
-        XCTAssertNotNil(h)
-        XCTAssertFalse(h!.enabled, "لا يُفعَّل قبل أن يصل تحقّق")
+        for m in engine.registry.enabled {
+            XCTAssertFalse(m.forms.isEmpty, "\(m.name) بلا صيغ")
+            for f in m.forms {
+                XCTAssertFalse(f.feet.isEmpty, "\(m.name) (\(f.role ?? "?")) بلا تفعيلات")
+            }
+        }
     }
 
-    func testSakhriKeepsSourceTafila() throws {
+    func testFindByName() throws {
         let engine = try makeEngine()
-        let s = engine.registry.meters.first { $0.id == "al_sakhri" }
-        XCTAssertEqual(s?.feet.first?.plain, "مفاعلاتن", "التفعيلة كما وردت في المصدر لا كما صُحّحت")
-    }
-
-    func testAliases() throws {
-        let engine = try makeEngine()
-        XCTAssertEqual(engine.registry.find("الشيباني")?.id, "al_hazaj")
-        XCTAssertEqual(engine.registry.find("اللويحاني")?.id, "al_hazaj")
-        XCTAssertEqual(engine.registry.find("الهجيني")?.id, "al_hajini")
+        XCTAssertEqual(engine.registry.find("المسحوب")?.id, "al_maskhub")
+        XCTAssertEqual(engine.registry.find("al_ramal")?.name, "الرمل")
     }
 
     // MARK: الأصوات — نفس حالات جافاسكربت
@@ -77,22 +75,29 @@ final class EngineTests: XCTestCase {
 
     // MARK: المطابقة
 
-    func testEachMeterMatchesItself() throws {
+    /// كل صيغة — صدرًا كانت أو عجزًا — تطابق نفسها مطابقة تامة.
+    func testEveryFormMatchesItself() throws {
         let engine = try makeEngine()
         for meter in engine.registry.enabled {
-            let r = try engine.matchPattern(meter.pattern, meter: meter.id)
-            XCTAssertEqual(r.score, 1.0, accuracy: 1e-9, "\(meter.name) لا يطابق نفسه")
-            XCTAssertTrue(r.brokenFeet.isEmpty, "\(meter.name) فيه كسر في مطابقة ذاته")
-            XCTAssertEqual(r.verdict, "sound", meter.name)
+            for (i, form) in meter.forms.enumerated() {
+                let r = try engine.matchPattern(form.pattern, meter: meter.id, form: i)
+                XCTAssertEqual(r.score, 1.0, accuracy: 1e-9,
+                               "\(meter.name) (\(form.role ?? "?")) لا يطابق نفسه")
+                XCTAssertTrue(r.brokenFeet.isEmpty, "\(meter.name) (\(form.role ?? "?")) فيه كسر")
+                XCTAssertEqual(r.verdict, "sound", meter.name)
+            }
         }
     }
 
-    func testEachMeterTopsItsOwnPattern() throws {
+    func testEveryFormTopsItsOwnPattern() throws {
         let engine = try makeEngine()
         for meter in engine.registry.enabled {
-            let ranked = engine.rankPattern(meter.pattern)
-            let top = ranked.filter { $0.score >= ranked[0].score - 1e-9 }.map(\.meterId)
-            XCTAssertTrue(top.contains(meter.id), "\(meter.name) تصدّره \(ranked[0].name)")
+            for form in meter.forms {
+                let ranked = engine.rankPattern(form.pattern)
+                let top = ranked.filter { $0.score >= ranked[0].score - 1e-9 }.map(\.meterId)
+                XCTAssertTrue(top.contains(meter.id),
+                              "\(meter.name) (\(form.role ?? "?")) تصدّره \(ranked[0].name)")
+            }
         }
     }
 
@@ -114,8 +119,9 @@ final class EngineTests: XCTestCase {
 
     func testLengthSeparatesOverlappingMeters() throws {
         let engine = try makeEngine()
-        XCTAssertEqual(engine.rankPattern(pattern("LLSLLLSL"))[0].meterId, "al_hada")
-        XCTAssertEqual(engine.rankPattern(pattern("LLSLLLSLLLSLLLSL"))[0].meterId, "al_rajaz")
+        XCTAssertEqual(engine.rankPattern(pattern("LLSLLLSL"))[0].meterId, "al_rajaz_majzu")
+        XCTAssertEqual(engine.rankPattern(pattern("LLSLLLSLLLSLLLSL"))[0].meterId,
+                       "al_rajaz_taweel_hada_1")
     }
 
     func testAllFeetBrokenIsNotCloseToAnything() throws {
@@ -182,8 +188,8 @@ final class EngineTests: XCTestCase {
     func testOpenQuestionsAreDeclared() throws {
         let engine = try makeEngine()
         let q = engine.openQuestions()
-        XCTAssertGreaterThanOrEqual(q.count, 4, "ما لم يُحسم يجب أن يبقى معلنًا")
-        XCTAssertTrue(q.contains { $0.contains("missing_meter") }, "السامري مفقود")
+        XCTAssertGreaterThanOrEqual(q.count, 2, "ما لم يُحسم يجب أن يبقى معلنًا")
+        XCTAssertTrue(q.contains { $0.contains("encoding") }, "ترميز التطبيق غير مثبت")
     }
 
     // MARK: أدوات

@@ -2,20 +2,21 @@
 // أعِد التوليد بـ: node tools/bundle-data.js
 export const DATA = {
   "tafaeel": {
-    "$schema": "./schema/tafaeel.schema.json",
-    "description": "التفعيلات. كل تفعيلة معرَّفة بنمطها المقطعي (S=مقطع قصير CV، L=مقطع طويل CVC أو CVV) وبنمطها الحرفي الخليلي (1=متحرك، 0=ساكن). النمطان مشتقّان من نطق التفعيلة نفسها، ومُتحقَّق من تطابقهما آليًا في tests/meters.test.js.",
+    "description": "التفعيلات. كل تفعيلة معرَّفة بنمطها المقطعي (S=مقطع قصير CV، L=مقطع طويل CVC أو CVV، X=مقطع مفرط CVVC) وبنمطها الحرفي الخليلي (1=متحرك، 0=ساكن). النمطان مشتقّان من نطق التفعيلة نفسها، ومُتحقَّق من تطابقهما آليًا في tests/meters.test.js.",
     "legend": {
       "syllables": {
         "S": "مقطع قصير — صامت + حركة قصيرة (CV)",
-        "L": "مقطع طويل — CVC أو CVV"
+        "L": "مقطع طويل — CVC أو CVV",
+        "X": "مقطع مفرط الطول — CVVC، ولا يقع إلا في آخر الشطر"
       },
       "khalilLetters": {
         "0": "ساكن",
         "1": "متحرك"
       },
-      "status": {
-        "STANDARD": "تفعيلة خليلية موثّقة",
-        "NEEDS_VALIDATION": "وردت في المادة المصدرية لكن لم تثبت صحتها — لم تُغيَّر"
+      "family": {
+        "base": "تفعيلة أصلية",
+        "mudhayyal": "تفعيلة مذيَّلة — زِيدَ عليها ساكن في آخر الشطر، وهي صورة العجز في هذه القاعدة",
+        "maqsur": "تفعيلة محذوف آخرها"
       }
     },
     "tafaeel": [
@@ -29,11 +30,7 @@ export const DATA = {
           "L"
         ],
         "khalilLetters": "11010",
-        "components": [
-          "وتد مجموع",
-          "سبب خفيف"
-        ],
-        "status": "STANDARD"
+        "family": "base"
       },
       {
         "id": "failun",
@@ -45,11 +42,7 @@ export const DATA = {
           "L"
         ],
         "khalilLetters": "10110",
-        "components": [
-          "سبب خفيف",
-          "وتد مجموع"
-        ],
-        "status": "STANDARD"
+        "family": "base"
       },
       {
         "id": "mafailun",
@@ -62,12 +55,7 @@ export const DATA = {
           "L"
         ],
         "khalilLetters": "1101010",
-        "components": [
-          "وتد مجموع",
-          "سبب خفيف",
-          "سبب خفيف"
-        ],
-        "status": "STANDARD"
+        "family": "base"
       },
       {
         "id": "mustafilun",
@@ -80,12 +68,7 @@ export const DATA = {
           "L"
         ],
         "khalilLetters": "1010110",
-        "components": [
-          "سبب خفيف",
-          "سبب خفيف",
-          "وتد مجموع"
-        ],
-        "status": "STANDARD"
+        "family": "base"
       },
       {
         "id": "failatun",
@@ -98,12 +81,19 @@ export const DATA = {
           "L"
         ],
         "khalilLetters": "1011010",
-        "components": [
-          "سبب خفيف",
-          "وتد مجموع",
-          "سبب خفيف"
+        "family": "base"
+      },
+      {
+        "id": "mafulun",
+        "plain": "مفعولن",
+        "vocalized": "مَفْعُولُنْ",
+        "syllables": [
+          "L",
+          "L",
+          "L"
         ],
-        "status": "STANDARD"
+        "khalilLetters": "101010",
+        "family": "base"
       },
       {
         "id": "failun_short",
@@ -115,11 +105,8 @@ export const DATA = {
           "L"
         ],
         "khalilLetters": "1110",
-        "components": [
-          "فاصلة صغرى"
-        ],
-        "status": "STANDARD",
-        "note": "المخبونة. الرسم «فعلن» يحتمل أيضًا فَعْلُنْ — انظر faalun."
+        "family": "base",
+        "note": "الرسم «فعلن» يحتمل فَعِلُنْ وفَعْلُنْ — التمييز صورةٌ في variations لا تفعيلتان."
       },
       {
         "id": "faalun",
@@ -130,60 +117,165 @@ export const DATA = {
           "L"
         ],
         "khalilLetters": "1010",
-        "components": [
-          "سبب خفيف",
-          "سبب خفيف"
-        ],
-        "status": "STANDARD",
-        "note": "المقطوعة. نفس رسم فَعِلُنْ غير مشكولًا — التمييز بينهما variation لا تفعيلتان منفصلتان في المطابقة."
+        "family": "base",
+        "note": "القراءة الثانية لرسم «فعلن»."
       },
       {
-        "id": "mufaalatun",
-        "plain": "مفاعلتن",
-        "vocalized": "مُفَاعَلَتُنْ",
+        "id": "faal",
+        "plain": "فعل",
+        "vocalized": "فَعَلْ",
         "syllables": [
-          "S",
-          "L",
-          "S",
           "S",
           "L"
         ],
-        "khalilLetters": "1101110",
-        "components": [
-          "وتد مجموع",
-          "فاصلة صغرى"
-        ],
-        "status": "STANDARD",
-        "note": "غير مستعملة في أي بحر من مصدرنا — مُدرجة لأنها أحد المرشحَين لتصحيح «مفاعلاتن»."
+        "khalilLetters": "110",
+        "family": "maqsur"
       },
       {
-        "id": "mufaalatun_source",
-        "plain": "مفاعلاتن",
-        "vocalized": "مُفَاعَلَاتُنْ",
+        "id": "faa",
+        "plain": "فع",
+        "vocalized": "فَعْ",
         "syllables": [
-          "S",
-          "L",
-          "S",
+          "L"
+        ],
+        "khalilLetters": "10",
+        "family": "maqsur"
+      },
+      {
+        "id": "fail",
+        "plain": "فاعل",
+        "vocalized": "فَاعِلْ",
+        "syllables": [
           "L",
           "L"
         ],
-        "khalilLetters": "11011010",
-        "components": [
-          "وتد مجموع",
-          "وتد مجموع",
-          "سبب خفيف"
-        ],
+        "khalilLetters": "1010",
+        "family": "maqsur",
         "status": "NEEDS_VALIDATION",
-        "sourceQuote": "الصخري: مفاعلاتن | مفاعلاتن | فعولن",
         "validation": {
-          "issue": "ثمانية أحرف. لا تفعيلة خليلية تتجاوز سبعة.",
-          "candidates": [
-            "mufaalatun",
-            "mafailun"
-          ],
-          "resolvedBy": "بيت صخري واحد حقيقي مع تقطيعه من تطبيق ميزان النبط",
-          "action": "مُبقاة كما وردت حرفيًا في المصدر. لم يُغيَّر شيء."
+          "issue": "وردت في صدر «البسيط»: مستفعلن فاعل مستفعلن فاعلن. «فاعل» ليست من تفاعيل الخليل، وقد تكون رسمًا مختصرًا لـ«فاعلن».",
+          "kept": "نُفِّذت كما وردت حرفيًا — لم تُصحَّح.",
+          "resolvedBy": "بيت بسيط واحد مقطَّع يبيّن أهي مقطعان أم ثلاثة"
         }
+      },
+      {
+        "id": "maful",
+        "plain": "مفعول",
+        "vocalized": "مَفْعُولْ",
+        "syllables": [
+          "L",
+          "X"
+        ],
+        "khalilLetters": "10100",
+        "family": "maqsur"
+      },
+      {
+        "id": "mustafilatun",
+        "plain": "مستفعلاتن",
+        "vocalized": "مُسْتَفْعِلَاتُنْ",
+        "syllables": [
+          "L",
+          "L",
+          "S",
+          "L",
+          "L"
+        ],
+        "khalilLetters": "101011010",
+        "family": "base"
+      },
+      {
+        "id": "failatan",
+        "plain": "فاعلاتان",
+        "vocalized": "فَاعِلَاتَانْ",
+        "syllables": [
+          "L",
+          "S",
+          "L",
+          "X"
+        ],
+        "khalilLetters": "10110100",
+        "family": "mudhayyal",
+        "baseOf": "failatun"
+      },
+      {
+        "id": "mustafilan",
+        "plain": "مستفعلان",
+        "vocalized": "مُسْتَفْعِلَانْ",
+        "syllables": [
+          "L",
+          "L",
+          "S",
+          "X"
+        ],
+        "khalilLetters": "10101100",
+        "family": "mudhayyal",
+        "baseOf": "mustafilun"
+      },
+      {
+        "id": "mafailan",
+        "plain": "مفاعيلان",
+        "vocalized": "مَفَاعِيلَانْ",
+        "syllables": [
+          "S",
+          "L",
+          "L",
+          "X"
+        ],
+        "khalilLetters": "11010100",
+        "family": "mudhayyal",
+        "baseOf": "mafailun"
+      },
+      {
+        "id": "faulan",
+        "plain": "فعولان",
+        "vocalized": "فَعُولَانْ",
+        "syllables": [
+          "S",
+          "L",
+          "X"
+        ],
+        "khalilLetters": "110100",
+        "family": "mudhayyal",
+        "baseOf": "faulun"
+      },
+      {
+        "id": "failan",
+        "plain": "فاعلان",
+        "vocalized": "فَاعِلَانْ",
+        "syllables": [
+          "L",
+          "S",
+          "X"
+        ],
+        "khalilLetters": "101100",
+        "family": "mudhayyal",
+        "baseOf": "failun"
+      },
+      {
+        "id": "mafulan",
+        "plain": "مفعولان",
+        "vocalized": "مَفْعُولَانْ",
+        "syllables": [
+          "L",
+          "L",
+          "X"
+        ],
+        "khalilLetters": "1010100",
+        "family": "mudhayyal",
+        "baseOf": "mafulun"
+      },
+      {
+        "id": "failat",
+        "plain": "فاعلات",
+        "vocalized": "فَاعِلَاتْ",
+        "syllables": [
+          "L",
+          "S",
+          "X"
+        ],
+        "khalilLetters": "101100",
+        "family": "maqsur",
+        "note": "محذوفة من فاعلاتن لا مذيَّلة عنها: فاعلاتن أربعة مقاطع وهذه ثلاثة. تنتهي بمقطع مفرط لأنها صيغة عجز، ونمطها يطابق «فاعلان» — والاسمان مختلفان في المصدر فحُفظا كما وردا."
       }
     ]
   },
@@ -203,10 +295,187 @@ export const DATA = {
       "severity": {
         "1": "شائع",
         "2": "نادر أو ثقيل"
-      },
-      "X": "مقطع مفرط الطول (CVVC/CVCC) — لا يقع إلا في نهاية الشطر"
+      }
     },
+    "policy": "التفاعيل المذيَّلة والمقصورة لها الصورة السالمة وحدها: زحافاتها غير مسجَّلة في المادة المصدرية، واختراعها يخالف مبدأ عدم ابتكار ما لم يثبت. وهي أصلًا صور عجز، والعلة لا تجتمع مع علة.",
     "variations": {
+      "faulun": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "فَعُولُنْ",
+          "syllables": [
+            "S",
+            "L",
+            "L"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        },
+        {
+          "id": "qabd",
+          "name": "القبض",
+          "result": "فَعُولُ",
+          "syllables": [
+            "S",
+            "L",
+            "S"
+          ],
+          "kind": "zihaf",
+          "scope": "any",
+          "severity": 1
+        },
+        {
+          "id": "hadhf",
+          "name": "الحذف",
+          "result": "فَعُولْ",
+          "syllables": [
+            "S",
+            "L"
+          ],
+          "kind": "illa",
+          "scope": "arud_darb",
+          "severity": 1
+        },
+        {
+          "id": "tadhyil",
+          "name": "التذييل",
+          "result": "فَعُولَانْ",
+          "syllables": [
+            "S",
+            "L",
+            "X"
+          ],
+          "kind": "illa",
+          "scope": "arud_darb",
+          "severity": 1
+        }
+      ],
+      "failun": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "فَاعِلُنْ",
+          "syllables": [
+            "L",
+            "S",
+            "L"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        },
+        {
+          "id": "khabn",
+          "name": "الخبن",
+          "result": "فَعِلُنْ",
+          "syllables": [
+            "S",
+            "S",
+            "L"
+          ],
+          "kind": "zihaf",
+          "scope": "any",
+          "severity": 1
+        },
+        {
+          "id": "qat",
+          "name": "القطع",
+          "result": "فَعْلُنْ",
+          "syllables": [
+            "L",
+            "L"
+          ],
+          "kind": "illa",
+          "scope": "arud_darb",
+          "severity": 1
+        },
+        {
+          "id": "tadhyil",
+          "name": "التذييل",
+          "result": "فَاعِلَانْ",
+          "syllables": [
+            "L",
+            "S",
+            "X"
+          ],
+          "kind": "illa",
+          "scope": "arud_darb",
+          "severity": 1
+        }
+      ],
+      "mafailun": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "مَفَاعِيلُنْ",
+          "syllables": [
+            "S",
+            "L",
+            "L",
+            "L"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        },
+        {
+          "id": "qabd",
+          "name": "القبض",
+          "result": "مَفَاعِلُنْ",
+          "syllables": [
+            "S",
+            "L",
+            "S",
+            "L"
+          ],
+          "kind": "zihaf",
+          "scope": "any",
+          "severity": 1
+        },
+        {
+          "id": "kaff",
+          "name": "الكف",
+          "result": "مَفَاعِيلُ",
+          "syllables": [
+            "S",
+            "L",
+            "L",
+            "S"
+          ],
+          "kind": "zihaf",
+          "scope": "any",
+          "severity": 1
+        },
+        {
+          "id": "hadhf",
+          "name": "الحذف",
+          "result": "فَعُولُنْ",
+          "syllables": [
+            "S",
+            "L",
+            "L"
+          ],
+          "kind": "illa",
+          "scope": "arud_darb",
+          "severity": 1
+        },
+        {
+          "id": "tadhyil",
+          "name": "التذييل",
+          "result": "مَفَاعِيلَانْ",
+          "syllables": [
+            "S",
+            "L",
+            "L",
+            "X"
+          ],
+          "kind": "illa",
+          "scope": "arud_darb",
+          "severity": 1
+        }
+      ],
       "mustafilun": [
         {
           "id": "salim",
@@ -283,59 +552,6 @@ export const DATA = {
           "result": "مُسْتَفْعِلَانْ",
           "syllables": [
             "L",
-            "L",
-            "S",
-            "X"
-          ],
-          "kind": "illa",
-          "scope": "arud_darb",
-          "severity": 1
-        }
-      ],
-      "failun": [
-        {
-          "id": "salim",
-          "name": "سالم",
-          "result": "فَاعِلُنْ",
-          "syllables": [
-            "L",
-            "S",
-            "L"
-          ],
-          "kind": "salim",
-          "scope": "any",
-          "severity": 1
-        },
-        {
-          "id": "khabn",
-          "name": "الخبن",
-          "result": "فَعِلُنْ",
-          "syllables": [
-            "S",
-            "S",
-            "L"
-          ],
-          "kind": "zihaf",
-          "scope": "any",
-          "severity": 1
-        },
-        {
-          "id": "qat",
-          "name": "القطع",
-          "result": "فَعْلُنْ",
-          "syllables": [
-            "L",
-            "L"
-          ],
-          "kind": "illa",
-          "scope": "arud_darb",
-          "severity": 1
-        },
-        {
-          "id": "tadhyil",
-          "name": "التذييل",
-          "result": "فَاعِلَانْ",
-          "syllables": [
             "L",
             "S",
             "X"
@@ -443,64 +659,12 @@ export const DATA = {
           "severity": 1
         }
       ],
-      "faulun": [
+      "mafulun": [
         {
           "id": "salim",
           "name": "سالم",
-          "result": "فَعُولُنْ",
+          "result": "مَفْعُولُنْ",
           "syllables": [
-            "S",
-            "L",
-            "L"
-          ],
-          "kind": "salim",
-          "scope": "any",
-          "severity": 1
-        },
-        {
-          "id": "qabd",
-          "name": "القبض",
-          "result": "فَعُولُ",
-          "syllables": [
-            "S",
-            "L",
-            "S"
-          ],
-          "kind": "zihaf",
-          "scope": "any",
-          "severity": 1
-        },
-        {
-          "id": "hadhf",
-          "name": "الحذف",
-          "result": "فَعُولْ",
-          "syllables": [
-            "S",
-            "L"
-          ],
-          "kind": "illa",
-          "scope": "arud_darb",
-          "severity": 1
-        },
-        {
-          "id": "batr",
-          "name": "البتر",
-          "result": "فَعْ",
-          "syllables": [
-            "L"
-          ],
-          "kind": "illa",
-          "scope": "arud_darb",
-          "severity": 2
-        }
-      ],
-      "mafailun": [
-        {
-          "id": "salim",
-          "name": "سالم",
-          "result": "مَفَاعِيلُنْ",
-          "syllables": [
-            "S",
             "L",
             "L",
             "L"
@@ -510,41 +674,13 @@ export const DATA = {
           "severity": 1
         },
         {
-          "id": "qabd",
-          "name": "القبض",
-          "result": "مَفَاعِلُنْ",
+          "id": "tadhyil",
+          "name": "التذييل",
+          "result": "مَفْعُولَانْ",
           "syllables": [
-            "S",
-            "L",
-            "S",
-            "L"
-          ],
-          "kind": "zihaf",
-          "scope": "any",
-          "severity": 1
-        },
-        {
-          "id": "kaff",
-          "name": "الكف",
-          "result": "مَفَاعِيلُ",
-          "syllables": [
-            "S",
             "L",
             "L",
-            "S"
-          ],
-          "kind": "zihaf",
-          "scope": "any",
-          "severity": 1
-        },
-        {
-          "id": "hadhf",
-          "name": "الحذف",
-          "result": "فَعُولُنْ",
-          "syllables": [
-            "S",
-            "L",
-            "L"
+            "X"
           ],
           "kind": "illa",
           "scope": "arud_darb",
@@ -554,7 +690,7 @@ export const DATA = {
       "failun_short": [
         {
           "id": "salim",
-          "name": "فَعِلُنْ",
+          "name": "سالم",
           "result": "فَعِلُنْ",
           "syllables": [
             "S",
@@ -605,65 +741,194 @@ export const DATA = {
           "severity": 1
         }
       ],
-      "mufaalatun": [
+      "faal": [
         {
           "id": "salim",
           "name": "سالم",
-          "result": "مُفَاعَلَتُنْ",
+          "result": "فَعَلْ",
           "syllables": [
-            "S",
-            "L",
-            "S",
             "S",
             "L"
           ],
           "kind": "salim",
           "scope": "any",
           "severity": 1
-        },
+        }
+      ],
+      "faa": [
         {
-          "id": "asb",
-          "name": "العصب",
-          "result": "مُفَاعَلْتُنْ",
+          "id": "salim",
+          "name": "سالم",
+          "result": "فَعْ",
           "syllables": [
-            "S",
-            "L",
-            "L",
             "L"
           ],
-          "kind": "zihaf",
+          "kind": "salim",
           "scope": "any",
           "severity": 1
         }
       ],
-      "mufaalatun_source": [
+      "fail": [
         {
           "id": "salim",
           "name": "سالم",
-          "result": "مُفَاعَلَاتُنْ",
+          "result": "فَاعِلْ",
           "syllables": [
-            "S",
+            "L",
+            "L"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        }
+      ],
+      "maful": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "مَفْعُولْ",
+          "syllables": [
+            "L",
+            "X"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        }
+      ],
+      "mustafilatun": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "مُسْتَفْعِلَاتُنْ",
+          "syllables": [
+            "L",
             "L",
             "S",
             "L",
             "L"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        }
+      ],
+      "failatan": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "فَاعِلَاتَانْ",
+          "syllables": [
+            "L",
+            "S",
+            "L",
+            "X"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        }
+      ],
+      "mustafilan": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "مُسْتَفْعِلَانْ",
+          "syllables": [
+            "L",
+            "L",
+            "S",
+            "X"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        }
+      ],
+      "mafailan": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "مَفَاعِيلَانْ",
+          "syllables": [
+            "S",
+            "L",
+            "L",
+            "X"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        }
+      ],
+      "faulan": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "فَعُولَانْ",
+          "syllables": [
+            "S",
+            "L",
+            "X"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        }
+      ],
+      "failan": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "فَاعِلَانْ",
+          "syllables": [
+            "L",
+            "S",
+            "X"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        }
+      ],
+      "mafulan": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "مَفْعُولَانْ",
+          "syllables": [
+            "L",
+            "L",
+            "X"
+          ],
+          "kind": "salim",
+          "scope": "any",
+          "severity": 1
+        }
+      ],
+      "failat": [
+        {
+          "id": "salim",
+          "name": "سالم",
+          "result": "فَاعِلَاتْ",
+          "syllables": [
+            "L",
+            "S",
+            "X"
           ],
           "kind": "salim",
           "scope": "any",
           "severity": 1
         }
       ]
-    },
-    "openQuestions": {
-      "mufaalatun_source": "لا زحافات مسجَّلة — لأن التفعيلة نفسها غير مثبتة، واختراع زحافات لها يضاعف الخطأ. الصخري لذلك أشدّ صرامة من بقية البحور حتى يصل تحقّق. انظر OPEN-QUESTIONS.md"
     }
   },
   "meters": {
-    "description": "قاعدة أوزان الشعر النبطي، مستخرجة حرفيًا من المادة التعليمية التي قدّمها المستخدم (البند 8 من المواصفة). هذه ليست كل أوزان الشعر النبطي في العالم — القاعدة قابلة للتوسعة بإضافة كائن هنا دون لمس كود المحرك. انظر docs/ADDING-A-METER.md",
+    "description": "قاعدة أوزان الشعر النبطي، مستخرجة حرفيًا من القائمة التي قدّمها المستخدم. البحر له صيغتان: الصدر والعجز، والعجز غالبًا هو الصدر مع تذييل في آخر تفعيلة.",
     "conventions": {
-      "feet": "التفعيلات لشطر واحد، لا لبيت كامل. البيت = شطران بنفس النمط.",
-      "patternDerivation": "النمط المقطعي لا يُخزَّن — يُشتق آليًا بضم أنماط التفعيلات السالمة في meters/registry.js، حتى لا يتعارض المخزَّن مع المشتق.",
-      "expectedSyllableCount": "قيمة تحقق فقط: الاختبارات تفشل إن خالفها الاشتقاق."
+      "forms": "forms[0] صدر و forms[1] عجز. الشطر الواحد يُطابَق على أي الصيغتين، والبيت الكامل على الصدر ثم العجز.",
+      "patternDerivation": "النمط المقطعي لا يُخزَّن — يُشتق آليًا من التفعيلات في meters/registry.js.",
+      "expectedSyllableCount": "عدد مقاطع الصدر. قيمة تحقّق: الاختبارات تفشل إن خالفها الاشتقاق."
     },
     "meters": [
       {
@@ -672,173 +937,58 @@ export const DATA = {
         "aliases": [],
         "enabled": true,
         "sourceIndex": 1,
-        "sourceQuote": "مستفعلن | مستفعلن | فاعلاتن",
-        "feet": [
-          "mustafilun",
-          "mustafilun",
-          "failatun"
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "failatun"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن فاعلاتن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "failatan"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن فاعلاتان"
+          }
         ],
         "expectedSyllableCount": 12,
         "status": "OK"
       },
       {
-        "id": "al_sakhri",
-        "name": "الصخري",
+        "id": "al_sakhri_taweel_shaybani",
+        "name": "الصخري الطويل الشيباني",
         "aliases": [],
         "enabled": true,
         "sourceIndex": 2,
-        "sourceQuote": "مفاعلاتن | مفاعلاتن | فعولن",
-        "feet": [
-          "mufaalatun_source",
-          "mufaalatun_source",
-          "faulun"
-        ],
-        "expectedSyllableCount": 13,
-        "status": "NEEDS_VALIDATION",
-        "validation": {
-          "issue": "تفعيلة «مفاعلاتن» ثمانية أحرف؛ لا تفعيلة خليلية تتجاوز سبعة.",
-          "kept": "نُفِّذت كما وردت في المصدر حرفيًا — لم تُصحَّح.",
-          "candidates": [
-            {
-              "feet": [
-                "mufaalatun",
-                "mufaalatun",
-                "faulun"
-              ],
-              "reading": "مفاعلتن ×2 + فعولن",
-              "syllables": 13
-            },
-            {
-              "feet": [
-                "mafailun",
-                "mafailun",
-                "faulun"
-              ],
-              "reading": "مفاعيلن ×2 + فعولن",
-              "syllables": 11
-            }
-          ],
-          "resolvedBy": "بيت صخري واحد حقيقي مع تقطيعه"
-        }
-      },
-      {
-        "id": "al_hajini_shamali",
-        "name": "الهجيني الشمالي",
-        "aliases": [
-          "البسيط",
-          "الهجيني الشمالي / البسيط"
-        ],
-        "enabled": true,
-        "sourceIndex": 3,
-        "sourceQuote": "مستفعلن | فاعلن | مستفعلن | فعلن",
-        "feet": [
-          "mustafilun",
-          "failun",
-          "mustafilun",
-          "failun_short"
-        ],
-        "expectedSyllableCount": 14,
-        "status": "OK",
-        "note": "يوافق البسيط المخبون. التفعيلة الأخيرة «فعلن» غير مشكولة في المصدر، فتُقرأ فَعِلُنْ أو فَعْلُنْ — كلتاهما مسموحة عبر variation لا عبر تخمين."
-      },
-      {
-        "id": "al_hajini",
-        "name": "الهجيني",
-        "aliases": [],
-        "enabled": true,
-        "sourceIndex": 4,
-        "sourceQuote": "فاعلاتن | فعولن | فاعلاتن | فعولن",
-        "feet": [
-          "failatun",
-          "faulun",
-          "failatun",
-          "faulun"
-        ],
-        "expectedSyllableCount": 14,
-        "status": "OK",
-        "note": "هذا وحده يحمل اسم «الهجيني» مجرَّدًا في المصدر، فهو الذي يستقبل الاسم المجرَّد عند البحث."
-      },
-      {
-        "id": "al_hajini_qaseer",
-        "name": "الهجيني القصير",
-        "aliases": [],
-        "enabled": true,
-        "sourceIndex": 5,
-        "sourceQuote": "مستفعلن | فاعلن | فعلن",
-        "feet": [
-          "mustafilun",
-          "failun",
-          "failun_short"
-        ],
-        "expectedSyllableCount": 10,
-        "status": "OK"
-      },
-      {
-        "id": "al_hajini_majzu_3",
-        "name": "الهجيني مجزوء بثلاث تفعيلات",
-        "aliases": [],
-        "enabled": true,
-        "sourceIndex": 6,
-        "sourceQuote": "فاعلاتن | فاعلاتن | فاعلاتن",
-        "feet": [
-          "failatun",
-          "failatun",
-          "failatun"
-        ],
-        "expectedSyllableCount": 12,
-        "status": "OK",
-        "note": "نمطه بادئة حرفية لنمط al_hajini_majzu_4 — التمييز بينهما يقع بتكلفة المقاطع الزائدة في المطابق."
-      },
-      {
-        "id": "al_hajini_majzu_4",
-        "name": "الهجيني مجزوء بأربع تفعيلات",
-        "aliases": [],
-        "enabled": true,
-        "sourceIndex": 7,
-        "sourceQuote": "فاعلاتن | فاعلاتن | فاعلاتن | فاعلاتن",
-        "feet": [
-          "failatun",
-          "failatun",
-          "failatun",
-          "failatun"
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mafailun",
+              "mafailun",
+              "mafailun",
+              "mafailun"
+            ],
+            "sourceQuote": "مفاعيلن مفاعيلن مفاعيلن مفاعيلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mafailun",
+              "mafailun",
+              "mafailun",
+              "mafailan"
+            ],
+            "sourceQuote": "مفاعيلن مفاعيلن مفاعيلن مفاعيلان"
+          }
         ],
         "expectedSyllableCount": 16,
-        "status": "OK"
-      },
-      {
-        "id": "al_hazaj",
-        "name": "الهزج",
-        "aliases": [
-          "الشيباني",
-          "اللويحاني"
-        ],
-        "enabled": true,
-        "sourceIndex": 8,
-        "sourceQuote": "مفاعيلن | مفاعيلن | مفاعيلن | مفاعيلن",
-        "feet": [
-          "mafailun",
-          "mafailun",
-          "mafailun",
-          "mafailun"
-        ],
-        "expectedSyllableCount": 16,
-        "status": "OK",
-        "note": "الأسماء الثلاثة لوزن واحد حسب المادة المصدرية، فحُفظت aliases لا بحورًا منفصلة."
-      },
-      {
-        "id": "al_mankus",
-        "name": "المنكوس",
-        "aliases": [],
-        "enabled": true,
-        "sourceIndex": 9,
-        "sourceQuote": "فعولن | مفاعيلن | فعولن | مفاعيلن",
-        "feet": [
-          "faulun",
-          "mafailun",
-          "faulun",
-          "mafailun"
-        ],
-        "expectedSyllableCount": 14,
         "status": "OK"
       },
       {
@@ -846,109 +996,938 @@ export const DATA = {
         "name": "الرجز",
         "aliases": [],
         "enabled": true,
-        "sourceIndex": 10,
-        "sourceQuote": "مستفعلن | مستفعلن | مستفعلن | مستفعلن",
-        "feet": [
-          "mustafilun",
-          "mustafilun",
-          "mustafilun",
-          "mustafilun"
+        "sourceIndex": 3,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "mustafilun"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن مستفعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "mustafilan"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن مستفعلان"
+          }
         ],
-        "expectedSyllableCount": 16,
-        "status": "OK",
-        "note": "الرجز الخليلي التام ثلاث مستفعلن لكل شطر، والمصدر يقول أربعًا. نُفِّذ كما ورد لأن المصدر يعضد نفسه: البند 11 يجعل الحدا (مستفعلن ×2) «نصف الرجز»، ونصف الأربعة اثنان."
+        "expectedSyllableCount": 12,
+        "status": "OK"
       },
       {
-        "id": "al_hada",
-        "name": "الحدا",
-        "aliases": [
-          "الحدائي"
+        "id": "al_hajini_taweel_1",
+        "name": "الهجيني الطويل - طرق 1",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 4,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "failatun",
+              "failatun",
+              "failatun",
+              "failatun"
+            ],
+            "sourceQuote": "فاعلاتن فاعلاتن فاعلاتن فاعلاتن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "failatun",
+              "failatun",
+              "failatun",
+              "failatan"
+            ],
+            "sourceQuote": "فاعلاتن فاعلاتن فاعلاتن فاعلاتان"
+          }
         ],
+        "expectedSyllableCount": 16,
+        "status": "OK"
+      },
+      {
+        "id": "al_samri_taweel_1",
+        "name": "السامري الطويل - طرق 1",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 5,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "failatun",
+              "mustafilun",
+              "failatun"
+            ],
+            "sourceQuote": "مستفعلن فاعلاتن مستفعلن فاعلاتن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "failatun",
+              "mustafilun",
+              "failatan"
+            ],
+            "sourceQuote": "مستفعلن فاعلاتن مستفعلن فاعلاتان"
+          }
+        ],
+        "expectedSyllableCount": 16,
+        "status": "OK"
+      },
+      {
+        "id": "al_rajaz_taweel_hada_1",
+        "name": "الرجز الطويل الحدا - طرق 1",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 6,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "mustafilun",
+              "mustafilun"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن مستفعلن مستفعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "mustafilun",
+              "mustafilan"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن مستفعلن مستفعلان"
+          }
+        ],
+        "expectedSyllableCount": 16,
+        "status": "OK"
+      },
+      {
+        "id": "al_rajaz_qaseer_1",
+        "name": "الرجز القصير - طرق 1",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 7,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "mafulun"
+            ],
+            "sourceQuote": "مستفعلن مفعولن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "maful"
+            ],
+            "sourceQuote": "مستفعلن مفعول"
+          }
+        ],
+        "expectedSyllableCount": 7,
+        "status": "OK"
+      },
+      {
+        "id": "al_rajaz_qaseer_4",
+        "name": "الرجز القصير - طرق 4",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 8,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "mafailun"
+            ],
+            "sourceQuote": "مستفعلن مفاعيلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "mafailan"
+            ],
+            "sourceQuote": "مستفعلن مفاعيلان"
+          }
+        ],
+        "expectedSyllableCount": 8,
+        "status": "OK"
+      },
+      {
+        "id": "al_taweel_al_mankus",
+        "name": "الطويل المنكوس",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 9,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "faulun",
+              "mafailun",
+              "faulun",
+              "mafailun"
+            ],
+            "sourceQuote": "فعولن مفاعيلن فعولن مفاعيلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "faulun",
+              "mafailun",
+              "faulun",
+              "mafailan"
+            ],
+            "sourceQuote": "فعولن مفاعيلن فعولن مفاعيلان"
+          }
+        ],
+        "expectedSyllableCount": 14,
+        "status": "OK"
+      },
+      {
+        "id": "al_hajini_2",
+        "name": "الهجيني - طرق 2",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 10,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "failatun",
+              "mafailun",
+              "mafailun"
+            ],
+            "sourceQuote": "فاعلاتن مفاعيلن مفاعيلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "failatun",
+              "mafailun",
+              "mafailan"
+            ],
+            "sourceQuote": "فاعلاتن مفاعيلن مفاعيلان"
+          }
+        ],
+        "expectedSyllableCount": 12,
+        "status": "OK"
+      },
+      {
+        "id": "al_ramal",
+        "name": "الرمل",
+        "aliases": [],
         "enabled": true,
         "sourceIndex": 11,
-        "sourceQuote": "مستفعلن | مستفعلن — وهو نصف الرجز",
-        "feet": [
-          "mustafilun",
-          "mustafilun"
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "failatun",
+              "failatun",
+              "failatun"
+            ],
+            "sourceQuote": "فاعلاتن فاعلاتن فاعلاتن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "failatun",
+              "failatun",
+              "failatan"
+            ],
+            "sourceQuote": "فاعلاتن فاعلاتن فاعلاتان"
+          }
+        ],
+        "expectedSyllableCount": 12,
+        "status": "OK"
+      },
+      {
+        "id": "ghayr_musannaf_muhawara_3",
+        "name": "غير مصنف محاورة - 3",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 12,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "failatun",
+              "failatun"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن فاعلاتن فاعلاتن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "failatun",
+              "failatan"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن فاعلاتن فاعلاتان"
+          }
+        ],
+        "expectedSyllableCount": 16,
+        "status": "OK"
+      },
+      {
+        "id": "al_sakhri_2",
+        "name": "الصخري - طرق 2",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 13,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mafulun",
+              "mafailun",
+              "failun_short"
+            ],
+            "sourceQuote": "مفعولن مفاعيلن فعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mafulun",
+              "mafailun",
+              "failun_short"
+            ],
+            "sourceQuote": "مفعولن مفاعيلن فعلن"
+          }
+        ],
+        "expectedSyllableCount": 10,
+        "status": "OK",
+        "note": "الصدر والعجز متطابقان في المصدر — لا تذييل."
+      },
+      {
+        "id": "al_wafir",
+        "name": "الوافر",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 14,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mafailun",
+              "mafailun",
+              "mafailun"
+            ],
+            "sourceQuote": "مفاعيلن مفاعيلن مفاعيلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mafailun",
+              "mafailun",
+              "mafailan"
+            ],
+            "sourceQuote": "مفاعيلن مفاعيلن مفاعيلان"
+          }
+        ],
+        "expectedSyllableCount": 12,
+        "status": "OK"
+      },
+      {
+        "id": "al_mumtad",
+        "name": "الممتد",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 15,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "failatun",
+              "failatun",
+              "failun",
+              "failun"
+            ],
+            "sourceQuote": "فاعلاتن فاعلاتن فاعلن فاعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "failatun",
+              "failatun",
+              "failun",
+              "failan"
+            ],
+            "sourceQuote": "فاعلاتن فاعلاتن فاعلن فاعلان"
+          }
+        ],
+        "expectedSyllableCount": 14,
+        "status": "OK",
+        "note": "ورد مرتين متطابقين في القائمة، فأُدرج مرة واحدة."
+      },
+      {
+        "id": "al_baseet",
+        "name": "البسيط",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 16,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "fail",
+              "mustafilun",
+              "failun"
+            ],
+            "sourceQuote": "مستفعلن فاعل مستفعلن فاعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "fail",
+              "mustafilun",
+              "failan"
+            ],
+            "sourceQuote": "مستفعلن فاعل مستفعلن فاعلان"
+          }
+        ],
+        "expectedSyllableCount": 13,
+        "status": "OK"
+      },
+      {
+        "id": "al_hazaj",
+        "name": "الهزج",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 17,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mafailun",
+              "mafailan"
+            ],
+            "sourceQuote": "مفاعيلن مفاعيلان"
+          }
         ],
         "expectedSyllableCount": 8,
         "status": "OK",
-        "note": "«الحدائي» مُسجَّل alias بناءً على القائمة القديمة؛ المادة المصدرية الجديدة لا تذكره. NEEDS_VALIDATION على الاسم لا على النمط."
+        "note": "المصدر أعطى سطرًا واحدًا لا سطرين. نُفِّذ كما ورد صيغةً واحدة."
       },
       {
-        "id": "al_hilali_taweel",
-        "name": "الهلالي الطويل",
-        "aliases": [
-          "الهلالي"
+        "id": "al_ramal_majzu",
+        "name": "الرمل المجزوء",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 18,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "failatun",
+              "failatun"
+            ],
+            "sourceQuote": "فاعلاتن فاعلاتن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "failatun",
+              "failatan"
+            ],
+            "sourceQuote": "فاعلاتن فاعلاتان"
+          }
         ],
-        "enabled": false,
-        "sourceIndex": 12,
-        "sourceQuote": "نفس المسحوب + حرف",
-        "feet": null,
-        "expectedSyllableCount": null,
-        "status": "NEEDS_VALIDATION",
-        "derivation": {
-          "base": "al_maskhub",
-          "sourceDescription": "نفس المسحوب + حرف",
-          "why_not_implemented": "«+ حرف» ليس عملية عروضية معرَّفة. زيادة حرف قد تكون ساكنًا (تذييل) أو متحركًا أو حرفًا في الرسم لا في الوزن. نسخ نمط المسحوب كما هو يخالف تعليماتك صراحة، واختراع الفرق يخالف البند 26.",
-          "candidates": [
-            {
-              "id": "tadhyil",
-              "label": "تذييل: المسحوب مع زيادة ساكن على آخر الشطر",
-              "feet": [
-                "mustafilun",
-                "mustafilun",
-                "failatun"
-              ],
-              "lastFootVariation": "tadhyil",
-              "plausibility": "الأرجح — «+ حرف» تصف التذييل بدقة، وهي علة قياسية تقع في الضرب"
-            },
-            {
-              "id": "extra_sabab",
-              "label": "زيادة سبب خفيف في الحشو",
-              "feet": null,
-              "plausibility": "أقل ترجيحًا — يزيد حرفين لا حرفًا"
-            },
-            {
-              "id": "orthographic_only",
-              "label": "الحرف زيادة في الرسم لا في الوزن (الهلالي = المسحوب وزنًا)",
-              "feet": [
-                "mustafilun",
-                "mustafilun",
-                "failatun"
-              ],
-              "plausibility": "ممكن — وعندها الوزنان لا يُفرَّق بينهما آليًا إطلاقًا"
-            }
-          ],
-          "resolvedBy": "بيتان: واحد هلالي طويل وواحد مسحوب، مع تقطيع كلٍّ منهما من تطبيق ميزان النبط. الفرق بينهما يحسم المرشَّح.",
-          "howToEnable": "اضبط enabled=true، وانقل feet ولا lastFootVariation المرشَّح المعتمد إلى أعلى الكائن، ثم أضف golden case له."
-        }
+        "expectedSyllableCount": 8,
+        "status": "OK"
+      },
+      {
+        "id": "al_mujtath_majzu",
+        "name": "المجتث المجزوء",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 19,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "failatun"
+            ],
+            "sourceQuote": "مستفعلن فاعلاتن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "failatan"
+            ],
+            "sourceQuote": "مستفعلن فاعلاتان"
+          }
+        ],
+        "expectedSyllableCount": 8,
+        "status": "OK"
+      },
+      {
+        "id": "al_baseet_1",
+        "name": "البسيط - طرق 1",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 20,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "failun",
+              "mustafilun"
+            ],
+            "sourceQuote": "مستفعلن فاعلن مستفعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "failun",
+              "mustafilatun"
+            ],
+            "sourceQuote": "مستفعلن فاعلن مستفعلاتن"
+          }
+        ],
+        "expectedSyllableCount": 11,
+        "status": "OK"
+      },
+      {
+        "id": "al_hajini_taweel_2",
+        "name": "الهجيني الطويل - طرق 2",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 21,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "failatun",
+              "faulun",
+              "failatun",
+              "faulun"
+            ],
+            "sourceQuote": "فاعلاتن فعولن فاعلاتن فعولن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "failatun",
+              "faulun",
+              "failatun",
+              "faulan"
+            ],
+            "sourceQuote": "فاعلاتن فعولن فاعلاتن فعولان"
+          }
+        ],
+        "expectedSyllableCount": 14,
+        "status": "OK"
+      },
+      {
+        "id": "al_hajini_taweel_3",
+        "name": "الهجيني الطويل - طرق 3",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 22,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "failatun",
+              "failun",
+              "failatun",
+              "failun"
+            ],
+            "sourceQuote": "فاعلاتن فاعلن فاعلاتن فاعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "failatun",
+              "failun",
+              "failatun",
+              "failat"
+            ],
+            "sourceQuote": "فاعلاتن فاعلن فاعلاتن فاعلات"
+          }
+        ],
+        "expectedSyllableCount": 14,
+        "status": "OK"
+      },
+      {
+        "id": "al_rajaz_taweel_2",
+        "name": "الرجز الطويل - طرق 2",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 23,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "mafulun",
+              "mustafilun",
+              "mafulun"
+            ],
+            "sourceQuote": "مستفعلن مفعولن مستفعلن مفعولن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "mafulun",
+              "mustafilun",
+              "mafulan"
+            ],
+            "sourceQuote": "مستفعلن مفعولن مستفعلن مفعولان"
+          }
+        ],
+        "expectedSyllableCount": 14,
+        "status": "OK"
+      },
+      {
+        "id": "al_rajaz_qaseer_2",
+        "name": "الرجز القصير - طرق 2",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 24,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "faal"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن فعل"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "faa"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن فع"
+          }
+        ],
+        "expectedSyllableCount": 10,
+        "status": "OK"
+      },
+      {
+        "id": "al_rajaz_1",
+        "name": "الرجز - طرق 1",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 25,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "failun_short"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن فعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "maful"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن مفعول"
+          }
+        ],
+        "expectedSyllableCount": 11,
+        "status": "OK"
+      },
+      {
+        "id": "ghayr_musannaf_4",
+        "name": "غير مصنف - 4",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 26,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "failun",
+              "mustafilun",
+              "failun"
+            ],
+            "sourceQuote": "مستفعلن فاعلن مستفعلن فاعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "failun",
+              "mustafilun",
+              "failan"
+            ],
+            "sourceQuote": "مستفعلن فاعلن مستفعلن فاعلان"
+          }
+        ],
+        "expectedSyllableCount": 14,
+        "status": "OK",
+        "note": "موسوم في المصدر بعلامة تنبيه ⚠️ — نُقل الوسم كما هو."
+      },
+      {
+        "id": "al_hajini_taweel_4",
+        "name": "الهجيني الطويل - طرق 4",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 27,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "failatun",
+              "faulun",
+              "failatun",
+              "failun"
+            ],
+            "sourceQuote": "فاعلاتن فعولن فاعلاتن فاعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "failatun",
+              "faulun",
+              "failatun",
+              "failat"
+            ],
+            "sourceQuote": "فاعلاتن فعولن فاعلاتن فاعلات"
+          }
+        ],
+        "expectedSyllableCount": 14,
+        "status": "OK"
       },
       {
         "id": "al_madeed",
         "name": "المديد",
         "aliases": [],
         "enabled": true,
-        "sourceIndex": 13,
-        "sourceQuote": "فاعلاتن | فاعلن | فاعلاتن | فاعلن",
-        "feet": [
-          "failatun",
-          "failun",
-          "failatun",
-          "failun"
+        "sourceIndex": 28,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "failatun",
+              "failun",
+              "failatun"
+            ],
+            "sourceQuote": "فاعلاتن فاعلن فاعلاتن"
+          }
+        ],
+        "expectedSyllableCount": 11,
+        "status": "OK",
+        "note": "المصدر أعطى سطرًا واحدًا لا سطرين."
+      },
+      {
+        "id": "al_rajaz_majzu",
+        "name": "الرجز المجزوء",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 29,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "mustafilun"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "mustafilan"
+            ],
+            "sourceQuote": "مستفعلن مستفعلان"
+          }
+        ],
+        "expectedSyllableCount": 8,
+        "status": "OK"
+      },
+      {
+        "id": "al_hajini_taweel_5",
+        "name": "الهجيني الطويل - طرق 5",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 30,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "failatun",
+              "failun",
+              "failatun",
+              "failun_short"
+            ],
+            "sourceQuote": "فاعلاتن فاعلن فاعلاتن فعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "failatun",
+              "failun",
+              "failatun",
+              "failun_short"
+            ],
+            "sourceQuote": "فاعلاتن فاعلن فاعلاتن فعلن"
+          }
         ],
         "expectedSyllableCount": 14,
         "status": "OK",
-        "note": "المديد الخليلي التام فاعلاتن فاعلن فاعلاتن لكل شطر. المصدر يذكر أربع تفعيلات، ونُفِّذ كما ورد."
+        "note": "الصدر والعجز متطابقان في المصدر — لا تذييل."
+      },
+      {
+        "id": "al_rajaz_2",
+        "name": "الرجز - طرق 2",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 31,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "mustafilun",
+              "faa"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن مستفعلن فع"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "mustafilun",
+              "faa"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن مستفعلن فع"
+          }
+        ],
+        "expectedSyllableCount": 13,
+        "status": "OK",
+        "note": "الصدر والعجز متطابقان في المصدر — لا تذييل."
+      },
+      {
+        "id": "al_rajaz_3",
+        "name": "الرجز - طرق 3",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 32,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "mafulun"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن مفعولن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "mustafilun",
+              "mustafilun",
+              "mafulun"
+            ],
+            "sourceQuote": "مستفعلن مستفعلن مفعولن"
+          }
+        ],
+        "expectedSyllableCount": 11,
+        "status": "OK",
+        "note": "الصدر والعجز متطابقان في المصدر — لا تذييل."
+      },
+      {
+        "id": "al_hajini_taweel_6",
+        "name": "الهجيني الطويل - طرق 6",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 33,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "failatun",
+              "failatun",
+              "failatun",
+              "mustafilun"
+            ],
+            "sourceQuote": "فاعلاتن فاعلاتن فاعلاتن مستفعلن"
+          },
+          {
+            "role": "ajz",
+            "feet": [
+              "failatun",
+              "failatun",
+              "failatun",
+              "mustafilan"
+            ],
+            "sourceQuote": "فاعلاتن فاعلاتن فاعلاتن مستفعلان"
+          }
+        ],
+        "expectedSyllableCount": 16,
+        "status": "OK"
+      },
+      {
+        "id": "al_baseet_b",
+        "name": "البسيط",
+        "aliases": [],
+        "enabled": true,
+        "sourceIndex": 34,
+        "forms": [
+          {
+            "role": "sadr",
+            "feet": [
+              "mustafilun",
+              "failun",
+              "mustafilun",
+              "failun_short"
+            ],
+            "sourceQuote": "مستفعلن فاعلن مستفعلن فعلن"
+          }
+        ],
+        "expectedSyllableCount": 14,
+        "status": "NEEDS_VALIDATION",
+        "validation": {
+          "issue": "الاسم «البسيط» ورد مرتين في القائمة بتفعيلات مختلفة: «مستفعلن فاعل مستفعلن فاعلن» (al_baseet) و«مستفعلن فاعلن مستفعلن فعلن» (هذا). ولم يُعطَ لهذا سطر عجز.",
+          "kept": "حُفظ الاثنان كما وردا — لم يُحذف أحدهما ولم يُدمجا.",
+          "resolvedBy": "تحديد أيّهما البسيط، وهل الآخر طرق مستقل باسم آخر"
+        },
+        "note": "المصدر أعطى سطرًا واحدًا لهذا الوجه، ولم يذكر له عجزًا."
       }
     ],
-    "notInSource": [
-      {
-        "name": "السامري",
-        "reason": "ورد في القائمة القديمة (6 بحور) ولم يرد في المادة المصدرية الجديدة (13 بحرًا). لم يُنفَّذ لأنه لا توجد له تفعيلات في أي مصدر قدّمته — وليس لأنه أُسقط. أعطني تفعيلاته يُضَف بسطر واحد هنا دون كود.",
-        "status": "MISSING_SOURCE"
-      }
-    ]
+    "notInSource": []
   },
   "scoring": {
     "version": 1,

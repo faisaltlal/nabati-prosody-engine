@@ -22,7 +22,9 @@ import { matchFoot, minSyllablesToEnd } from './footMatcher.js';
  */
 export function matchMeter(dag, meter, scorer, options = {}) {
   const repeat = options.repeat || 1;
-  const feet = expandFeet(meter, repeat);
+  const formIndex = options.form || 0;
+  const feet = expandFeet(meter, repeat, formIndex);
+  if (!feet.length) return null;
   const tailCost = minSyllablesToEnd(dag);
 
   // states: Map<unitIndex, {cost, chosen[]}>
@@ -97,7 +99,9 @@ export function matchMeter(dag, meter, scorer, options = {}) {
     };
   }
 
-  const meterSyllables = meter.pattern.length * repeat;
+  const meterSyllables = feet.reduce(
+    (n, f) => n + (f.salim ? f.salim.length : 0), 0
+  ) || meter.pattern.length * repeat;
   const { score, confidence, cost, normalizer } = scorer.finalize(
     best.total,
     meterSyllables,
@@ -123,6 +127,8 @@ export function matchMeter(dag, meter, scorer, options = {}) {
     aliases: meter.aliases,
     status: meter.status,
     repeat,
+    form: formIndex,
+    formRole: feet[0] && feet[0].formRole,
     matched: true,
     score,
     confidence,
@@ -138,17 +144,28 @@ export function matchMeter(dag, meter, scorer, options = {}) {
   };
 }
 
-/** يبسط تفعيلات البحر على العدد المطلوب من الأشطر. */
-function expandFeet(meter, repeat) {
+/**
+ * يبسط تفعيلات البحر على الأشطر المطلوبة.
+ *
+ * شطر واحد  → الصيغة المطلوبة وحدها (صدر أو عجز).
+ * بيت كامل   → الصدر ثم العجز، وهو ترتيبهما في البيت النبطي.
+ * وإن لم يكن للبحر إلا صيغة واحدة كُرِّرت، لأن المصدر سوّى بين الشطرين.
+ */
+function expandFeet(meter, repeat, formIndex) {
+  const forms = meter.forms && meter.forms.length ? meter.forms : [{ feet: meter.feet }];
   const out = [];
   for (let r = 0; r < repeat; r++) {
-    meter.feet.forEach((foot, i) => {
+    const form = repeat === 1
+      ? forms[Math.min(formIndex || 0, forms.length - 1)]
+      : forms[Math.min(r, forms.length - 1)];
+    form.feet.forEach((foot, i) => {
       out.push({
         ...foot,
         hemistich: r,
+        formRole: form.role,
         isFirst: i === 0,
         // آخر تفعيلة في كل شطر هي العروض أو الضرب، وفيهما وحدهما تجوز العلل.
-        isArudDarb: i === meter.feet.length - 1,
+        isArudDarb: i === form.feet.length - 1,
       });
     });
   }
@@ -194,10 +211,16 @@ export function rankMeters(dag, registry, scorer, options = {}) {
 
   for (const meter of registry.enabled) {
     let bestForMeter = null;
+    const formCount = meter.forms ? meter.forms.length : 1;
     for (const repeat of repeats) {
-      const r = matchMeter(dag, meter, scorer, { repeat });
-      if (!r.matched) continue;
-      if (!bestForMeter || r.score > bestForMeter.score) bestForMeter = r;
+      // الشطر الواحد قد يكون صدرًا وقد يكون عجزًا، فتُجرَّب الصيغتان.
+      // والبيت الكامل ترتيبه مثبَّت: صدر ثم عجز، فصيغة واحدة تكفي.
+      const forms = repeat === 1 ? Array.from({ length: formCount }, (_, i) => i) : [0];
+      for (const form of forms) {
+        const r = matchMeter(dag, meter, scorer, { repeat, form });
+        if (!r || !r.matched) continue;
+        if (!bestForMeter || r.score > bestForMeter.score) bestForMeter = r;
+      }
     }
     if (bestForMeter) results.push(bestForMeter);
   }

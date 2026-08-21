@@ -1,12 +1,19 @@
 {
-  "$schema": "./schema/tafaeel.schema.json",
-  "description": "التفعيلات. كل تفعيلة معرَّفة بنمطها المقطعي (S=مقطع قصير CV، L=مقطع طويل CVC أو CVV) وبنمطها الحرفي الخليلي (1=متحرك، 0=ساكن). النمطان مشتقّان من نطق التفعيلة نفسها، ومُتحقَّق من تطابقهما آليًا في tests/meters.test.js.",
+  "description": "التفعيلات. كل تفعيلة معرَّفة بنمطها المقطعي (S=مقطع قصير CV، L=مقطع طويل CVC أو CVV، X=مقطع مفرط CVVC) وبنمطها الحرفي الخليلي (1=متحرك، 0=ساكن). النمطان مشتقّان من نطق التفعيلة نفسها، ومُتحقَّق من تطابقهما آليًا في tests/meters.test.js.",
   "legend": {
-    "syllables": { "S": "مقطع قصير — صامت + حركة قصيرة (CV)", "L": "مقطع طويل — CVC أو CVV" },
-    "khalilLetters": { "1": "متحرك", "0": "ساكن" },
-    "status": {
-      "STANDARD": "تفعيلة خليلية موثّقة",
-      "NEEDS_VALIDATION": "وردت في المادة المصدرية لكن لم تثبت صحتها — لم تُغيَّر"
+    "syllables": {
+      "S": "مقطع قصير — صامت + حركة قصيرة (CV)",
+      "L": "مقطع طويل — CVC أو CVV",
+      "X": "مقطع مفرط الطول — CVVC، ولا يقع إلا في آخر الشطر"
+    },
+    "khalilLetters": {
+      "1": "متحرك",
+      "0": "ساكن"
+    },
+    "family": {
+      "base": "تفعيلة أصلية",
+      "mudhayyal": "تفعيلة مذيَّلة — زِيدَ عليها ساكن في آخر الشطر، وهي صورة العجز في هذه القاعدة",
+      "maqsur": "تفعيلة محذوف آخرها"
     }
   },
   "tafaeel": [
@@ -14,92 +21,258 @@
       "id": "faulun",
       "plain": "فعولن",
       "vocalized": "فَعُولُنْ",
-      "syllables": ["S", "L", "L"],
+      "syllables": [
+        "S",
+        "L",
+        "L"
+      ],
       "khalilLetters": "11010",
-      "components": ["وتد مجموع", "سبب خفيف"],
-      "status": "STANDARD"
+      "family": "base"
     },
     {
       "id": "failun",
       "plain": "فاعلن",
       "vocalized": "فَاعِلُنْ",
-      "syllables": ["L", "S", "L"],
+      "syllables": [
+        "L",
+        "S",
+        "L"
+      ],
       "khalilLetters": "10110",
-      "components": ["سبب خفيف", "وتد مجموع"],
-      "status": "STANDARD"
+      "family": "base"
     },
     {
       "id": "mafailun",
       "plain": "مفاعيلن",
       "vocalized": "مَفَاعِيلُنْ",
-      "syllables": ["S", "L", "L", "L"],
+      "syllables": [
+        "S",
+        "L",
+        "L",
+        "L"
+      ],
       "khalilLetters": "1101010",
-      "components": ["وتد مجموع", "سبب خفيف", "سبب خفيف"],
-      "status": "STANDARD"
+      "family": "base"
     },
     {
       "id": "mustafilun",
       "plain": "مستفعلن",
       "vocalized": "مُسْتَفْعِلُنْ",
-      "syllables": ["L", "L", "S", "L"],
+      "syllables": [
+        "L",
+        "L",
+        "S",
+        "L"
+      ],
       "khalilLetters": "1010110",
-      "components": ["سبب خفيف", "سبب خفيف", "وتد مجموع"],
-      "status": "STANDARD"
+      "family": "base"
     },
     {
       "id": "failatun",
       "plain": "فاعلاتن",
       "vocalized": "فَاعِلَاتُنْ",
-      "syllables": ["L", "S", "L", "L"],
+      "syllables": [
+        "L",
+        "S",
+        "L",
+        "L"
+      ],
       "khalilLetters": "1011010",
-      "components": ["سبب خفيف", "وتد مجموع", "سبب خفيف"],
-      "status": "STANDARD"
+      "family": "base"
+    },
+    {
+      "id": "mafulun",
+      "plain": "مفعولن",
+      "vocalized": "مَفْعُولُنْ",
+      "syllables": [
+        "L",
+        "L",
+        "L"
+      ],
+      "khalilLetters": "101010",
+      "family": "base"
     },
     {
       "id": "failun_short",
       "plain": "فعلن",
       "vocalized": "فَعِلُنْ",
-      "syllables": ["S", "S", "L"],
+      "syllables": [
+        "S",
+        "S",
+        "L"
+      ],
       "khalilLetters": "1110",
-      "components": ["فاصلة صغرى"],
-      "status": "STANDARD",
-      "note": "المخبونة. الرسم «فعلن» يحتمل أيضًا فَعْلُنْ — انظر faalun."
+      "family": "base",
+      "note": "الرسم «فعلن» يحتمل فَعِلُنْ وفَعْلُنْ — التمييز صورةٌ في variations لا تفعيلتان."
     },
     {
       "id": "faalun",
       "plain": "فعلن",
       "vocalized": "فَعْلُنْ",
-      "syllables": ["L", "L"],
+      "syllables": [
+        "L",
+        "L"
+      ],
       "khalilLetters": "1010",
-      "components": ["سبب خفيف", "سبب خفيف"],
-      "status": "STANDARD",
-      "note": "المقطوعة. نفس رسم فَعِلُنْ غير مشكولًا — التمييز بينهما variation لا تفعيلتان منفصلتان في المطابقة."
+      "family": "base",
+      "note": "القراءة الثانية لرسم «فعلن»."
     },
     {
-      "id": "mufaalatun",
-      "plain": "مفاعلتن",
-      "vocalized": "مُفَاعَلَتُنْ",
-      "syllables": ["S", "L", "S", "S", "L"],
-      "khalilLetters": "1101110",
-      "components": ["وتد مجموع", "فاصلة صغرى"],
-      "status": "STANDARD",
-      "note": "غير مستعملة في أي بحر من مصدرنا — مُدرجة لأنها أحد المرشحَين لتصحيح «مفاعلاتن»."
+      "id": "faal",
+      "plain": "فعل",
+      "vocalized": "فَعَلْ",
+      "syllables": [
+        "S",
+        "L"
+      ],
+      "khalilLetters": "110",
+      "family": "maqsur"
     },
     {
-      "id": "mufaalatun_source",
-      "plain": "مفاعلاتن",
-      "vocalized": "مُفَاعَلَاتُنْ",
-      "syllables": ["S", "L", "S", "L", "L"],
-      "khalilLetters": "11011010",
-      "components": ["وتد مجموع", "وتد مجموع", "سبب خفيف"],
+      "id": "faa",
+      "plain": "فع",
+      "vocalized": "فَعْ",
+      "syllables": [
+        "L"
+      ],
+      "khalilLetters": "10",
+      "family": "maqsur"
+    },
+    {
+      "id": "fail",
+      "plain": "فاعل",
+      "vocalized": "فَاعِلْ",
+      "syllables": [
+        "L",
+        "L"
+      ],
+      "khalilLetters": "1010",
+      "family": "maqsur",
       "status": "NEEDS_VALIDATION",
-      "sourceQuote": "الصخري: مفاعلاتن | مفاعلاتن | فعولن",
       "validation": {
-        "issue": "ثمانية أحرف. لا تفعيلة خليلية تتجاوز سبعة.",
-        "candidates": ["mufaalatun", "mafailun"],
-        "resolvedBy": "بيت صخري واحد حقيقي مع تقطيعه من تطبيق ميزان النبط",
-        "action": "مُبقاة كما وردت حرفيًا في المصدر. لم يُغيَّر شيء."
+        "issue": "وردت في صدر «البسيط»: مستفعلن فاعل مستفعلن فاعلن. «فاعل» ليست من تفاعيل الخليل، وقد تكون رسمًا مختصرًا لـ«فاعلن».",
+        "kept": "نُفِّذت كما وردت حرفيًا — لم تُصحَّح.",
+        "resolvedBy": "بيت بسيط واحد مقطَّع يبيّن أهي مقطعان أم ثلاثة"
       }
+    },
+    {
+      "id": "maful",
+      "plain": "مفعول",
+      "vocalized": "مَفْعُولْ",
+      "syllables": [
+        "L",
+        "X"
+      ],
+      "khalilLetters": "10100",
+      "family": "maqsur"
+    },
+    {
+      "id": "mustafilatun",
+      "plain": "مستفعلاتن",
+      "vocalized": "مُسْتَفْعِلَاتُنْ",
+      "syllables": [
+        "L",
+        "L",
+        "S",
+        "L",
+        "L"
+      ],
+      "khalilLetters": "101011010",
+      "family": "base"
+    },
+    {
+      "id": "failatan",
+      "plain": "فاعلاتان",
+      "vocalized": "فَاعِلَاتَانْ",
+      "syllables": [
+        "L",
+        "S",
+        "L",
+        "X"
+      ],
+      "khalilLetters": "10110100",
+      "family": "mudhayyal",
+      "baseOf": "failatun"
+    },
+    {
+      "id": "mustafilan",
+      "plain": "مستفعلان",
+      "vocalized": "مُسْتَفْعِلَانْ",
+      "syllables": [
+        "L",
+        "L",
+        "S",
+        "X"
+      ],
+      "khalilLetters": "10101100",
+      "family": "mudhayyal",
+      "baseOf": "mustafilun"
+    },
+    {
+      "id": "mafailan",
+      "plain": "مفاعيلان",
+      "vocalized": "مَفَاعِيلَانْ",
+      "syllables": [
+        "S",
+        "L",
+        "L",
+        "X"
+      ],
+      "khalilLetters": "11010100",
+      "family": "mudhayyal",
+      "baseOf": "mafailun"
+    },
+    {
+      "id": "faulan",
+      "plain": "فعولان",
+      "vocalized": "فَعُولَانْ",
+      "syllables": [
+        "S",
+        "L",
+        "X"
+      ],
+      "khalilLetters": "110100",
+      "family": "mudhayyal",
+      "baseOf": "faulun"
+    },
+    {
+      "id": "failan",
+      "plain": "فاعلان",
+      "vocalized": "فَاعِلَانْ",
+      "syllables": [
+        "L",
+        "S",
+        "X"
+      ],
+      "khalilLetters": "101100",
+      "family": "mudhayyal",
+      "baseOf": "failun"
+    },
+    {
+      "id": "mafulan",
+      "plain": "مفعولان",
+      "vocalized": "مَفْعُولَانْ",
+      "syllables": [
+        "L",
+        "L",
+        "X"
+      ],
+      "khalilLetters": "1010100",
+      "family": "mudhayyal",
+      "baseOf": "mafulun"
+    },
+    {
+      "id": "failat",
+      "plain": "فاعلات",
+      "vocalized": "فَاعِلَاتْ",
+      "syllables": [
+        "L",
+        "S",
+        "X"
+      ],
+      "khalilLetters": "101100",
+      "family": "maqsur",
+      "note": "محذوفة من فاعلاتن لا مذيَّلة عنها: فاعلاتن أربعة مقاطع وهذه ثلاثة. تنتهي بمقطع مفرط لأنها صيغة عجز، ونمطها يطابق «فاعلان» — والاسمان مختلفان في المصدر فحُفظا كما وردا."
     }
   ]
 }

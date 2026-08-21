@@ -113,14 +113,14 @@ export function buildSyllableDag(units, options = {}) {
 
         if (nuc.kind === 'short') {
           add(i, afterNucleus + 1, LONG, { ...withCoda, shape: 'CVC' });
+        } else if (afterNucleus + 1 === n) {
+          // آخر الشطر: التقاء الساكنين جائز هنا، فيثبت المدّ ويبقى
+          // المقطع مفرطًا. ولا تُضاف قراءة مقصورة، لأن القصر إنما هو
+          // فرارٌ من التقاء ساكنين ممنوع — وهو هنا مأذون فيه.
+          add(i, afterNucleus + 1, OVERLONG, { ...withCoda, shape: 'CVVC' });
         } else {
-          const atLineEnd = afterNucleus + 1 === n;
-          if (atLineEnd) {
-            // مقطع مفرط الطول لا يقع إلا في آخر الشطر.
-            add(i, afterNucleus + 1, OVERLONG, { ...withCoda, shape: 'CVVC' });
-          }
-          // التقاء الساكنين: حرف المدّ يسقط في النطق فيقصر المقطع.
-          // (في البيت ← فِلْبَيْت). قاعدة عروضية مقرَّرة لا تخمين.
+          // وسط الشطر: التقاء الساكنين ممنوع، فيسقط حرف المدّ حتمًا
+          // ويقصر المقطع (في البيت ← فِلْ‑بَيْت). قاعدة مقرَّرة لا تخمين.
           add(i, afterNucleus + 1, LONG, {
             ...withCoda,
             shape: 'CVC',

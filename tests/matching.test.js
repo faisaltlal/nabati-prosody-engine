@@ -38,7 +38,7 @@ describe('المطابقة', () => {
     equal(engine.stages.matchPattern(P('LLSLLLSLLSLL'), 'المسحوب').verdict, 'sound');
     // B: موزون لكن على بحر آخر
     const onOther = engine.stages.rankPattern(P('SLLLSLLLSLLLSLLL'));
-    equal(onOther[0].meterId, 'al_hazaj');
+    equal(onOther[0].meterId, 'al_sakhri_taweel_shaybani');
     assert(onOther.find((r) => r.meterId === 'al_maskhub').score < onOther[0].score);
     // C: قريب لكنه مكسور
     const broken = engine.stages.matchPattern(P('LLSLLLSLLLLL'), 'المسحوب');
@@ -58,11 +58,11 @@ describe('المطابقة', () => {
   });
 
   it('طول البيت يفرّق بين البحور المتداخلة الأنماط', () => {
-    // الحدا بادئة حرفية للرجز؛ الطول وحده يحسم.
+    // الرجز المجزوء بادئة حرفية للرجز الطويل؛ الطول وحده يحسم.
     const short = engine.stages.rankPattern(P('LLSLLLSL'));
-    equal(short[0].meterId, 'al_hada');
+    equal(short[0].meterId, 'al_rajaz_majzu');
     const long = engine.stages.rankPattern(P('LLSLLLSLLLSLLLSL'));
-    equal(long[0].meterId, 'al_rajaz');
+    equal(long[0].meterId, 'al_rajaz_taweel_hada_1');
   });
 
   it('العلة تُقبل في الضرب وتُغرَّم في الحشو', () => {

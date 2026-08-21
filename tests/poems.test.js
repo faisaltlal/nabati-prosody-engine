@@ -112,10 +112,11 @@ describe('وضع التدريب', () => {
     equal(hard.requiredScore, 0.97);
   });
 
-  it('يرفض بحرًا غير مفعَّل ويشرح السبب', () => {
-    const r = engine.train(MASKHUB, 'الهلالي الطويل');
+  it('يرفض اسمًا غير موجود ويعرض المتاح', () => {
+    const r = engine.train(MASKHUB, 'بحر لا وجود له');
     assert(!r.ok);
-    assert(r.reason, 'السبب مبيَّن لا مجرد رفض');
+    assert(r.error, 'الخطأ مبيَّن');
+    assert(Array.isArray(r.available) && r.available.length > 0, 'يعرض البحور المتاحة');
   });
 
   it('يعرض التمارين المتاحة من البيانات', () => {
@@ -129,6 +130,7 @@ describe('الأسئلة المعلَّقة', () => {
     atLeast(q.length, 4, 'يجب أن تُعلن البنود غير المحسومة');
     for (const x of q) assert(x.area && (x.issue || x.gaps), `بند ناقص: ${JSON.stringify(x)}`);
     assert(q.some((x) => x.area === 'encoding'), 'ترميز التطبيق الرقمي غير محسوم');
-    assert(q.some((x) => x.area === 'missing_meter'), 'السامري مفقود');
+    assert(q.some((x) => x.area === 'meter'), 'تعارض اسم البسيط معلَن');
+    assert(q.some((x) => x.area === 'tafila'), 'تفعيلة «فاعل» غير مثبتة');
   });
 });
