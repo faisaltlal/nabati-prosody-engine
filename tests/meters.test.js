@@ -112,6 +112,29 @@ describe('قاعدة الأوزان — التناسق', () => {
     }
   });
 
+  it('لا بحران متطابقان إلا بإعلان صريح', () => {
+    // تطابق بحرين تطابقًا تامًّا ليس خطأً بالضرورة — قد يكون البحر
+    // نفسه باسمين. لكن مروره بصمت خطأ: يُربك الترتيب ويُخفي أن أحد
+    // الاسمين زائد. فيُشترط أن يُعلن كل طرف عن الآخر.
+    const byPattern = new Map();
+    for (const m of engine.registry.enabled) {
+      const key = m.forms.map((f) => f.pattern.join('')).join('|');
+      if (!byPattern.has(key)) byPattern.set(key, []);
+      byPattern.get(key).push(m);
+    }
+    for (const [, group] of byPattern) {
+      if (group.length < 2) continue;
+      const raw = new Map(DATA.meters.meters.map((m) => [m.id, m]));
+      for (const m of group) {
+        const decl = raw.get(m.id).duplicateOf;
+        assert(
+          decl && group.some((o) => o.id === decl),
+          `${m.name} يطابق ${group.filter((o) => o.id !== m.id).map((o) => o.name).join('، ')} بلا إعلان duplicateOf`
+        );
+      }
+    }
+  });
+
   it('كل تفعيلة يستعملها بحر لها صور مسجَّلة', () => {
     const used = new Set();
     for (const m of engine.registry.enabled) {

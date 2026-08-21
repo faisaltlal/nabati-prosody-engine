@@ -487,20 +487,6 @@
         "severity": 1
       }
     ],
-    "fail": [
-      {
-        "id": "salim",
-        "name": "سالم",
-        "result": "فَاعِلْ",
-        "syllables": [
-          "L",
-          "L"
-        ],
-        "kind": "salim",
-        "scope": "any",
-        "severity": 1
-      }
-    ],
     "maful": [
       {
         "id": "salim",

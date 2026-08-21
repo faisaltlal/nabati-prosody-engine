@@ -142,23 +142,6 @@ export const DATA = {
         "family": "maqsur"
       },
       {
-        "id": "fail",
-        "plain": "فاعل",
-        "vocalized": "فَاعِلْ",
-        "syllables": [
-          "L",
-          "L"
-        ],
-        "khalilLetters": "1010",
-        "family": "maqsur",
-        "status": "NEEDS_VALIDATION",
-        "validation": {
-          "issue": "وردت في صدر «البسيط»: مستفعلن فاعل مستفعلن فاعلن. «فاعل» ليست من تفاعيل الخليل، وقد تكون رسمًا مختصرًا لـ«فاعلن».",
-          "kept": "نُفِّذت كما وردت حرفيًا — لم تُصحَّح.",
-          "resolvedBy": "بيت بسيط واحد مقطَّع يبيّن أهي مقطعان أم ثلاثة"
-        }
-      },
-      {
         "id": "maful",
         "plain": "مفعول",
         "vocalized": "مَفْعُولْ",
@@ -761,20 +744,6 @@ export const DATA = {
           "name": "سالم",
           "result": "فَعْ",
           "syllables": [
-            "L"
-          ],
-          "kind": "salim",
-          "scope": "any",
-          "severity": 1
-        }
-      ],
-      "fail": [
-        {
-          "id": "salim",
-          "name": "سالم",
-          "result": "فَاعِلْ",
-          "syllables": [
-            "L",
             "L"
           ],
           "kind": "salim",
@@ -1389,25 +1358,27 @@ export const DATA = {
             "role": "sadr",
             "feet": [
               "mustafilun",
-              "fail",
+              "failun",
               "mustafilun",
               "failun"
             ],
-            "sourceQuote": "مستفعلن فاعل مستفعلن فاعلن"
+            "sourceQuote": "مستفعلن فاعلن مستفعلن فاعلن"
           },
           {
             "role": "ajz",
             "feet": [
               "mustafilun",
-              "fail",
+              "failun",
               "mustafilun",
               "failan"
             ],
-            "sourceQuote": "مستفعلن فاعل مستفعلن فاعلان"
+            "sourceQuote": "مستفعلن فاعلن مستفعلن فاعلان"
           }
         ],
-        "expectedSyllableCount": 13,
-        "status": "OK"
+        "expectedSyllableCount": 14,
+        "note": "المصدر كتب «فاعل» في الموضع الثاني، وأكّد المستخدم أن المقصود «فاعلن». صُحّحت بناءً على تأكيده لا باجتهاد.",
+        "status": "OK",
+        "duplicateOf": "ghayr_musannaf_4"
       },
       {
         "id": "al_hazaj",
@@ -1692,8 +1663,14 @@ export const DATA = {
           }
         ],
         "expectedSyllableCount": 14,
-        "status": "OK",
-        "note": "موسوم في المصدر بعلامة تنبيه ⚠️ — نُقل الوسم كما هو."
+        "status": "NEEDS_VALIDATION",
+        "note": "موسوم في المصدر بعلامة تنبيه ⚠️ — نُقل الوسم كما هو.",
+        "duplicateOf": "al_baseet",
+        "validation": {
+          "issue": "بعد تصحيح «فاعل» إلى «فاعلن» في البسيط صار هذا البحر مطابقًا له تطابقًا تامًّا في الصدر والعجز معًا. وكونه موسومًا في المصدر بعلامة تنبيه يرجّح أنه البسيط نفسه غير مصنَّف.",
+          "kept": "حُفظ البحران كما وردا. لم يُدمجا ولم يُحذف أحدهما.",
+          "resolvedBy": "تأكيد أنه البسيط، فيُحوَّل إلى alias له بدل بحر مستقل"
+        }
       },
       {
         "id": "al_hajini_taweel_4",
@@ -1920,7 +1897,7 @@ export const DATA = {
         "expectedSyllableCount": 14,
         "status": "NEEDS_VALIDATION",
         "validation": {
-          "issue": "الاسم «البسيط» ورد مرتين في القائمة بتفعيلات مختلفة: «مستفعلن فاعل مستفعلن فاعلن» (al_baseet) و«مستفعلن فاعلن مستفعلن فعلن» (هذا). ولم يُعطَ لهذا سطر عجز.",
+          "issue": "الاسم «البسيط» ورد مرتين في القائمة بتفعيلات مختلفة: «مستفعلن فاعلن مستفعلن فاعلن» (al_baseet، بعد تصحيح «فاعل» إلى «فاعلن») و«مستفعلن فاعلن مستفعلن فعلن» (هذا). ولم يُعطَ لهذا سطر عجز. الفرق بينهما في التفعيلة الأخيرة وحدها: فاعلن أم فعلن.",
           "kept": "حُفظ الاثنان كما وردا — لم يُحذف أحدهما ولم يُدمجا.",
           "resolvedBy": "تحديد أيّهما البسيط، وهل الآخر طرق مستقل باسم آخر"
         },
