@@ -346,6 +346,12 @@ public struct ProsodyEngine: Sendable {
         for n in registry.notInSource {
             out.append("missing_meter: \(n.name) — \(n.reason)")
         }
+        // قواعد اللهجة النبطية فارغة عمدًا، فيجب أن تبقى معلنة.
+        // كانت هذه الحالة غائبة عن Swift وحاضرة في جافاسكربت، فاختلف
+        // التنفيذان في ما يعدّانه معلَّقًا.
+        if let d = data.lexicon.nabatiDialect, d.status == "NEEDS_VALIDATION" {
+            out.append("dialect: nabatiDialect — \(d.note ?? "قواعد اللهجة غير محسومة")")
+        }
         return out
     }
 }

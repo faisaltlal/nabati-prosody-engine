@@ -145,6 +145,13 @@ public struct Lexicon: Codable, Sendable {
         public let midLine: String
         public let lineEnd: String
     }
+    /// ظواهر اللهجة النبطية — `rules` فارغة عمدًا، والبند 26 يمنع
+    /// اختراعها. تُعلَن ضمن `openQuestions()` كما تُعلَن في جافاسكربت.
+    public struct NabatiDialect: Codable, Sendable {
+        public let note: String?
+        public let status: String?
+        public let knownGaps: [String]?
+    }
 
     public let unwrittenLongVowels: WordMap?
     public let knownVocalizations: WordMap?
@@ -152,6 +159,7 @@ public struct Lexicon: Codable, Sendable {
     public let silentLetters: SilentLetters?
     public let sunLetters: [String]
     public let taMarbuta: TaMarbuta?
+    public let nabatiDialect: NabatiDialect?
 }
 
 // MARK: - الحالات المرجعية

@@ -220,6 +220,26 @@ final class EngineTests: XCTestCase {
         let q = engine.openQuestions()
         XCTAssertGreaterThanOrEqual(q.count, 2, "ما لم يُحسم يجب أن يبقى معلنًا")
         XCTAssertTrue(q.contains { $0.contains("encoding") }, "ترميز التطبيق غير مثبت")
+        XCTAssertTrue(q.contains { $0.contains("dialect") }, "قواعد اللهجة غير محسومة")
+    }
+
+    /// عدد البنود المعلَّقة يساوي ما تُعلنه البيانات نفسها.
+    ///
+    /// الفحص السابق كان عتبةً («٢ على الأقل»)، فأخفى أن Swift تُغفل
+    /// بند اللهجة الذي تُعلنه جافاسكربت: بقيت العتبة مستوفاة ببنود
+    /// بحور معلَّقة، فلمّا حُسمت ظهر الاختلاف. الاشتقاق من البيانات
+    /// يمنع تكرار ذلك مع أي مصدر بنود يُنسى مستقبلًا.
+    func testOpenQuestionsCoverEverySource() throws {
+        let engine = try makeEngine()
+        let d = engine.data
+        var expected = 0
+        expected += d.tafaeel.filter { $0.status == "NEEDS_VALIDATION" }.count
+        expected += engine.registry.meters.filter { $0.status == "NEEDS_VALIDATION" }.count
+        expected += d.encodings.filter { $0.status == "NEEDS_VALIDATION" }.count
+        expected += engine.registry.notInSource.count
+        if d.lexicon.nabatiDialect?.status == "NEEDS_VALIDATION" { expected += 1 }
+        XCTAssertEqual(engine.openQuestions().count, expected,
+                       "بند معلَّق في البيانات لا يظهر في openQuestions()")
     }
 
     // MARK: أدوات

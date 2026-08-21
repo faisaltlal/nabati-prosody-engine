@@ -136,4 +136,19 @@ describe('الأسئلة المعلَّقة', () => {
     // والهلالي والسامري نالت تفعيلات صريحة. فلا يُشترط بقاء بند منها.
     // الباقي — الترميز واللهجة — لا يُحسم بكود بل ببيانات من المستخدم.
   });
+
+  it('كل مصدر بنود معلَّقة ممثَّل في القائمة', () => {
+    // العتبة وحدها لا تكفي حارسًا: بقاؤها مستوفاة ببنود من مصدر واحد
+    // يُخفي إغفال مصدر آخر — وهذا ما وقع فعلًا، إذ أغفل تنفيذ Swift
+    // بند اللهجة الذي يُعلنه هذا التنفيذ، ولم يظهر إلا حين حُسمت بنود
+    // البحور. فيُشتقّ العدد المتوقَّع من البيانات نفسها.
+    let expected = 0;
+    expected += DATA.tafaeel.tafaeel.filter((t) => t.status === 'NEEDS_VALIDATION').length;
+    expected += engine.registry.meters.filter((m) => m.status === 'NEEDS_VALIDATION').length;
+    expected += DATA.encodings.schemes.filter((s) => s.status === 'NEEDS_VALIDATION').length;
+    expected += engine.registry.notInSource.length;
+    if (DATA.lexicon.nabatiDialect?.status === 'NEEDS_VALIDATION') expected += 1;
+    equal(engine.openQuestions().length, expected,
+      'بند معلَّق في البيانات لا يظهر في openQuestions()');
+  });
 });
