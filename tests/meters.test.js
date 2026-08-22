@@ -267,6 +267,10 @@ describe('صور التفعيلات كما وردت في المادة المرج
       ['mustafilun', 'khabn', 'مُتَفْعِلُنْ', 'مَفَاعِلُنْ'],
       ['mustafilun', 'qat', 'مُسْتَفْعِلْ', 'مَفْعُولُنْ'],
       ['failun', 'qat', 'فَاعِلْ', 'فَعْلُنْ'],
+      // الحذف يُسقط السبب الخفيف «لن» فيبقى «فَعُو» ويُنقل إلى «فَعَلْ».
+      // وكانت مكتوبة «فَعُولْ» — أربعة أحرف ونمطها SX — وذلك القصرُ لا
+      // الحذف، فكشفه فحصُ موافقة الحروف للمقاطع.
+      ['faulun', 'hadhf', 'فَعُو', 'فَعَلْ'],
     ]) {
       const v = DATA.variations.variations[tafilaId].find((x) => x.id === id);
       equal(v.beforeTransfer, before, `${tafilaId}/${id}: الصورة قبل النقل`);
@@ -322,6 +326,70 @@ describe('صور التفعيلات كما وردت في المادة المرج
         assert(v.validation.issue, `${tafilaId}/${v.id}: بلا سبب`);
         assert(v.validation.measured, `${tafilaId}/${v.id}: بلا قياس لأثرها`);
       }
+    }
+  });
+});
+
+/* ═════════════════ الاسم يتعدّد والتفعيلة واحدة ═════════════════ */
+
+describe('ما اتّحد نمطه فهو تفعيلة واحدة مهما تعدّدت أسماؤه', () => {
+  const strip = (s) => [...s].filter((c) => !/[ً-ْٰ]/.test(c)).join('');
+
+  /** كل صورة في البيانات: اسمها المشكول ونمطها. */
+  function everyForm() {
+    const out = [];
+    for (const t of DATA.tafaeel.tafaeel) {
+      out.push({ where: `tafaeel/${t.id}`, vocalized: t.vocalized, syllables: t.syllables });
+    }
+    for (const [tid, list] of Object.entries(DATA.variations.variations)) {
+      for (const v of list) {
+        out.push({ where: `${tid}/${v.id}`, vocalized: v.result, syllables: v.syllables });
+        if (v.beforeTransfer) {
+          out.push({ where: `${tid}/${v.id}#أصل`, vocalized: v.beforeTransfer, syllables: v.syllables });
+        }
+      }
+    }
+    return out;
+  }
+
+  it('عدد حروف كل صورة يوافق مقاطعها', () => {
+    // الاسم يتعدّد والوزن واحد. فلو خالف اسمٌ مقاطعَه لاختلّ العرض
+    // (النصّ لا يصطفّ مع رمزه) والوزن معًا.
+    for (const f of everyForm()) {
+      equal([...strip(f.vocalized)].length, lettersFromSyllables(f.syllables).length,
+        `${f.where}: «${f.vocalized}» لا يوافق ${f.syllables.join('')}`);
+    }
+  });
+
+  it('كل ما نمطه /0/0 قراءة واحدة', () => {
+    // «فَعْلُنْ» و«فَاعِلْ» — بتقرير صاحب المادة — قراءة واحدة، لأن
+    // التفعيلة تتشكّل من /0 /0. وهذا يصدق على كل اسم يقع على هذا
+    // النمط: الأسماء تتعدّد والتفعيلة واحدة.
+    const family = everyForm().filter((f) => f.syllables.join('') === 'LL');
+    atLeast(family.length, 3, 'يجب أن تُفحص أسماء هذا النمط كلها');
+    const symbols = new Set();
+    for (const f of family) {
+      equal([...strip(f.vocalized)].length, 4, `${f.where}: «${f.vocalized}»`);
+      symbols.add(engine.encoder.encode(f.syllables, 'arudi_slash_zero').value);
+    }
+    equal(symbols.size, 1, 'اختلفت رموزها وهي قراءة واحدة');
+    equal([...symbols][0], '/0/0');
+  });
+
+  it('الأسماء المتماثلة مجرَّدةً معلَنة لا مسكوت عنها', () => {
+    // «فَعِلُنْ» و«فَعْلُنْ» كلتاهما «فعلن» مجرّدةً وهما تفعيلتان
+    // مختلفتان (SSL و LL). وهذا هو سبب بقاء «فعلن» خارج نطق أسماء
+    // التفعيلات المقرَّر: ما احتمل نطقين لا يُفرض عليه أحدهما.
+    const byPlain = new Map();
+    for (const t of DATA.tafaeel.tafaeel) {
+      if (!byPlain.has(t.plain)) byPlain.set(t.plain, []);
+      byPlain.get(t.plain).push(t);
+    }
+    for (const [plain, list] of byPlain) {
+      if (list.length < 2) continue;
+      // اسمان متماثلان لتفعيلتين مختلفتين: يجب ألّا يُفرض لهما نطق.
+      assert(!(plain in engine.lexicon.tafilaVocalizations),
+        `«${plain}» يحمله ${list.length} تفعيلات وفُرض له نطق`);
     }
   });
 });

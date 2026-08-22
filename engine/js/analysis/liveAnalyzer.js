@@ -268,14 +268,28 @@ function licenceOf(engine, variantId, baseName, resultName, variantName, tafilaI
   // «مستفعلْ». والصورتان واحدة وزنًا دائمًا — اختبارٌ يشترط ذلك.
   const raw = (engine.data.variations.variations[tafilaId] || [])
     .find((v) => v.id === variantId);
+
+  // الاسمان المجرَّدان قد يتطابقان والصورتان مختلفتان: «فَعِلُنْ»
+  // و«فَعْلُنْ» كلتاهما «فعلن» مجرّدةً، فيخرج السطر «فعلن : فعلن» ولا
+  // يفيد قارئه شيئًا. فإذا تطابقا عُرضتا مشكولتين — وهو موضع الفرق.
+  const base = engine.registry.tafilaById.get(tafilaId);
+  const sameBare = baseName === resultName;
+  const from = sameBare && base ? base.vocalized : baseName;
+  const to = sameBare && raw && raw.result ? raw.result : resultName;
+
   return {
     id: variantId,
     name: variantName,
     category: def.category,
     definition: def.definition,
-    from: baseName,
-    to: resultName,
-    beforeTransfer: (raw && raw.beforeTransfer) ? plainName(raw.beforeTransfer) : null,
+    from,
+    to,
+    // «فاعل» و«فعلن» قراءة واحدة (/0/0)، فذكر الأصل معهما تكرار لا
+    // بيان. ولا يُذكر الأصل إلا إذا خالف المعتمدة رسمًا.
+    beforeTransfer:
+      raw && raw.beforeTransfer && plainName(raw.beforeTransfer) !== plainName(raw.result)
+        ? plainName(raw.beforeTransfer)
+        : null,
   };
 }
 

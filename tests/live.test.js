@@ -679,16 +679,35 @@ describe('الكلمة الواحدة لا تُقرأ قراءتين', () => {
 /* ═════════════════ نطق أسماء التفعيلات ═════════════════ */
 
 describe('أسماء التفعيلات نطقها مقرَّر في البيانات', () => {
-  it('لا يُفرض نطقٌ على ما احتمل نطقين', () => {
-    // «فعلن» فَعِلُنْ أو فَعْلُنْ، و«فعول» فَعُولُ أو فَعُولْ. ما احتمل
-    // وجهين يُترك حرًّا — البند 26.
+  it('يُفرض النطق على ما انفرد، ويُترك ما احتمل وجهين', () => {
+    // المقياس مشتقّ من البيانات لا مكتوب: اسمٌ مجرّد له في البيانات
+    // نطقٌ واحد يُفرض، وله نطقان يُترك حرًّا يحسمه الوزن — البند 26.
+    // ولا تُثبَّت قائمةُ الملتبس، فهي تتغيّر بتصحيح البيانات: «فعول»
+    // كانت ملتبسة حتى صُحّح رسم حذف فعولن.
+    const strip = (s) => [...s].filter((c) => !/[ً-ْٰ]/.test(c)).join('');
+    const forms = new Map();
+    const add = (v) => {
+      const p = strip(v);
+      if (!forms.has(p)) forms.set(p, new Set());
+      forms.get(p).add(v);
+    };
+    for (const t of DATA.tafaeel.tafaeel) add(t.vocalized);
+    for (const list of Object.values(DATA.variations.variations)) {
+      for (const v of list) add(v.result);
+    }
+
     const map = engine.lexicon.tafilaVocalizations;
     assert(map, 'يجب أن تُشتقّ من البيانات');
-    for (const ambiguous of ['فعلن', 'فاعلات', 'فعول']) {
-      assert(!(ambiguous in map), `«${ambiguous}» احتمل نطقين فلا يُفرض عليه أحدهما`);
+    for (const [plain, set] of forms) {
+      if (set.size === 1) {
+        equal(map[plain], [...set][0], `«${plain}» انفرد بنطق فلم يُفرض`);
+      } else {
+        assert(!(plain in map), `«${plain}» احتمل ${set.size} نطقًا وفُرض عليه أحدها`);
+      }
     }
     equal(map['مستفعلن'], 'مُسْتَفْعِلُنْ');
     equal(map['فاعلاتن'], 'فَاعِلَاتُنْ');
+    assert(!('فعلن' in map), '«فعلن» تفعيلتان مختلفتان فلا يُفرض لها نطق');
   });
 
   it('كل ما فيها مأخوذ من البيانات لا مكتوب في الكود', () => {
