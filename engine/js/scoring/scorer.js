@@ -49,6 +49,7 @@ export function createScorer(config) {
     overlongMismatch: w.overlongMismatch,
     unconsumedSyllable: w.unconsumedSyllable,
     unfilledFoot: w.unfilledFoot,
+    inconsistentWordReading: w.inconsistentWordReading ?? 0,
   };
 
   /** يحوّل التكلفة الخام إلى درجة في [0,1]. */

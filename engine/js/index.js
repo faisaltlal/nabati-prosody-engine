@@ -23,6 +23,39 @@ import { phonemize } from './phonology/phonemizer.js';
 import { buildSyllableDag, freeSyllabify } from './prosody/syllableDag.js';
 import { matchMeter, rankMeters } from './matching/meterMatcher.js';
 
+/**
+ * نطق أسماء التفعيلات، مشتقًّا من `tafaeel.json` و`variations.json`.
+ *
+ * الفائدة عملية: هذه صفحة تجربةٍ للمحرك، وأكثر ما يُكتب فيها للاختبار
+ * أسماءُ التفعيلات نفسها. و«مستفعلن» مجرّدةً من التشكيل تحتمل قراءات،
+ * فيتعادل عليها الرجز والرمل والوافر تعادلًا تامًّا — ومَن كتبها إنما
+ * أراد `مُسْتَفْعِلُنْ` لا غير.
+ *
+ * ولا اختراع فيه: التشكيل مأخوذ من البيانات نفسها التي يُبنى منها
+ * البحر. وما احتمل نطقين — «فعلن» فَعِلُنْ أو فَعْلُنْ — يُترك حرًّا
+ * ولا يُفرض عليه أحدهما.
+ *
+ * ولا يُطبَّق إلا على كلمة كُتبت مجرّدة: تشكيل الشاعر أولى دائمًا.
+ */
+function tafilaVocalizations(data) {
+  const strip = (s) => [...s].filter((c) => !/[\u064B-\u0652\u0670]/.test(c)).join('');
+  const seen = new Map();
+  const add = (vocalized) => {
+    const plain = strip(vocalized);
+    if (!seen.has(plain)) seen.set(plain, new Set());
+    seen.get(plain).add(vocalized);
+  };
+  for (const t of data.tafaeel.tafaeel) add(t.vocalized);
+  for (const list of Object.values(data.variations.variations)) {
+    for (const v of list) add(v.result);
+  }
+  const out = {};
+  for (const [plain, forms] of seen) {
+    if (forms.size === 1) out[plain] = [...forms][0]; // ما احتمل نطقين يُترك
+  }
+  return out;
+}
+
 export function createEngine(data) {
   const registry = buildRegistry(data);
   const scorer = createScorer(data.scoring);
@@ -32,7 +65,7 @@ export function createEngine(data) {
     registry,
     scorer,
     encoder,
-    lexicon: data.lexicon,
+    lexicon: { ...data.lexicon, tafilaVocalizations: tafilaVocalizations(data) },
     data,
 
     /** تحليل بيت واحد. */

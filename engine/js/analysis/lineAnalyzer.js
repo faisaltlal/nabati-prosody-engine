@@ -39,6 +39,10 @@ function analyzeUnit(text, engine, options) {
   const ranking = rankMeters(dag, engine.registry, engine.scorer, {
     repeats: options.repeats || [1],
     preferRole: options.preferRole,
+    // تلزمان لمعرفة أي مقطع من أي كلمة، وأيّ كلمتين تماثلتا رسمًا —
+    // وبهما يُقاس اتّساق القراءة.
+    units,
+    words: norm.words,
   });
   return { norm, units, phonTrace: trace, dag, free, ranking, readable };
 }

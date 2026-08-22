@@ -15,6 +15,7 @@ import { buildSyllableDag, enumeratePaths } from '../engine/js/prosody/syllableD
 import { rankMeters } from '../engine/js/matching/meterMatcher.js';
 import { rankMetersPartial } from '../engine/js/matching/partialMatcher.js';
 import { createAlignmentCache } from '../engine/js/matching/footMatcher.js';
+import { inconsistentWordReadings } from '../engine/js/matching/wordConsistency.js';
 
 const engine = createEngine(DATA);
 
@@ -605,5 +606,107 @@ describe('الألف بعد الساكن همزةٌ لا مدّ', () => {
     equal(r.meter.score, 1);
     equal(r.cards.map((c) => c.name).join(' '), 'مستفعلن مستفعلن فاعلاتان');
     equal(r.cards[2].licence.name, 'التسبيغ');
+  });
+});
+
+/* ═════════════════ اتّساق قراءة الكلمة ═════════════════ */
+
+describe('الكلمة الواحدة لا تُقرأ قراءتين', () => {
+  it('تفعيلات كل بحر مكتوبةً مجرّدةً تُعطي بحرها لا غيره', () => {
+    // مشتقّ من البيانات: يمرّ على البحور كلها. من كتب تفعيلات الرجز
+    // فقد أراد الرجز — وكان المحرك يعطيه المسحوب، لأن «مستفعلن»
+    // مجرّدةً تحتمل قراءتين فيتعادل عليها بحور، ثم يرجّح بترتيب
+    // القائمة وهو لا يدلّ على شيء.
+    const strip = (s) => [...s].filter((c) => !/[ً-ْٰ]/.test(c)).join('');
+    let checked = 0;
+    for (const meter of engine.registry.enabled) {
+      for (const form of meter.forms) {
+        const bare = form.feet.map((f) => strip(f.vocalized)).join(' ');
+        const r = engine.analyzeHemistich(bare, { preferRole: form.role || undefined });
+        equal(r.meter.score, 1, `${meter.name} (${form.role}): ${bare}`);
+
+        // اسمٌ يحتمل نطقين مجرّدًا («فعلن» فَعِلُنْ أو فَعْلُنْ) يحتمل
+        // معه الشطرُ أكثر من تقطيع، فيتعادل عليه أكثر من بحر تعادلًا
+        // صادقًا لا يُحسم إلا بالتشكيل. فلا يُشترط عليه تقطيعٌ بعينه.
+        const ambiguous = form.feet.some(
+          (f) => !(f.plain in engine.lexicon.tafilaVocalizations)
+        );
+        if (ambiguous) { checked++; continue; }
+
+        // المشترَط **القراءة** لا اسم البحر: البحور تتداخل، وقد يصحّ
+        // أن تُنسب التفعيلة إلى أصلها مزاحَفةً بدل نظيرتها المستقلّة.
+        // أمّا أن تُقرأ «مستفعلن» فاعلاتنَ فتغيُّرٌ في التقطيع نفسه،
+        // وهو الذي كان يقع.
+        equal(
+          engine.analyze(bare, { repeats: [1] }).internalPattern,
+          form.pattern.join(''),
+          `${meter.name} (${form.role}) قُرئت تفعيلاته على غير وجهها`
+        );
+        checked++;
+      }
+    }
+    atLeast(checked, 60, 'يجب أن يمرّ على صيغ البحور كلها');
+  });
+
+  it('«مستفعلن» ثلاثًا رجزٌ لا مسحوب', () => {
+    const r = engine.analyzeHemistich('مستفعلن مستفعلن مستفعلن');
+    equal(r.meter.name, 'الرجز');
+    equal(r.cards.map((c) => c.name).join(' '), 'مستفعلن مستفعلن مستفعلن');
+  });
+
+  it('يحصي الكلمات التي خالفت قراءةُ مثيلتها', () => {
+    // القياس بالرسم لا بالصوامت: «مَفْعُولُنْ» و«مَفَاعِيلُنْ» صوامتهما
+    // واحدة (م ف ع ل ن) وهما كلمتان مختلفتان — وقد أوقع ذلك خطأً حتى
+    // كشفه اختبارٌ يشترط أن يطابق كل بحر صورته مطابقةً تامّة.
+    const words = [{ text: 'مستفعلن' }, { text: 'مستفعلن' }];
+    const units = [{ word: 0, c: 'م' }, { word: 1, c: 'م' }];
+    const feet = [
+      { ops: [{ edge: { weight: 'L', meta: { consumed: [0] } } }] },
+      { ops: [{ edge: { weight: 'S', meta: { consumed: [1] } } }] },
+    ];
+    // الثانية آخر الشطر، وتخالف الأولى في مقطعها الوحيد — والفرق في
+    // المقطع الأخير وحده مأذون فيه لأن الإشباع يقع هناك.
+    equal(inconsistentWordReadings(feet, units, words), 0);
+  });
+
+  it('كلفةٌ لا منع: البحر المخالف يبقى مرشَّحًا وتنزل درجته', () => {
+    const r = engine.analyze('مستفعلن مستفعلن مستفعلن', { repeats: [1] });
+    const maskhub = r.alternatives.find((a) => a.name === 'المسحوب');
+    if (maskhub) assert(maskhub.score < 1, 'القراءة المقلِّبة يجب أن تنزل عن التامّة');
+  });
+});
+
+/* ═════════════════ نطق أسماء التفعيلات ═════════════════ */
+
+describe('أسماء التفعيلات نطقها مقرَّر في البيانات', () => {
+  it('لا يُفرض نطقٌ على ما احتمل نطقين', () => {
+    // «فعلن» فَعِلُنْ أو فَعْلُنْ، و«فعول» فَعُولُ أو فَعُولْ. ما احتمل
+    // وجهين يُترك حرًّا — البند 26.
+    const map = engine.lexicon.tafilaVocalizations;
+    assert(map, 'يجب أن تُشتقّ من البيانات');
+    for (const ambiguous of ['فعلن', 'فاعلات', 'فعول']) {
+      assert(!(ambiguous in map), `«${ambiguous}» احتمل نطقين فلا يُفرض عليه أحدهما`);
+    }
+    equal(map['مستفعلن'], 'مُسْتَفْعِلُنْ');
+    equal(map['فاعلاتن'], 'فَاعِلَاتُنْ');
+  });
+
+  it('كل ما فيها مأخوذ من البيانات لا مكتوب في الكود', () => {
+    const strip = (s) => [...s].filter((c) => !/[ً-ْٰ]/.test(c)).join('');
+    const known = new Set();
+    for (const t of DATA.tafaeel.tafaeel) known.add(t.vocalized);
+    for (const list of Object.values(DATA.variations.variations)) {
+      for (const v of list) known.add(v.result);
+    }
+    for (const [plain, vocalized] of Object.entries(engine.lexicon.tafilaVocalizations)) {
+      assert(known.has(vocalized), `نطق غير موجود في البيانات: ${vocalized}`);
+      equal(strip(vocalized), plain, `${plain} لا يوافق تجريدَ ${vocalized}`);
+    }
+  });
+
+  it('تشكيل الشاعر أولى من الجدول', () => {
+    // من كتب «مُسْتَفَعْلُنْ» بتشكيله فقد قصده، فلا يُبدَّل بالمقرَّر.
+    const r = engine.analyze('مُسْتَفَعْلُنْ', { repeats: [1] });
+    equal(r.internalPattern, 'LSLL', 'تشكيل المستخدم لم يُحترم');
   });
 });

@@ -94,6 +94,8 @@ export function phonemize(words, lexicon, options = {}) {
 
   const unwritten = lexicon.unwrittenLongVowels?.words || {};
   const knownVocalizations = lexicon.knownVocalizations?.words || {};
+  // أسماء التفعيلات — مشتقّة من البيانات لا مكتوبة في المعجم.
+  const tafilaNames = lexicon.tafilaVocalizations || {};
   const waslWords = new Set(lexicon.hamzatWasl?.words || []);
   const silentWaw = new Set(
     (lexicon.silentLetters?.rules || [])
@@ -115,6 +117,10 @@ export function phonemize(words, lexicon, options = {}) {
       // من التشكيل أصلًا — تشكيل الشاعر أولى من الجدول دائمًا.
       log('knownVocalization', `${bare} ← ${knownVocalizations[bare]}`);
       surface = knownVocalizations[bare];
+    } else if (surface === bare && tafilaNames[bare]) {
+      // اسم تفعيلة كُتب مجرّدًا: نطقه مقرَّر في البيانات نفسها.
+      log('tafilaName', `${bare} ← ${tafilaNames[bare]}`);
+      surface = tafilaNames[bare];
     }
 
     const letters = splitLetters(surface);

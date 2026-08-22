@@ -714,6 +714,7 @@ function createScorer(config) {
     overlongMismatch: w.overlongMismatch,
     unconsumedSyllable: w.unconsumedSyllable,
     unfilledFoot: w.unfilledFoot,
+    inconsistentWordReading: w.inconsistentWordReading ?? 0,
   };
 
   /** يحوّل التكلفة الخام إلى درجة في [0,1]. */
@@ -1088,6 +1089,8 @@ function phonemize(words, lexicon, options = {}) {
 
   const unwritten = lexicon.unwrittenLongVowels?.words || {};
   const knownVocalizations = lexicon.knownVocalizations?.words || {};
+  // أسماء التفعيلات — مشتقّة من البيانات لا مكتوبة في المعجم.
+  const tafilaNames = lexicon.tafilaVocalizations || {};
   const waslWords = new Set(lexicon.hamzatWasl?.words || []);
   const silentWaw = new Set(
     (lexicon.silentLetters?.rules || [])
@@ -1109,6 +1112,10 @@ function phonemize(words, lexicon, options = {}) {
       // من التشكيل أصلًا — تشكيل الشاعر أولى من الجدول دائمًا.
       log('knownVocalization', `${bare} ← ${knownVocalizations[bare]}`);
       surface = knownVocalizations[bare];
+    } else if (surface === bare && tafilaNames[bare]) {
+      // اسم تفعيلة كُتب مجرّدًا: نطقه مقرَّر في البيانات نفسها.
+      log('tafilaName', `${bare} ← ${tafilaNames[bare]}`);
+      surface = tafilaNames[bare];
     }
 
     const letters = splitLetters(surface);
@@ -1813,6 +1820,104 @@ function minSyllablesToEnd(dag) {
   Object.assign(__M, { matchFoot, createAlignmentCache, matchFootPrefix, matchFootBoth, minSyllablesToEnd });
 }
 
+// ── engine/js/matching/wordConsistency.js ──
+{
+/**
+ * اتّساق قراءة الكلمة داخل الشطر الواحد.
+ *
+ * الكلمة الواحدة لا تُنطق في الشطر الواحد نطقين. من كتب «مستفعلن
+ * مستفعلن مستفعلن» فقد كتب كلمةً واحدة ثلاثًا، فقراءتها الثالثة
+ * `مُسْ‑تَ‑فَعْ‑لُنْ` وقراءتاها الأوليان `مُسْ‑تَفْ‑عِ‑لُنْ` قراءةٌ لا
+ * يقولها أحد — وإن كان كل واحد منهما مشروعًا وحده.
+ *
+ * ولهذا وزنٌ عملي: النصّ غير المشكول يحتمل قراءات كثيرة، فيتعادل عليه
+ * بحور كثيرة تعادلًا تامًّا. وحين تتساوى الدرجات لا يبقى ما يرجّح إلا
+ * ترتيبُ القائمة، وهو ترجيحٌ لا يدلّ على شيء. أمّا اتّساق القراءة
+ * فدلالةٌ حقيقية: البحر الذي يقرأ الكلمة المكرّرة قراءةً واحدة أولى
+ * من الذي يقلّبها.
+ *
+ * وهي **كلفة لا منع**: البيت الذي يوجب اختلاف القراءة يبقى مرشَّحًا،
+ * وإنما ينزل عن نظيره المتّسق. فإن لم يوافق النصَّ إلا بحرٌ يقلّب
+ * الكلمة، ظهر ذلك البحر ونزلت درجته وبان السبب.
+ *
+ * والكلمة الأخيرة لها حكم خاصّ لا استثناء تامّ: آخر الشطر يقع عليه
+ * الإشباع وتجري عليه أحكام الوقف، فيجوز أن يختلف **مقطعها الأخير**
+ * عن نظيره في الحشو. أمّا ما قبله فيلزمه الاتّساق كسائر الكلمات.
+ */
+
+/**
+ * كم كلمةً قُرئت خلافًا لأخواتها المماثلة لها؟
+ *
+ * المقياس **الرسمُ** لا الصوامت: «مَفْعُولُنْ» و«مَفَاعِيلُنْ» صوامتهما
+ * واحدة (م ف ع ل ن) لأن حروف المدّ تندمج في الحركات، وهما كلمتان
+ * مختلفتان لا مثيلتان. فالمقارنة بالمكتوب بحركاته.
+ *
+ * @param {object[]} feet التفعيلات المختارة، لكل واحدة `ops`
+ * @param {object[]} units الوحدات الصوتية
+ * @param {object[]} words الكلمات كما كُتبت
+ * @returns {number} عدد الكلمات الشاذّة عن قراءة مثيلاتها
+ */
+function inconsistentWordReadings(feet, units, words) {
+  if (!units || !units.length || !feet || !feet.length) return 0;
+  if (!words || !words.length) return 0;
+
+  // قراءة كل كلمة: تسلسل أوزان مقاطعها. والمقطع يُنسب إلى كلمة فاتحته،
+  // لأن التفعيلة قد تتجاوز حدّ الكلمة والمقطع لا يتجاوزه إلا بساكن.
+  const readings = new Map();
+  for (const foot of feet) {
+    for (const op of foot.ops || []) {
+      if (!op.edge) continue;
+      const consumed = op.edge.meta && op.edge.meta.consumed;
+      const first = consumed && consumed.length ? consumed[0] : undefined;
+      const unit = first === undefined ? undefined : units[first];
+      if (!unit) continue;
+      if (!readings.has(unit.word)) readings.set(unit.word, '');
+      readings.set(unit.word, readings.get(unit.word) + op.edge.weight);
+    }
+  }
+  if (readings.size < 2) return 0;
+
+  const lastWord = units[units.length - 1].word;
+
+  // تُجمع الكلمات المتماثلة رسمًا، ويُنظر أتّفقت قراءاتها أم اختلفت.
+  const groups = new Map();
+  for (const [wordIndex, reading] of readings) {
+    const key = words[wordIndex] && words[wordIndex].text;
+    if (!key) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({ reading, isLast: wordIndex === lastWord });
+  }
+
+  let odd = 0;
+  for (const list of groups.values()) {
+    if (list.length < 2) continue;
+
+    // القراءة السائدة تُؤخذ من كلمات الحشو، فهي التي لا عارض لها.
+    const inner = list.filter((x) => !x.isLast);
+    const counts = new Map();
+    for (const x of inner) counts.set(x.reading, (counts.get(x.reading) || 0) + 1);
+    let majority = null;
+    let commonest = 0;
+    for (const [r, n] of counts) if (n > commonest) { commonest = n; majority = r; }
+    if (majority === null) continue; // كلها في آخر الشطر: لا سائد يُقاس عليه
+
+    odd += inner.length - commonest;
+
+    // آخر الشطر يُقاس بما قبل مقطعه الأخير وحده.
+    for (const x of list) {
+      if (!x.isLast) continue;
+      const sameButFinal =
+        x.reading.length === majority.length &&
+        x.reading.slice(0, -1) === majority.slice(0, -1);
+      if (x.reading !== majority && !sameButFinal) odd += 1;
+    }
+  }
+  return odd;
+}
+
+  Object.assign(__M, { inconsistentWordReadings });
+}
+
 // ── engine/js/matching/meterMatcher.js ──
 {
 /**
@@ -1830,6 +1935,7 @@ function minSyllablesToEnd(dag) {
  */
 
 const { matchFoot, minSyllablesToEnd, createAlignmentCache } = __M;
+const { inconsistentWordReadings } = __M;
 
 /**
  * @param {object} dag مخطّط مقاطع الشطر
@@ -1922,8 +2028,15 @@ function matchMeter(dag, meter, scorer, options = {}) {
   const meterSyllables = feet.reduce(
     (n, f) => n + (f.salim ? f.salim.length : 0), 0
   ) || meter.pattern.length * repeat;
+
+  // الكلمة الواحدة لا تُنطق في الشطر الواحد نطقين. والنصّ غير المشكول
+  // يتعادل عليه بحور كثيرة تعادلًا تامًّا، فيصير اتّساق القراءة هو
+  // الفارق الحقيقي بينها — لا ترتيب القائمة.
+  const oddReadings = inconsistentWordReadings(best.state.chosen, options.units, options.words);
+  const total = best.total + oddReadings * scorer.weights.inconsistentWordReading;
+
   const { score, confidence, cost, normalizer } = scorer.finalize(
-    best.total,
+    total,
     meterSyllables,
     { assumedVocalization: dag.assumedVocalization }
   );
@@ -1967,6 +2080,8 @@ function matchMeter(dag, meter, scorer, options = {}) {
     actualPattern: chosen.flatMap((c) => c.actual).join(''),
     brokenFeet,
     leftoverSyllables: best.leftoverSyllables,
+    // كلمات قُرئت خلافًا لمثيلاتها — تُعلَن ولا تُطوى.
+    inconsistentWordReadings: oddReadings,
     assumedVocalization: dag.assumedVocalization,
   };
 }
@@ -2045,7 +2160,7 @@ function rankMeters(dag, registry, scorer, options = {}) {
     const formCount = meter.forms ? meter.forms.length : 1;
     for (const repeat of repeats) {
       for (const forms of formCombinations(formCount, repeat)) {
-        const r = matchMeter(dag, meter, scorer, { repeat, forms, cache: cache || false });
+        const r = matchMeter(dag, meter, scorer, { repeat, forms, cache: cache || false, units: options.units, words: options.words });
         if (!r || !r.matched) continue;
         if (!bestForMeter || betterForm(r, bestForMeter, options.preferRole)) bestForMeter = r;
       }
@@ -2155,6 +2270,10 @@ function analyzeUnit(text, engine, options) {
   const ranking = rankMeters(dag, engine.registry, engine.scorer, {
     repeats: options.repeats || [1],
     preferRole: options.preferRole,
+    // تلزمان لمعرفة أي مقطع من أي كلمة، وأيّ كلمتين تماثلتا رسمًا —
+    // وبهما يُقاس اتّساق القراءة.
+    units,
+    words: norm.words,
   });
   return { norm, units, phonTrace: trace, dag, free, ranking, readable };
 }
@@ -3688,6 +3807,39 @@ const { phonemize } = __M;
 const { buildSyllableDag, freeSyllabify } = __M;
 const { matchMeter, rankMeters } = __M;
 
+/**
+ * نطق أسماء التفعيلات، مشتقًّا من `tafaeel.json` و`variations.json`.
+ *
+ * الفائدة عملية: هذه صفحة تجربةٍ للمحرك، وأكثر ما يُكتب فيها للاختبار
+ * أسماءُ التفعيلات نفسها. و«مستفعلن» مجرّدةً من التشكيل تحتمل قراءات،
+ * فيتعادل عليها الرجز والرمل والوافر تعادلًا تامًّا — ومَن كتبها إنما
+ * أراد `مُسْتَفْعِلُنْ` لا غير.
+ *
+ * ولا اختراع فيه: التشكيل مأخوذ من البيانات نفسها التي يُبنى منها
+ * البحر. وما احتمل نطقين — «فعلن» فَعِلُنْ أو فَعْلُنْ — يُترك حرًّا
+ * ولا يُفرض عليه أحدهما.
+ *
+ * ولا يُطبَّق إلا على كلمة كُتبت مجرّدة: تشكيل الشاعر أولى دائمًا.
+ */
+function tafilaVocalizations(data) {
+  const strip = (s) => [...s].filter((c) => !/[\u064B-\u0652\u0670]/.test(c)).join('');
+  const seen = new Map();
+  const add = (vocalized) => {
+    const plain = strip(vocalized);
+    if (!seen.has(plain)) seen.set(plain, new Set());
+    seen.get(plain).add(vocalized);
+  };
+  for (const t of data.tafaeel.tafaeel) add(t.vocalized);
+  for (const list of Object.values(data.variations.variations)) {
+    for (const v of list) add(v.result);
+  }
+  const out = {};
+  for (const [plain, forms] of seen) {
+    if (forms.size === 1) out[plain] = [...forms][0]; // ما احتمل نطقين يُترك
+  }
+  return out;
+}
+
 function createEngine(data) {
   const registry = buildRegistry(data);
   const scorer = createScorer(data.scoring);
@@ -3697,7 +3849,7 @@ function createEngine(data) {
     registry,
     scorer,
     encoder,
-    lexicon: data.lexicon,
+    lexicon: { ...data.lexicon, tafilaVocalizations: tafilaVocalizations(data) },
     data,
 
     /** تحليل بيت واحد. */
@@ -5847,7 +5999,8 @@ const DATA = {
         "arudDarb": 1.35
       },
       "unconsumedSyllable": 1.2,
-      "unfilledFoot": 1.5
+      "unfilledFoot": 1.5,
+      "inconsistentWordReading": 0.25
     },
     "normalizer": {
       "mode": "meterSyllables",
@@ -5881,7 +6034,8 @@ const DATA = {
       "normalizer_floor": "يمنع البحور القصيرة جدًا من تضخيم أثر خطأ واحد.",
       "ambiguity_penalty": "نصّ غير مشكول يقبل قراءات كثيرة، فقد يتساوى بحران في القمة. الدرجة تبقى كما هي — لأنها تصف المطابقة فعلًا — لكن الثقة تنخفض، لأن الثقة تصف يقيننا بالإجابة لا جودة المطابقة. الفرق بين الرقمين مقصود.",
       "tie_delta": "الفارق الذي يُعدّ دونه البحران متساويين. مشتق من كلفة زحاف واحد تقريبًا لا من التجربة — يُعاير حين تتوفر أمثلة مرجعية.",
-      "max_broken_foot_ratio": "الدرجة وحدها لا تكفي للحكم. بيت اختلّت فيه كل تفعيلاته قد ينال درجة متوسطة لأن كل تفعيلة اختلّت بمقطع واحد فقط، فيبدو «قريبًا من البحر» وهو ليس كذلك: القرب من وزن معناه أن أكثره صحيح. فإذا تجاوزت نسبة التفعيلات المختلّة هذا الحدّ رُدَّ الحكم إلى «لا وزن مقنع» مهما كانت الدرجة. الدرجة تصف المسافة، والحكم يصف ما يصحّ أن يُقال للمستخدم."
+      "max_broken_foot_ratio": "الدرجة وحدها لا تكفي للحكم. بيت اختلّت فيه كل تفعيلاته قد ينال درجة متوسطة لأن كل تفعيلة اختلّت بمقطع واحد فقط، فيبدو «قريبًا من البحر» وهو ليس كذلك: القرب من وزن معناه أن أكثره صحيح. فإذا تجاوزت نسبة التفعيلات المختلّة هذا الحدّ رُدَّ الحكم إلى «لا وزن مقنع» مهما كانت الدرجة. الدرجة تصف المسافة، والحكم يصف ما يصحّ أن يُقال للمستخدم.",
+      "inconsistentWordReading": "كلفة كل كلمة تُقرأ خلافًا لمثيلتها في الشطر نفسه. الكلمة الواحدة لا تُنطق نطقين، فمن كتب «مستفعلن» ثلاثًا فقراءتها واحدة. وقيمتها ربعُ كلفة الإبدال: ترجّح عند التعادل — وهو كثير في النصّ غير المشكول — ولا تقلب بحرًا فاق نظيره بفارق حقيقي. والكلمة الأخيرة تُقاس بما قبل مقطعها الأخير وحده، لأن الإشباع وأحكام الوقف تخصّ آخر الشطر."
     }
   },
   "encodings": {

@@ -13,6 +13,7 @@
  */
 
 import { matchFoot, minSyllablesToEnd, createAlignmentCache } from './footMatcher.js';
+import { inconsistentWordReadings } from './wordConsistency.js';
 
 /**
  * @param {object} dag مخطّط مقاطع الشطر
@@ -105,8 +106,15 @@ export function matchMeter(dag, meter, scorer, options = {}) {
   const meterSyllables = feet.reduce(
     (n, f) => n + (f.salim ? f.salim.length : 0), 0
   ) || meter.pattern.length * repeat;
+
+  // الكلمة الواحدة لا تُنطق في الشطر الواحد نطقين. والنصّ غير المشكول
+  // يتعادل عليه بحور كثيرة تعادلًا تامًّا، فيصير اتّساق القراءة هو
+  // الفارق الحقيقي بينها — لا ترتيب القائمة.
+  const oddReadings = inconsistentWordReadings(best.state.chosen, options.units, options.words);
+  const total = best.total + oddReadings * scorer.weights.inconsistentWordReading;
+
   const { score, confidence, cost, normalizer } = scorer.finalize(
-    best.total,
+    total,
     meterSyllables,
     { assumedVocalization: dag.assumedVocalization }
   );
@@ -150,6 +158,8 @@ export function matchMeter(dag, meter, scorer, options = {}) {
     actualPattern: chosen.flatMap((c) => c.actual).join(''),
     brokenFeet,
     leftoverSyllables: best.leftoverSyllables,
+    // كلمات قُرئت خلافًا لمثيلاتها — تُعلَن ولا تُطوى.
+    inconsistentWordReadings: oddReadings,
     assumedVocalization: dag.assumedVocalization,
   };
 }
@@ -228,7 +238,7 @@ export function rankMeters(dag, registry, scorer, options = {}) {
     const formCount = meter.forms ? meter.forms.length : 1;
     for (const repeat of repeats) {
       for (const forms of formCombinations(formCount, repeat)) {
-        const r = matchMeter(dag, meter, scorer, { repeat, forms, cache: cache || false });
+        const r = matchMeter(dag, meter, scorer, { repeat, forms, cache: cache || false, units: options.units, words: options.words });
         if (!r || !r.matched) continue;
         if (!bestForMeter || betterForm(r, bestForMeter, options.preferRole)) bestForMeter = r;
       }
