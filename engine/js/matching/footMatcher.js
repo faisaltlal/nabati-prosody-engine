@@ -19,7 +19,86 @@
  * @param {object} scorer
  * @returns {Map<number, {cost:number, ops:object[], syllables:object[]}>}
  */
-export function matchFoot(dag, from, pattern, scorer) {
+export function matchFoot(dag, from, pattern, scorer, cache) {
+  return matchFootBoth(dag, from, pattern, scorer, undefined, cache).ends;
+}
+
+/**
+ * ذاكرة محاذاة لتحليل واحد.
+ *
+ * محاذاة التفعيلة لا تعتمد إلا على (موضع البداية، نمط الصورة). وترتيب
+ * البحور يُعيد الطلب نفسه آلاف المرّات: «مستفعلن» سالمةً تقع في عشرات
+ * البحور، وتُطلَب من كل موضع في كل واحد منها. فحفظ الجواب مرّة واحدة
+ * يُسقط أكثر من تسعة أعشار العمل.
+ *
+ * الذاكرة **لتحليل واحد لا أكثر**: مفاتيحها مواضعُ مخطّطٍ بعينه، فلا
+ * تُشارَك بين نصّين. وهي محض تسريع — النتائج هي هي.
+ */
+export function createAlignmentCache() {
+  return new Map();
+}
+
+/**
+ * أقل كلفة لمطابقة **بادئة** من التفعيلة تنتهي عند وحدة بعينها.
+ *
+ * هذا ما تحتاجه الكتابة اللحظية: من كتب «البا» لم يكتب تفعيلة ناقصة
+ * ولا مكسورة، بل كتب أوّلها ولمّا يتمّها. فالفرق بين «ما لم يُكتب بعد»
+ * و«ما كُتب خطأً» فرقٌ في المعنى لا في الحساب، ولا يجوز أن تُحاسَب
+ * الأولى حساب الثانية.
+ *
+ * تشترك مع `matchFoot` في المحاذاة نفسها حرفيًا — تقرأ من جدولها
+ * مواضع `p < P` بدل `p === P` وحدها — فلا يمكن أن يفترق الحسابان.
+ *
+ * @param {number} at موضع الوحدة التي يجب أن تنتهي عندها البادئة
+ *                    (آخر ما كُتب عادةً)
+ * @returns {Map<number, {cost:number, ops:object[], syllables:object[]}>}
+ *          مفتاحها عدد مقاطع التفعيلة التي تحقّقت
+ */
+export function matchFootPrefix(dag, from, pattern, scorer, at, cache) {
+  return matchFootBoth(dag, from, pattern, scorer, at, cache).prefixes;
+}
+
+/**
+ * المخرجان معًا من محاذاة واحدة: مواضع نهاية التفعيلة التامّة، وبادئاتها
+ * المنتهية عند `at`.
+ *
+ * الكتابة اللحظية تحتاجهما في كل تفعيلة وعلى كل صورة، واستدعاؤهما
+ * منفصلين كان يُجري المحاذاة نفسها مرّتين — وهي أسخن حلقة في المحرك.
+ * الجدول واحد أصلًا، وإنما يُقرأ منه مرّة `p === P` ومرّة `p < P`،
+ * فلا وجه لبنائه مرّتين.
+ */
+export function matchFootBoth(dag, from, pattern, scorer, at, cache) {
+  let cacheKey;
+  if (cache) {
+    cacheKey = `${from}|${pattern.join('')}|${at === undefined ? '' : at}`;
+    const hit = cache.get(cacheKey);
+    if (hit) return hit;
+  }
+
+  const { dist, back, n, P } = runAlignment(dag, from, pattern, scorer);
+  const key = (u, p) => u * (P + 1) + p;
+
+  const ends = new Map();
+  for (let u = from; u <= n; u++) {
+    const c = dist.get(key(u, P));
+    if (c === undefined) continue;
+    ends.set(u, { cost: c, ...reconstruct(back, u, P, P, from) });
+  }
+
+  const prefixes = new Map();
+  if (at !== undefined) {
+    for (let p = 0; p < P; p++) {
+      const c = dist.get(key(at, p));
+      if (c === undefined) continue;
+      prefixes.set(p, { cost: c, ...reconstruct(back, at, p, P, from) });
+    }
+  }
+  const out = { ends, prefixes };
+  if (cache) cache.set(cacheKey, out);
+  return out;
+}
+
+function runAlignment(dag, from, pattern, scorer) {
   const n = dag.size;
   const P = pattern.length;
   const w = scorer.weights;
@@ -65,13 +144,7 @@ export function matchFoot(dag, from, pattern, scorer) {
     }
   }
 
-  const results = new Map();
-  for (let u = from; u <= n; u++) {
-    const c = dist.get(key(u, P));
-    if (c === undefined) continue;
-    results.set(u, { cost: c, ...reconstruct(back, u, P, P, from) });
-  }
-  return results;
+  return { dist, back, n, P };
 }
 
 function reconstruct(back, endU, endP, P, from) {

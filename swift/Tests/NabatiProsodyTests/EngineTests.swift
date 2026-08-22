@@ -221,6 +221,7 @@ final class EngineTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(q.count, 2, "ما لم يُحسم يجب أن يبقى معلنًا")
         XCTAssertTrue(q.contains { $0.contains("encoding") }, "ترميز التطبيق غير مثبت")
         XCTAssertTrue(q.contains { $0.contains("dialect") }, "قواعد اللهجة غير محسومة")
+        XCTAssertTrue(q.contains { $0.contains("rhyme") }, "قافية النبطي غير محسومة")
     }
 
     /// عدد البنود المعلَّقة يساوي ما تُعلنه البيانات نفسها.
@@ -237,6 +238,7 @@ final class EngineTests: XCTestCase {
         expected += engine.registry.meters.filter { $0.status == "NEEDS_VALIDATION" }.count
         expected += d.encodings.filter { $0.status == "NEEDS_VALIDATION" }.count
         expected += engine.registry.notInSource.count
+        if d.rhyme.nabatiSpecific?.status == "NEEDS_VALIDATION" { expected += 1 }
         if d.lexicon.nabatiDialect?.status == "NEEDS_VALIDATION" { expected += 1 }
         XCTAssertEqual(engine.openQuestions().count, expected,
                        "بند معلَّق في البيانات لا يظهر في openQuestions()")

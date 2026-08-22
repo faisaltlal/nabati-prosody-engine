@@ -10,6 +10,8 @@
  * واحدة، إما لأن المصدر سوّى بين شطريها وإما لأنه أعطى سطرًا واحدًا.
  */
 
+import { DIACRITICS } from '../phonology/letters.js';
+
 export function buildRegistry({ tafaeel, variations, meters }) {
   const tafilaById = new Map(tafaeel.tafaeel.map((t) => [t.id, t]));
   const problems = [];
@@ -128,4 +130,23 @@ export function lettersFromSyllables(syllables) {
   return syllables
     .map((s) => (s === 'S' ? '1' : s === 'X' ? '100' : '10'))
     .join('');
+}
+
+/**
+ * اسم التفعيلة وقد كُتب بعضُها — «مستف» لمن بلغ مقطعين من «مستفعلن».
+ *
+ * لا يُقتطع الاسم بالتخمين: عدد حروف كل مقطع مشتقّ من `lettersFromSyllables`
+ * نفسها التي يشتقّ منها الترميز الحرفي، واختبارٌ يشترط تطابقها مع
+ * `khalilLetters` المصرَّح به لكل تفعيلة. فلو اختلّ الاشتقاق ظهر فشلًا
+ * لا اسمًا مقطوعًا خطأً.
+ *
+ * @param {string} vocalized صورة التفعيلة المشكولة (سالمةً كانت أو مزاحَفة)
+ * @param {string[]} syllables مقاطع تلك الصورة
+ * @param {number} filled كم مقطعًا منها تحقّق
+ */
+export function partialTafilaName(vocalized, syllables, filled) {
+  const plain = [...String(vocalized)].filter((c) => !DIACRITICS.has(c));
+  if (filled >= syllables.length) return plain.join('');
+  const letters = lettersFromSyllables(syllables.slice(0, filled)).length;
+  return plain.slice(0, letters).join('');
 }

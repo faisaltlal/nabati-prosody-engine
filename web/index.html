@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="live.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📜</text></svg>">
 </head>
 <body>
@@ -16,7 +17,7 @@
 
 <header>
   <h1>محرك عروض الشعر النبطي</h1>
-  <p>محرك حتمي قائم على القواعد — بلا نموذج لغوي وبلا نسب مقدَّرة. كل ما تراه مشتق من قواعد العروض وقاعدة الأوزان.</p>
+  <p>اكتب، ويتولّد التقطيع حرفًا حرفًا. محرك حتمي قائم على القواعد — بلا نموذج لغوي وبلا نسب مقدَّرة.</p>
 </header>
 
 <nav class="tabs" role="tablist">
@@ -30,18 +31,26 @@
 <!-- ============ تحليل بيت ============ -->
 <section id="tab-analyze">
   <div class="panel">
-    <h2>البيت</h2>
-    <textarea id="input" placeholder="اكتب بيتًا نبطيًا…&#10;التشكيل يرفع دقة النتيجة كثيرًا. للفصل بين الشطرين استعمل ...&#10;مثال: مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ" spellcheck="false"></textarea>
-    <div class="row">
-      <button class="go" id="run">حلّل</button>
-      <label class="check"><input type="checkbox" id="debug"> وضع التتبّع</label>
-      <span class="grow"></span>
-      <span class="muted" id="timing"></span>
+    <div class="fields">
+      <label class="field">
+        <span class="field-label">الصدر</span>
+        <textarea id="sadr" rows="2" spellcheck="false" autocomplete="off"
+          placeholder="اكتب صدر البيت…"></textarea>
+      </label>
+      <label class="field">
+        <span class="field-label">العجز</span>
+        <textarea id="ajz" rows="2" spellcheck="false" autocomplete="off"
+          placeholder="اكتب عجز البيت…"></textarea>
+      </label>
     </div>
+    <p class="hint">
+      التفعيلات تتولّد وأنت تكتب. اكتب شطرًا واحدًا أو الشطرين —
+      والتشكيل يرفع الدقّة ولا يُشترط.
+    </p>
     <div class="samples" id="samples"></div>
   </div>
 
-  <div id="result" class="hidden"></div>
+  <div id="result"></div>
 </section>
 
 <!-- ============ قصيدة ============ -->
@@ -92,7 +101,6 @@
 
 <footer>
   <p>المحرك يعمل كاملًا داخل متصفحك — لا خادم ولا شبكة ولا إرسال لأي نصّ.</p>
-  <p>أضف <code>?debug=1</code> إلى الرابط لتشغيل التتبّع دائمًا.</p>
   <p>نسخة بملف واحد مكتفٍ بذاته (تعمل بلا إنترنت): <code>standalone.html</code></p>
 </footer>
 

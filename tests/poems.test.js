@@ -131,6 +131,7 @@ describe('الأسئلة المعلَّقة', () => {
     for (const x of q) assert(x.area && (x.issue || x.gaps), `بند ناقص: ${JSON.stringify(x)}`);
     assert(q.some((x) => x.area === 'encoding'), 'ترميز التطبيق الرقمي غير محسوم');
     assert(q.some((x) => x.area === 'dialect'), 'قواعد اللهجة النبطية غير محسومة');
+    assert(q.some((x) => x.area === 'rhyme'), 'قواعد قافية النبطي غير محسومة');
     // البنود التي كانت على مستوى التفعيلة والبحر حُسمت كلها بقائمة
     // البحور التي أعطاها المستخدم: «فاعل» صارت «فاعلن»، والصخري
     // والهلالي والسامري نالت تفعيلات صريحة. فلا يُشترط بقاء بند منها.
@@ -147,6 +148,7 @@ describe('الأسئلة المعلَّقة', () => {
     expected += engine.registry.meters.filter((m) => m.status === 'NEEDS_VALIDATION').length;
     expected += DATA.encodings.schemes.filter((s) => s.status === 'NEEDS_VALIDATION').length;
     expected += engine.registry.notInSource.length;
+    if (DATA.rhyme.nabatiSpecific?.status === 'NEEDS_VALIDATION') expected += 1;
     if (DATA.lexicon.nabatiDialect?.status === 'NEEDS_VALIDATION') expected += 1;
     equal(engine.openQuestions().length, expected,
       'بند معلَّق في البيانات لا يظهر في openQuestions()');

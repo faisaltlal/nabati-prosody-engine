@@ -1,0 +1,117 @@
+/* ============================================================
+   الكتابة اللحظية — حقلا الصدر والعجز، وبطاقات التفعيلات، والقافية.
+   ملحق بـ style.css لا بديل عنه: بقية التبويبات تستعمله كما هو.
+   ============================================================ */
+
+/* ── حقلا الإدخال ─────────────────────────────────────────── */
+.fields { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+@media (max-width: 620px) { .fields { grid-template-columns: 1fr; } }
+
+.field { display: block; }
+.field-label {
+  display: block; font-size: .78rem; font-weight: 600;
+  color: var(--muted); margin-bottom: 5px;
+}
+.field textarea { min-height: 68px; font-size: 1.1rem; line-height: 1.9; }
+
+.hint { margin: 10px 0 0; font-size: .8rem; color: var(--muted); }
+
+/* ── مربع الوزن ───────────────────────────────────────────── */
+.verdict-panel .score-line {
+  display: flex; align-items: center; gap: 10px; margin-top: 12px;
+}
+.verdict-panel .bar { flex: 1 1 auto; margin-top: 0; }
+.verdict-panel .pctn {
+  font-variant-numeric: tabular-nums; font-weight: 700;
+  font-size: 1.05rem; min-width: 3.2em; text-align: start;
+}
+
+.hemistich-head {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap; margin-bottom: 10px;
+}
+.hemistich-head .field-label { margin: 0; }
+
+.badge.soft { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.badge.writing {
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand);
+}
+
+/* ── شريط التفعيلات ───────────────────────────────────────── */
+/* يمرّ أفقيًّا ولا يكسر الصفحة: البحور تبلغ ست عشرة تفعيلة. */
+.feet {
+  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+}
+
+.foot {
+  flex: 0 0 auto; min-width: 92px; text-align: center;
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 9px 10px; background: var(--bg);
+}
+.foot-name { font-size: 1rem; font-weight: 700; line-height: 1.5; }
+.foot-symbol {
+  font-family: var(--mono); direction: ltr; font-size: .82rem;
+  letter-spacing: .1em; color: var(--brand); margin-top: 2px;
+  min-height: 1.2em;
+}
+.foot-text {
+  font-size: .78rem; color: var(--muted); margin-top: 4px;
+  max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.foot-state {
+  font-size: .7rem; color: var(--muted); margin-top: 4px;
+  padding-top: 4px; border-top: 1px solid var(--line);
+}
+
+.foot.salim { border-color: color-mix(in srgb, var(--good) 45%, var(--line)); }
+.foot.salim .foot-state { color: var(--good); }
+
+.foot.licensed { border-color: color-mix(in srgb, var(--warn) 50%, var(--line)); }
+.foot.licensed .foot-state { color: var(--warn); }
+
+.foot.broken {
+  border-color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 7%, var(--bg));
+}
+.foot.broken .foot-state { color: var(--bad); font-weight: 600; }
+
+/* التفعيلة الجارية: اسمها مقتطع بقدر ما كُتب منها. */
+.foot.partial {
+  border-color: var(--brand); border-style: dashed;
+  background: var(--brand-soft);
+}
+.foot.partial .foot-state { color: var(--brand); }
+
+/* ما لم يبلغه القلم بعد — يُرى ولا يُحاسَب. */
+.foot.pending { opacity: .38; border-style: dashed; }
+
+/* ── الزحافات والعلل ──────────────────────────────────────── */
+.licence {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin-top: 12px; font-size: .82rem;
+}
+.licence-key { color: var(--muted); font-weight: 600; }
+.licence-item {
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  color: var(--warn); border-radius: 999px; padding: 3px 10px;
+}
+
+/* ── القافية ──────────────────────────────────────────────── */
+.rhyme {
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+}
+.rhyme-title { font-size: .8rem; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+.rhyme-grid {
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+}
+.rhyme-cell {
+  border: 1px solid var(--line); border-radius: 9px;
+  padding: 7px 10px; background: var(--bg);
+}
+.rhyme-key { display: block; font-size: .7rem; color: var(--muted); }
+.rhyme-val { display: block; font-size: 1.05rem; font-weight: 700; margin-top: 1px; }
+.rhyme-val.none { font-size: .82rem; font-weight: 400; color: var(--muted); }
+.rhyme-note { margin: 8px 0 0; font-size: .74rem; color: var(--muted); line-height: 1.6; }

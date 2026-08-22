@@ -12,7 +12,7 @@
  *  - إضافة بحر أو صورة جديدة لا تمسّ هذا الملف إطلاقًا.
  */
 
-import { matchFoot, minSyllablesToEnd } from './footMatcher.js';
+import { matchFoot, minSyllablesToEnd, createAlignmentCache } from './footMatcher.js';
 
 /**
  * @param {object} dag مخطّط مقاطع الشطر
@@ -42,7 +42,7 @@ export function matchMeter(dag, meter, scorer, options = {}) {
     for (const [u, state] of states) {
       for (const variant of foot.variants) {
         const vCost = scorer.variationCost(variant, posCtx);
-        const ends = matchFoot(dag, u, variant.syllables, scorer);
+        const ends = matchFoot(dag, u, variant.syllables, scorer, options.cache);
         for (const [end, res] of ends) {
           let cost = state.cost + (vCost + res.cost) * posMult;
           if (end === u) cost += scorer.weights.unfilledFoot;
@@ -218,13 +218,17 @@ function describeOps(ops) {
 export function rankMeters(dag, registry, scorer, options = {}) {
   const repeats = options.repeats || [1];
   const results = [];
+  // ذاكرة واحدة لكل ترتيب: التفعيلة الواحدة تتكرّر في عشرات البحور،
+  // فتُحاذى مرّة وتُقرأ مرارًا. و`cache: false` تُعطّلها — يحتاجها
+  // اختبارٌ يقارن النتيجتين ليثبت أنها تسريع لا تغيير.
+  const cache = options.cache === false ? null : (options.cache || createAlignmentCache());
 
   for (const meter of registry.enabled) {
     let bestForMeter = null;
     const formCount = meter.forms ? meter.forms.length : 1;
     for (const repeat of repeats) {
       for (const forms of formCombinations(formCount, repeat)) {
-        const r = matchMeter(dag, meter, scorer, { repeat, forms });
+        const r = matchMeter(dag, meter, scorer, { repeat, forms, cache: cache || false });
         if (!r || !r.matched) continue;
         if (!bestForMeter || r.score > bestForMeter.score) bestForMeter = r;
       }

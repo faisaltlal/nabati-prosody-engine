@@ -346,6 +346,10 @@ public struct ProsodyEngine: Sendable {
         for n in registry.notInSource {
             out.append("missing_meter: \(n.name) — \(n.reason)")
         }
+        // ما يخصّ قافية النبطي وحدها غير منفَّذ — البند 26.
+        if data.rhyme.nabatiSpecific?.status == "NEEDS_VALIDATION" {
+            out.append("rhyme: nabatiRhyme — \(data.rhyme.nabatiSpecific?.note ?? "قواعد القافية النبطية غير محسومة")")
+        }
         // قواعد اللهجة النبطية فارغة عمدًا، فيجب أن تبقى معلنة.
         // كانت هذه الحالة غائبة عن Swift وحاضرة في جافاسكربت، فاختلف
         // التنفيذان في ما يعدّانه معلَّقًا.

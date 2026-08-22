@@ -172,6 +172,14 @@ export function analyzeLine(input, engine, options = {}) {
     prosodic: prosodicSpelling(units),
     syllables: displaySyllables.map((s) => ({
       weight: s.weight, shape: s.shape, onset: s.onset,
+      // النواة وحركتها يحتاجهما تحليل القافية ليعرف حرف المدّ: الألف
+      // من الفتحة والياء من الكسرة والواو من الضمة. إسقاطهما كان يُخفي
+      // حروف المدّ كلها عن القافية فتختلّ حدودها ونوعها.
+      nucleus: s.nucleus, quality: s.quality,
+      // مواضع الوحدات التي كوّنت المقطع: بها يُرجَع إلى رسم الحرف
+      // الأصلي — وبه تُعرف هاء الوقف المنقلبة عن تاء مربوطة، فلا
+      // تُحسَب رويًّا وهي وصل.
+      units: s.units,
       coda: s.coda, rule: s.rule, ishbaa: s.ishbaa, assumed: s.assumed,
     })),
     numericPattern: engine.encoder.encode(displaySyllables).value,

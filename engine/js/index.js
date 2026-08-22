@@ -15,6 +15,7 @@ import { createScorer } from './scoring/scorer.js';
 import { createEncoder } from './prosody/digitalPattern.js';
 import { analyzeLine } from './analysis/lineAnalyzer.js';
 import { analyzePoem } from './analysis/poemAnalyzer.js';
+import { analyzeLive, analyzeHemistich } from './analysis/liveAnalyzer.js';
 import { checkAttempt, exercises, DIFFICULTY } from './analysis/trainingMode.js';
 import { isDebugEnabled, traceReport, dumpDag } from './debug/trace.js';
 import { normalize, splitHemistichs, splitLines } from './text/normalizer.js';
@@ -40,6 +41,19 @@ export function createEngine(data) {
       const result = analyzeLine(input, engine, { ...options, debug });
       if (debug) result.trace = traceReport(result);
       return result;
+    },
+
+    /**
+     * التحليل اللحظي أثناء الكتابة — حقلا الصدر والعجز.
+     * الحقل الفارغ لا يُعطّل شيئًا: يُحلَّل المكتوب وحده.
+     */
+    analyzeLive(fields, options = {}) {
+      return analyzeLive(fields || {}, engine, options);
+    },
+
+    /** شطر واحد وهو يُكتب. */
+    analyzeHemistich(text, options = {}) {
+      return analyzeHemistich(text, engine, options);
     },
 
     /** تحليل قصيدة كاملة. */
@@ -98,6 +112,14 @@ export function createEngine(data) {
       }
       for (const n of registry.notInSource) {
         out.push({ area: 'missing_meter', name: n.name, issue: n.reason, resolvedBy: 'تفعيلات البحر' });
+      }
+      if (data.rhyme?.nabatiSpecific?.status === 'NEEDS_VALIDATION') {
+        out.push({
+          area: 'rhyme', id: 'nabatiRhyme',
+          issue: data.rhyme.nabatiSpecific.note,
+          gaps: data.rhyme.nabatiSpecific.knownGaps,
+          resolvedBy: data.rhyme.nabatiSpecific.resolvedBy,
+        });
       }
       if (data.lexicon.nabatiDialect?.status === 'NEEDS_VALIDATION') {
         out.push({

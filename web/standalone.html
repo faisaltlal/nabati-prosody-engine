@@ -165,6 +165,126 @@ footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
 footer code { font-family: var(--mono); font-size: .95em; }
 
 </style>
+<style>
+/* ============================================================
+   الكتابة اللحظية — حقلا الصدر والعجز، وبطاقات التفعيلات، والقافية.
+   ملحق بـ style.css لا بديل عنه: بقية التبويبات تستعمله كما هو.
+   ============================================================ */
+
+/* ── حقلا الإدخال ─────────────────────────────────────────── */
+.fields { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+@media (max-width: 620px) { .fields { grid-template-columns: 1fr; } }
+
+.field { display: block; }
+.field-label {
+  display: block; font-size: .78rem; font-weight: 600;
+  color: var(--muted); margin-bottom: 5px;
+}
+.field textarea { min-height: 68px; font-size: 1.1rem; line-height: 1.9; }
+
+.hint { margin: 10px 0 0; font-size: .8rem; color: var(--muted); }
+
+/* ── مربع الوزن ───────────────────────────────────────────── */
+.verdict-panel .score-line {
+  display: flex; align-items: center; gap: 10px; margin-top: 12px;
+}
+.verdict-panel .bar { flex: 1 1 auto; margin-top: 0; }
+.verdict-panel .pctn {
+  font-variant-numeric: tabular-nums; font-weight: 700;
+  font-size: 1.05rem; min-width: 3.2em; text-align: start;
+}
+
+.hemistich-head {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap; margin-bottom: 10px;
+}
+.hemistich-head .field-label { margin: 0; }
+
+.badge.soft { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.badge.writing {
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand);
+}
+
+/* ── شريط التفعيلات ───────────────────────────────────────── */
+/* يمرّ أفقيًّا ولا يكسر الصفحة: البحور تبلغ ست عشرة تفعيلة. */
+.feet {
+  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+}
+
+.foot {
+  flex: 0 0 auto; min-width: 92px; text-align: center;
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 9px 10px; background: var(--bg);
+}
+.foot-name { font-size: 1rem; font-weight: 700; line-height: 1.5; }
+.foot-symbol {
+  font-family: var(--mono); direction: ltr; font-size: .82rem;
+  letter-spacing: .1em; color: var(--brand); margin-top: 2px;
+  min-height: 1.2em;
+}
+.foot-text {
+  font-size: .78rem; color: var(--muted); margin-top: 4px;
+  max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.foot-state {
+  font-size: .7rem; color: var(--muted); margin-top: 4px;
+  padding-top: 4px; border-top: 1px solid var(--line);
+}
+
+.foot.salim { border-color: color-mix(in srgb, var(--good) 45%, var(--line)); }
+.foot.salim .foot-state { color: var(--good); }
+
+.foot.licensed { border-color: color-mix(in srgb, var(--warn) 50%, var(--line)); }
+.foot.licensed .foot-state { color: var(--warn); }
+
+.foot.broken {
+  border-color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 7%, var(--bg));
+}
+.foot.broken .foot-state { color: var(--bad); font-weight: 600; }
+
+/* التفعيلة الجارية: اسمها مقتطع بقدر ما كُتب منها. */
+.foot.partial {
+  border-color: var(--brand); border-style: dashed;
+  background: var(--brand-soft);
+}
+.foot.partial .foot-state { color: var(--brand); }
+
+/* ما لم يبلغه القلم بعد — يُرى ولا يُحاسَب. */
+.foot.pending { opacity: .38; border-style: dashed; }
+
+/* ── الزحافات والعلل ──────────────────────────────────────── */
+.licence {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin-top: 12px; font-size: .82rem;
+}
+.licence-key { color: var(--muted); font-weight: 600; }
+.licence-item {
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  color: var(--warn); border-radius: 999px; padding: 3px 10px;
+}
+
+/* ── القافية ──────────────────────────────────────────────── */
+.rhyme {
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+}
+.rhyme-title { font-size: .8rem; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+.rhyme-grid {
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+}
+.rhyme-cell {
+  border: 1px solid var(--line); border-radius: 9px;
+  padding: 7px 10px; background: var(--bg);
+}
+.rhyme-key { display: block; font-size: .7rem; color: var(--muted); }
+.rhyme-val { display: block; font-size: 1.05rem; font-weight: 700; margin-top: 1px; }
+.rhyme-val.none { font-size: .82rem; font-weight: 400; color: var(--muted); }
+.rhyme-note { margin: 8px 0 0; font-size: .74rem; color: var(--muted); line-height: 1.6; }
+
+</style>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📜</text></svg>">
 </head>
 <body>
@@ -172,7 +292,7 @@ footer code { font-family: var(--mono); font-size: .95em; }
 
 <header>
   <h1>محرك عروض الشعر النبطي</h1>
-  <p>محرك حتمي قائم على القواعد — بلا نموذج لغوي وبلا نسب مقدَّرة. كل ما تراه مشتق من قواعد العروض وقاعدة الأوزان.</p>
+  <p>اكتب، ويتولّد التقطيع حرفًا حرفًا. محرك حتمي قائم على القواعد — بلا نموذج لغوي وبلا نسب مقدَّرة.</p>
 </header>
 
 <nav class="tabs" role="tablist">
@@ -186,18 +306,26 @@ footer code { font-family: var(--mono); font-size: .95em; }
 <!-- ============ تحليل بيت ============ -->
 <section id="tab-analyze">
   <div class="panel">
-    <h2>البيت</h2>
-    <textarea id="input" placeholder="اكتب بيتًا نبطيًا…&#10;التشكيل يرفع دقة النتيجة كثيرًا. للفصل بين الشطرين استعمل ...&#10;مثال: مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ" spellcheck="false"></textarea>
-    <div class="row">
-      <button class="go" id="run">حلّل</button>
-      <label class="check"><input type="checkbox" id="debug"> وضع التتبّع</label>
-      <span class="grow"></span>
-      <span class="muted" id="timing"></span>
+    <div class="fields">
+      <label class="field">
+        <span class="field-label">الصدر</span>
+        <textarea id="sadr" rows="2" spellcheck="false" autocomplete="off"
+          placeholder="اكتب صدر البيت…"></textarea>
+      </label>
+      <label class="field">
+        <span class="field-label">العجز</span>
+        <textarea id="ajz" rows="2" spellcheck="false" autocomplete="off"
+          placeholder="اكتب عجز البيت…"></textarea>
+      </label>
     </div>
+    <p class="hint">
+      التفعيلات تتولّد وأنت تكتب. اكتب شطرًا واحدًا أو الشطرين —
+      والتشكيل يرفع الدقّة ولا يُشترط.
+    </p>
     <div class="samples" id="samples"></div>
   </div>
 
-  <div id="result" class="hidden"></div>
+  <div id="result"></div>
 </section>
 
 <!-- ============ قصيدة ============ -->
@@ -248,13 +376,122 @@ footer code { font-family: var(--mono); font-size: .95em; }
 
 <footer>
   <p>المحرك يعمل كاملًا داخل متصفحك — لا خادم ولا شبكة ولا إرسال لأي نصّ.</p>
-  <p>أضف <code>?debug=1</code> إلى الرابط لتشغيل التتبّع دائمًا.</p>
   <p>نسخة بملف واحد مكتفٍ بذاته (تعمل بلا إنترنت): <code>standalone.html</code></p>
 </footer>
 
 </div>
 <script type="module">
 const __M = {};
+// ── engine/js/phonology/letters.js ──
+{
+/**
+ * جدول الحروف والحركات. لا منطق هنا — تصنيف فقط.
+ *
+ * البند 6 من المواصفة: «لا تربط منطق المحرك مباشرة بحروف Unicode».
+ * لذلك هذا الملف هو الموضع الوحيد الذي يعرف نقاط Unicode العربية،
+ * وكل ما بعده يتعامل مع تصنيفات مجرّدة.
+ */
+
+const HAMZA = 'ء'; // ء
+const ALEF_MADDA = 'آ'; // آ
+const ALEF_HAMZA_ABOVE = 'أ'; // أ
+const WAW_HAMZA = 'ؤ'; // ؤ
+const ALEF_HAMZA_BELOW = 'إ'; // إ
+const YEH_HAMZA = 'ئ'; // ئ
+const ALEF = 'ا'; // ا
+const TEH_MARBUTA = 'ة'; // ة
+const ALEF_MAQSURA = 'ى'; // ى
+const WAW = 'و'; // و
+const YEH = 'ي'; // ي
+const LAM = 'ل'; // ل
+const NOON = 'ن'; // ن
+const TEH = 'ت'; // ت
+const HEH = 'ه'; // ه
+const ALEF_WASLA = 'ٱ'; // ٱ
+
+const FATHATAN = 'ً'; // ً
+const DAMMATAN = 'ٌ'; // ٌ
+const KASRATAN = 'ٍ'; // ٍ
+const FATHA = 'َ'; // َ
+const DAMMA = 'ُ'; // ُ
+const KASRA = 'ِ'; // ِ
+const SHADDA = 'ّ'; // ّ
+const SUKUN = 'ْ'; // ْ
+const SUPERSCRIPT_ALEF = 'ٰ'; // ٰ
+const TATWEEL = 'ـ'; // ـ
+
+const SHORT_VOWELS = new Set([FATHA, DAMMA, KASRA]);
+const TANWEEN = new Set([FATHATAN, DAMMATAN, KASRATAN]);
+const DIACRITICS = new Set([
+  FATHATAN, DAMMATAN, KASRATAN, FATHA, DAMMA, KASRA, SHADDA, SUKUN,
+  SUPERSCRIPT_ALEF,
+]);
+
+/** علامات قرآنية وزخرفية لا أثر لها في الوزن. */
+const QURANIC_MARKS = /[ۖ-ۭٓ-ٟـ]/g;
+
+/** كل ما ليس حرفًا عربيًا ولا حركة ولا فراغًا. */
+const NON_ARABIC = /[^ء-يٰٱً-ْ\s]/g;
+
+const CONSONANT_LETTERS = new Set([
+  HAMZA, ALEF_MADDA, ALEF_HAMZA_ABOVE, WAW_HAMZA, ALEF_HAMZA_BELOW, YEH_HAMZA,
+  'ب', TEH_MARBUTA, TEH, 'ث', 'ج', 'ح', 'خ',
+  'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص',
+  'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق',
+  'ك', LAM, 'م', NOON, HEH, WAW, YEH, ALEF, ALEF_MAQSURA,
+  ALEF_WASLA,
+]);
+
+/** الحروف التي تُدغم فيها لام التعريف فلا تُنطق اللام. */
+const SUN_LETTERS = new Set([
+  TEH, 'ث', 'د', 'ذ', 'ر', 'ز', 'س',
+  'ش', 'ص', 'ض', 'ط', 'ظ', LAM, NOON,
+]);
+
+const HAMZA_FORMS = new Set([
+  HAMZA, ALEF_MADDA, ALEF_HAMZA_ABOVE, WAW_HAMZA, ALEF_HAMZA_BELOW, YEH_HAMZA,
+]);
+
+function isArabicLetter(ch) {
+  return CONSONANT_LETTERS.has(ch);
+}
+
+function isDiacritic(ch) {
+  return DIACRITICS.has(ch);
+}
+
+function isSunLetter(ch) {
+  return SUN_LETTERS.has(ch);
+}
+
+/** جودة الحركة القصيرة التي تحملها العلامة. */
+function vowelQuality(mark) {
+  switch (mark) {
+    case FATHA:
+    case FATHATAN:
+      return 'a';
+    case DAMMA:
+    case DAMMATAN:
+      return 'u';
+    case KASRA:
+    case KASRATAN:
+      return 'i';
+    default:
+      return null;
+  }
+}
+
+/**
+ * الصامت الذي تمثّله صورة الهمزة. كل صور الهمزة صوتها واحد؛
+ * الكرسي رسم لا نطق، فلا أثر له في الوزن.
+ */
+function hamzaBase(ch) {
+  return HAMZA_FORMS.has(ch) ? HAMZA : ch;
+}
+
+  Object.assign(__M, { HAMZA, ALEF_MADDA, ALEF_HAMZA_ABOVE, WAW_HAMZA, ALEF_HAMZA_BELOW, YEH_HAMZA, ALEF, TEH_MARBUTA, ALEF_MAQSURA, WAW, YEH, LAM, NOON, TEH, HEH, ALEF_WASLA, FATHATAN, DAMMATAN, KASRATAN, FATHA, DAMMA, KASRA, SHADDA, SUKUN, SUPERSCRIPT_ALEF, TATWEEL, SHORT_VOWELS, TANWEEN, DIACRITICS, QURANIC_MARKS, NON_ARABIC, CONSONANT_LETTERS, SUN_LETTERS, HAMZA_FORMS, isArabicLetter, isDiacritic, isSunLetter, vowelQuality, hamzaBase });
+}
+
 // ── engine/js/meters/registry.js ──
 {
 /**
@@ -268,6 +505,8 @@ const __M = {};
  * نفسه مع تذييل في آخر تفعيلة (فاعلاتن ← فاعلاتان). بعض البحور صيغة
  * واحدة، إما لأن المصدر سوّى بين شطريها وإما لأنه أعطى سطرًا واحدًا.
  */
+
+const { DIACRITICS } = __M;
 
 function buildRegistry({ tafaeel, variations, meters }) {
   const tafilaById = new Map(tafaeel.tafaeel.map((t) => [t.id, t]));
@@ -389,7 +628,26 @@ function lettersFromSyllables(syllables) {
     .join('');
 }
 
-  Object.assign(__M, { buildRegistry, lettersFromSyllables });
+/**
+ * اسم التفعيلة وقد كُتب بعضُها — «مستف» لمن بلغ مقطعين من «مستفعلن».
+ *
+ * لا يُقتطع الاسم بالتخمين: عدد حروف كل مقطع مشتقّ من `lettersFromSyllables`
+ * نفسها التي يشتقّ منها الترميز الحرفي، واختبارٌ يشترط تطابقها مع
+ * `khalilLetters` المصرَّح به لكل تفعيلة. فلو اختلّ الاشتقاق ظهر فشلًا
+ * لا اسمًا مقطوعًا خطأً.
+ *
+ * @param {string} vocalized صورة التفعيلة المشكولة (سالمةً كانت أو مزاحَفة)
+ * @param {string[]} syllables مقاطع تلك الصورة
+ * @param {number} filled كم مقطعًا منها تحقّق
+ */
+function partialTafilaName(vocalized, syllables, filled) {
+  const plain = [...String(vocalized)].filter((c) => !DIACRITICS.has(c));
+  if (filled >= syllables.length) return plain.join('');
+  const letters = lettersFromSyllables(syllables.slice(0, filled)).length;
+  return plain.slice(0, letters).join('');
+}
+
+  Object.assign(__M, { buildRegistry, lettersFromSyllables, partialTafilaName });
 }
 
 // ── engine/js/scoring/scorer.js ──
@@ -603,116 +861,6 @@ function createEncoder(encodings) {
 }
 
   Object.assign(__M, { createEncoder });
-}
-
-// ── engine/js/phonology/letters.js ──
-{
-/**
- * جدول الحروف والحركات. لا منطق هنا — تصنيف فقط.
- *
- * البند 6 من المواصفة: «لا تربط منطق المحرك مباشرة بحروف Unicode».
- * لذلك هذا الملف هو الموضع الوحيد الذي يعرف نقاط Unicode العربية،
- * وكل ما بعده يتعامل مع تصنيفات مجرّدة.
- */
-
-const HAMZA = 'ء'; // ء
-const ALEF_MADDA = 'آ'; // آ
-const ALEF_HAMZA_ABOVE = 'أ'; // أ
-const WAW_HAMZA = 'ؤ'; // ؤ
-const ALEF_HAMZA_BELOW = 'إ'; // إ
-const YEH_HAMZA = 'ئ'; // ئ
-const ALEF = 'ا'; // ا
-const TEH_MARBUTA = 'ة'; // ة
-const ALEF_MAQSURA = 'ى'; // ى
-const WAW = 'و'; // و
-const YEH = 'ي'; // ي
-const LAM = 'ل'; // ل
-const NOON = 'ن'; // ن
-const TEH = 'ت'; // ت
-const HEH = 'ه'; // ه
-const ALEF_WASLA = 'ٱ'; // ٱ
-
-const FATHATAN = 'ً'; // ً
-const DAMMATAN = 'ٌ'; // ٌ
-const KASRATAN = 'ٍ'; // ٍ
-const FATHA = 'َ'; // َ
-const DAMMA = 'ُ'; // ُ
-const KASRA = 'ِ'; // ِ
-const SHADDA = 'ّ'; // ّ
-const SUKUN = 'ْ'; // ْ
-const SUPERSCRIPT_ALEF = 'ٰ'; // ٰ
-const TATWEEL = 'ـ'; // ـ
-
-const SHORT_VOWELS = new Set([FATHA, DAMMA, KASRA]);
-const TANWEEN = new Set([FATHATAN, DAMMATAN, KASRATAN]);
-const DIACRITICS = new Set([
-  FATHATAN, DAMMATAN, KASRATAN, FATHA, DAMMA, KASRA, SHADDA, SUKUN,
-  SUPERSCRIPT_ALEF,
-]);
-
-/** علامات قرآنية وزخرفية لا أثر لها في الوزن. */
-const QURANIC_MARKS = /[ۖ-ۭٓ-ٟـ]/g;
-
-/** كل ما ليس حرفًا عربيًا ولا حركة ولا فراغًا. */
-const NON_ARABIC = /[^ء-يٰٱً-ْ\s]/g;
-
-const CONSONANT_LETTERS = new Set([
-  HAMZA, ALEF_MADDA, ALEF_HAMZA_ABOVE, WAW_HAMZA, ALEF_HAMZA_BELOW, YEH_HAMZA,
-  'ب', TEH_MARBUTA, TEH, 'ث', 'ج', 'ح', 'خ',
-  'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص',
-  'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق',
-  'ك', LAM, 'م', NOON, HEH, WAW, YEH, ALEF, ALEF_MAQSURA,
-  ALEF_WASLA,
-]);
-
-/** الحروف التي تُدغم فيها لام التعريف فلا تُنطق اللام. */
-const SUN_LETTERS = new Set([
-  TEH, 'ث', 'د', 'ذ', 'ر', 'ز', 'س',
-  'ش', 'ص', 'ض', 'ط', 'ظ', LAM, NOON,
-]);
-
-const HAMZA_FORMS = new Set([
-  HAMZA, ALEF_MADDA, ALEF_HAMZA_ABOVE, WAW_HAMZA, ALEF_HAMZA_BELOW, YEH_HAMZA,
-]);
-
-function isArabicLetter(ch) {
-  return CONSONANT_LETTERS.has(ch);
-}
-
-function isDiacritic(ch) {
-  return DIACRITICS.has(ch);
-}
-
-function isSunLetter(ch) {
-  return SUN_LETTERS.has(ch);
-}
-
-/** جودة الحركة القصيرة التي تحملها العلامة. */
-function vowelQuality(mark) {
-  switch (mark) {
-    case FATHA:
-    case FATHATAN:
-      return 'a';
-    case DAMMA:
-    case DAMMATAN:
-      return 'u';
-    case KASRA:
-    case KASRATAN:
-      return 'i';
-    default:
-      return null;
-  }
-}
-
-/**
- * الصامت الذي تمثّله صورة الهمزة. كل صور الهمزة صوتها واحد؛
- * الكرسي رسم لا نطق، فلا أثر له في الوزن.
- */
-function hamzaBase(ch) {
-  return HAMZA_FORMS.has(ch) ? HAMZA : ch;
-}
-
-  Object.assign(__M, { HAMZA, ALEF_MADDA, ALEF_HAMZA_ABOVE, WAW_HAMZA, ALEF_HAMZA_BELOW, YEH_HAMZA, ALEF, TEH_MARBUTA, ALEF_MAQSURA, WAW, YEH, LAM, NOON, TEH, HEH, ALEF_WASLA, FATHATAN, DAMMATAN, KASRATAN, FATHA, DAMMA, KASRA, SHADDA, SUKUN, SUPERSCRIPT_ALEF, TATWEEL, SHORT_VOWELS, TANWEEN, DIACRITICS, QURANIC_MARKS, NON_ARABIC, CONSONANT_LETTERS, SUN_LETTERS, HAMZA_FORMS, isArabicLetter, isDiacritic, isSunLetter, vowelQuality, hamzaBase });
 }
 
 // ── engine/js/text/normalizer.js ──
@@ -1342,6 +1490,9 @@ function edgeToSyllable(e) {
     shape: e.meta.shape,
     onset: e.meta.onset,
     nucleus: e.meta.nucleus,
+    // حركة النواة: منها يُعرف حرف المدّ — ألفٌ من الفتحة وياءٌ من
+    // الكسرة وواوٌ من الضمة. تحليل القافية لا يقوم بدونها.
+    quality: e.meta.quality,
     coda: e.meta.coda || null,
     assumed: !!e.meta.assumed || !!e.meta.codaAssumed,
     rule: e.meta.rule || null,
@@ -1378,7 +1529,86 @@ function edgeToSyllable(e) {
  * @param {object} scorer
  * @returns {Map<number, {cost:number, ops:object[], syllables:object[]}>}
  */
-function matchFoot(dag, from, pattern, scorer) {
+function matchFoot(dag, from, pattern, scorer, cache) {
+  return matchFootBoth(dag, from, pattern, scorer, undefined, cache).ends;
+}
+
+/**
+ * ذاكرة محاذاة لتحليل واحد.
+ *
+ * محاذاة التفعيلة لا تعتمد إلا على (موضع البداية، نمط الصورة). وترتيب
+ * البحور يُعيد الطلب نفسه آلاف المرّات: «مستفعلن» سالمةً تقع في عشرات
+ * البحور، وتُطلَب من كل موضع في كل واحد منها. فحفظ الجواب مرّة واحدة
+ * يُسقط أكثر من تسعة أعشار العمل.
+ *
+ * الذاكرة **لتحليل واحد لا أكثر**: مفاتيحها مواضعُ مخطّطٍ بعينه، فلا
+ * تُشارَك بين نصّين. وهي محض تسريع — النتائج هي هي.
+ */
+function createAlignmentCache() {
+  return new Map();
+}
+
+/**
+ * أقل كلفة لمطابقة **بادئة** من التفعيلة تنتهي عند وحدة بعينها.
+ *
+ * هذا ما تحتاجه الكتابة اللحظية: من كتب «البا» لم يكتب تفعيلة ناقصة
+ * ولا مكسورة، بل كتب أوّلها ولمّا يتمّها. فالفرق بين «ما لم يُكتب بعد»
+ * و«ما كُتب خطأً» فرقٌ في المعنى لا في الحساب، ولا يجوز أن تُحاسَب
+ * الأولى حساب الثانية.
+ *
+ * تشترك مع `matchFoot` في المحاذاة نفسها حرفيًا — تقرأ من جدولها
+ * مواضع `p < P` بدل `p === P` وحدها — فلا يمكن أن يفترق الحسابان.
+ *
+ * @param {number} at موضع الوحدة التي يجب أن تنتهي عندها البادئة
+ *                    (آخر ما كُتب عادةً)
+ * @returns {Map<number, {cost:number, ops:object[], syllables:object[]}>}
+ *          مفتاحها عدد مقاطع التفعيلة التي تحقّقت
+ */
+function matchFootPrefix(dag, from, pattern, scorer, at, cache) {
+  return matchFootBoth(dag, from, pattern, scorer, at, cache).prefixes;
+}
+
+/**
+ * المخرجان معًا من محاذاة واحدة: مواضع نهاية التفعيلة التامّة، وبادئاتها
+ * المنتهية عند `at`.
+ *
+ * الكتابة اللحظية تحتاجهما في كل تفعيلة وعلى كل صورة، واستدعاؤهما
+ * منفصلين كان يُجري المحاذاة نفسها مرّتين — وهي أسخن حلقة في المحرك.
+ * الجدول واحد أصلًا، وإنما يُقرأ منه مرّة `p === P` ومرّة `p < P`،
+ * فلا وجه لبنائه مرّتين.
+ */
+function matchFootBoth(dag, from, pattern, scorer, at, cache) {
+  let cacheKey;
+  if (cache) {
+    cacheKey = `${from}|${pattern.join('')}|${at === undefined ? '' : at}`;
+    const hit = cache.get(cacheKey);
+    if (hit) return hit;
+  }
+
+  const { dist, back, n, P } = runAlignment(dag, from, pattern, scorer);
+  const key = (u, p) => u * (P + 1) + p;
+
+  const ends = new Map();
+  for (let u = from; u <= n; u++) {
+    const c = dist.get(key(u, P));
+    if (c === undefined) continue;
+    ends.set(u, { cost: c, ...reconstruct(back, u, P, P, from) });
+  }
+
+  const prefixes = new Map();
+  if (at !== undefined) {
+    for (let p = 0; p < P; p++) {
+      const c = dist.get(key(at, p));
+      if (c === undefined) continue;
+      prefixes.set(p, { cost: c, ...reconstruct(back, at, p, P, from) });
+    }
+  }
+  const out = { ends, prefixes };
+  if (cache) cache.set(cacheKey, out);
+  return out;
+}
+
+function runAlignment(dag, from, pattern, scorer) {
   const n = dag.size;
   const P = pattern.length;
   const w = scorer.weights;
@@ -1424,13 +1654,7 @@ function matchFoot(dag, from, pattern, scorer) {
     }
   }
 
-  const results = new Map();
-  for (let u = from; u <= n; u++) {
-    const c = dist.get(key(u, P));
-    if (c === undefined) continue;
-    results.set(u, { cost: c, ...reconstruct(back, u, P, P, from) });
-  }
-  return results;
+  return { dist, back, n, P };
 }
 
 function reconstruct(back, endU, endP, P, from) {
@@ -1464,7 +1688,7 @@ function minSyllablesToEnd(dag) {
   return best;
 }
 
-  Object.assign(__M, { matchFoot, minSyllablesToEnd });
+  Object.assign(__M, { matchFoot, createAlignmentCache, matchFootPrefix, matchFootBoth, minSyllablesToEnd });
 }
 
 // ── engine/js/matching/meterMatcher.js ──
@@ -1483,7 +1707,7 @@ function minSyllablesToEnd(dag) {
  *  - إضافة بحر أو صورة جديدة لا تمسّ هذا الملف إطلاقًا.
  */
 
-const { matchFoot, minSyllablesToEnd } = __M;
+const { matchFoot, minSyllablesToEnd, createAlignmentCache } = __M;
 
 /**
  * @param {object} dag مخطّط مقاطع الشطر
@@ -1513,7 +1737,7 @@ function matchMeter(dag, meter, scorer, options = {}) {
     for (const [u, state] of states) {
       for (const variant of foot.variants) {
         const vCost = scorer.variationCost(variant, posCtx);
-        const ends = matchFoot(dag, u, variant.syllables, scorer);
+        const ends = matchFoot(dag, u, variant.syllables, scorer, options.cache);
         for (const [end, res] of ends) {
           let cost = state.cost + (vCost + res.cost) * posMult;
           if (end === u) cost += scorer.weights.unfilledFoot;
@@ -1689,13 +1913,17 @@ function describeOps(ops) {
 function rankMeters(dag, registry, scorer, options = {}) {
   const repeats = options.repeats || [1];
   const results = [];
+  // ذاكرة واحدة لكل ترتيب: التفعيلة الواحدة تتكرّر في عشرات البحور،
+  // فتُحاذى مرّة وتُقرأ مرارًا. و`cache: false` تُعطّلها — يحتاجها
+  // اختبارٌ يقارن النتيجتين ليثبت أنها تسريع لا تغيير.
+  const cache = options.cache === false ? null : (options.cache || createAlignmentCache());
 
   for (const meter of registry.enabled) {
     let bestForMeter = null;
     const formCount = meter.forms ? meter.forms.length : 1;
     for (const repeat of repeats) {
       for (const forms of formCombinations(formCount, repeat)) {
-        const r = matchMeter(dag, meter, scorer, { repeat, forms });
+        const r = matchMeter(dag, meter, scorer, { repeat, forms, cache: cache || false });
         if (!r || !r.matched) continue;
         if (!bestForMeter || r.score > bestForMeter.score) bestForMeter = r;
       }
@@ -1907,6 +2135,14 @@ function analyzeLine(input, engine, options = {}) {
     prosodic: prosodicSpelling(units),
     syllables: displaySyllables.map((s) => ({
       weight: s.weight, shape: s.shape, onset: s.onset,
+      // النواة وحركتها يحتاجهما تحليل القافية ليعرف حرف المدّ: الألف
+      // من الفتحة والياء من الكسرة والواو من الضمة. إسقاطهما كان يُخفي
+      // حروف المدّ كلها عن القافية فتختلّ حدودها ونوعها.
+      nucleus: s.nucleus, quality: s.quality,
+      // مواضع الوحدات التي كوّنت المقطع: بها يُرجَع إلى رسم الحرف
+      // الأصلي — وبه تُعرف هاء الوقف المنقلبة عن تاء مربوطة، فلا
+      // تُحسَب رويًّا وهي وصل.
+      units: s.units,
       coda: s.coda, rule: s.rule, ishbaa: s.ishbaa, assumed: s.assumed,
     })),
     numericPattern: engine.encoder.encode(displaySyllables).value,
@@ -2093,6 +2329,727 @@ function analyzePoem(input, engine, options = {}) {
 const round = (x) => Math.round(x * 1e6) / 1e6;
 
   Object.assign(__M, { analyzePoem });
+}
+
+// ── engine/js/matching/partialMatcher.js ──
+{
+/**
+ * مطابقة **جزئية**: البيت وهو يُكتب، لا البيت بعد تمامه.
+ *
+ * الفرق عن `meterMatcher` واحد وجوهري: ما لم يُكتب بعد لا يُحاسَب.
+ *
+ * المطابق التامّ يفترض أن ما بين يديه شطر منتهٍ، فيغرّم النقص: تفعيلة
+ * لم تمتلئ، ومقاطع طلبها البحر ولم يجدها. وهذا صواب هناك وخطأ هنا: من
+ * كتب «البا» لم يكسر مستفعلن، بل بلغ منها مقطعين ولمّا يبلغ الرابع.
+ * فالنقص عنده خبرٌ عن موضعه من الشطر لا عيبٌ في شعره.
+ *
+ * فهنا تنتهي المطابقة عند آخر ما كُتب: التفعيلات التامّة قبله تُحاسَب
+ * حسابها المعتاد، والتفعيلة الجارية تُطابَق بادئةً، وما بعدها لا يُذكر
+ * أصلًا. والكلفة تُنسَب إلى ما كُتب لا إلى طول البحر، وإلا لبدا كل بحر
+ * طويل مكسورًا في أول حرف.
+ *
+ * ولأن المطابقة تنتهي حيث انتهت الكتابة، فالبحر الطويل والبحر القصير
+ * يستويان ما دام المكتوب بادئةً لهما معًا. وهذا صدقٌ لا نقص: من كتب
+ * ثمانية مقاطع لم يخبرنا بعدُ أيريد الحدا أم أوّل الرجز. ولذلك يُرجع
+ * هذا الملف ترتيبًا ويُعلن التساوي، ولا يدّعي حسمًا لم يبلغه النصّ.
+ */
+
+const { matchFootBoth, minSyllablesToEnd, createAlignmentCache } = __M;
+
+/**
+ * @param {object} dag مخطّط مقاطع ما كُتب
+ * @param {object} meter من السجلّ
+ * @param {object} scorer
+ * @param {{ form?: number }} [options] أي صيغتَي البحر تُجرَّب (صدر/عجز)
+ */
+function matchMeterPartial(dag, meter, scorer, options = {}) {
+  const formIndex = options.form || 0;
+  const form = pickForm(meter, formIndex);
+  const feet = expandForm(form);
+  if (!feet.length) return null;
+
+  const end = dag.size; // موضع آخر وحدة كُتبت
+  const tailCost = minSyllablesToEnd(dag);
+
+  let states = new Map([[0, { cost: 0, chosen: [] }]]);
+  let best = null;
+
+  /** ينظر في مرشَّح انتهت عنده الكتابة، ويحتفظ بأقلّه كلفةً. */
+  const considerTerminal = (cost, chosen, footsDone, pending) => {
+    const typed = countTyped(chosen, pending);
+    // مقياس الترتيب: الكلفة منسوبةً إلى ما كُتب. القسمة على طول البحر
+    // كاملًا تُجازي البحور الطويلة على طولها لا على موافقتها.
+    const norm = Math.max(typed, scorer.config.normalizer.floor);
+    const scored = cost / (norm * scorer.config.normalizer.perSyllableCost);
+    if (!best || scored < best.scored - 1e-12) {
+      best = { cost, chosen, footsDone, pending, typed, scored };
+    }
+  };
+
+  for (let f = 0; f < feet.length; f++) {
+    const foot = feet[f];
+    const posCtx = { isFirst: foot.isFirst, isArudDarb: foot.isArudDarb };
+    const posMult = scorer.positionMultiplier(posCtx);
+    const next = new Map();
+
+    for (const [u, state] of states) {
+      // (أ) الكتابة بلغت هذا الحدّ تمامًا: التفعيلات الباقية لم تُكتب بعد.
+      if (u === end) considerTerminal(state.cost, state.chosen, f, null);
+
+      for (const variant of foot.variants) {
+        const vCost = scorer.variationCost(variant, posCtx);
+        // محاذاة واحدة تعطي التامّ والبادئة معًا — إجراؤها مرّتين كان
+        // يضاعف كلفة أسخن حلقة في المحرك بلا فائدة.
+        const { ends, prefixes } = matchFootBoth(
+          dag, u, variant.syllables, scorer, u < end ? end : undefined, options.cache
+        );
+
+        // (ب) التفعيلة الجارية: بادئةٌ منها تنتهي عند آخر ما كُتب.
+        if (u < end) {
+          for (const [filled, res] of prefixes) {
+            // البادئة الصفرية هي الحالة (أ). والتامّة لا تصل هنا أصلًا:
+            // `matchFootBoth` تُخرجها في `ends` لا في `prefixes`.
+            if (filled === 0) continue;
+            considerTerminal(
+              state.cost + (vCost + res.cost) * posMult,
+              state.chosen,
+              f,
+              { footIndex: f, foot, variant, filled, res, unitSpan: [u, end], posMult, vCost }
+            );
+          }
+        }
+
+        // (ج) تفعيلة تامّة تتقدّم بالحالة كما في المطابق التامّ.
+        for (const [to, res] of ends) {
+          if (to === u) continue; // تفعيلة لم تستهلك شيئًا: لا معنى لها هنا
+          const cost = state.cost + (vCost + res.cost) * posMult;
+          const prev = next.get(to);
+          if (prev !== undefined && prev.cost <= cost + 1e-12) continue;
+          next.set(to, {
+            cost,
+            chosen: [...state.chosen, describeFoot(f, foot, variant, res, [u, to], vCost, posMult)],
+          });
+        }
+      }
+    }
+
+    states = next;
+    if (states.size === 0) break;
+  }
+
+  // الشطر اكتمل: كل تفعيلات الصيغة كُتبت.
+  for (const [u, state] of states) {
+    if (u === end) considerTerminal(state.cost, state.chosen, feet.length, null);
+  }
+
+  // كُتب أكثر ممّا تسع الصيغة: الزائد يُحاسَب كما يحاسبه المطابق التامّ،
+  // فيبقى البحر في الترتيب مع بيان أن فيه فضلة.
+  for (const [u, state] of states) {
+    if (u === end) continue;
+    const leftover = tailCost[u];
+    if (!Number.isFinite(leftover)) continue;
+    considerTerminal(
+      state.cost + leftover * scorer.weights.unconsumedSyllable,
+      state.chosen, feet.length, null
+    );
+  }
+
+  if (!best) return null;
+
+  const complete = best.footsDone >= feet.length && !best.pending;
+  const partialFoot = best.pending
+    ? partialFootView(best.pending)
+    : null;
+
+  return {
+    meterId: meter.id,
+    name: meter.name,
+    aliases: meter.aliases,
+    status: meter.status,
+    form: formIndex,
+    formRole: form.role || null,
+    matched: true,
+    // الدرجة هنا درجة **موافقة ما كُتب**، لا درجة البيت. تُقرأ: هل ما
+    // كُتب حتى الآن يسير على هذا البحر؟
+    progressScore: clamp01(round(1 - best.scored)),
+    typedSyllables: best.typed,
+    meterSyllables: feet.reduce((n, x) => n + (x.salim ? x.salim.length : 0), 0),
+    complete,
+    feet: best.chosen,
+    partialFoot,
+    // التفعيلات التي لم يبلغها القلم بعد — تُعرض باهتةً لا ناقصةً.
+    remaining: feet
+      .slice(best.footsDone + (best.pending ? 1 : 0))
+      .map((x) => ({ tafila: x.plain, tafilaId: x.tafilaId, syllables: x.salim })),
+    cost: round(best.cost),
+    assumedVocalization: dag.assumedVocalization,
+  };
+}
+
+/** يرتّب البحور على موافقة ما كُتب، ويُعلن ما تساوى منها. */
+function rankMetersPartial(dag, registry, scorer, options = {}) {
+  const results = [];
+  const cache = options.cache === false ? null : (options.cache || createAlignmentCache());
+  for (const meter of registry.enabled) {
+    const formCount = meter.forms ? meter.forms.length : 1;
+    let bestForMeter = null;
+    for (let f = 0; f < formCount; f++) {
+      const r = matchMeterPartial(dag, meter, scorer, { ...options, form: f, cache: cache || false });
+      if (!r) continue;
+      if (!bestForMeter || r.progressScore > bestForMeter.progressScore) bestForMeter = r;
+    }
+    if (bestForMeter) results.push(bestForMeter);
+  }
+  results.sort(
+    (a, b) =>
+      b.progressScore - a.progressScore ||
+      // عند التساوي يُقدَّم الأقصر: من كتب ثمانية مقاطع فالحدا أقرب
+      // احتمالًا من ربع الرجز، وهذا ترجيح عرضٍ لا حكمٌ على الوزن —
+      // والتساوي مُعلَن في `tied` على كل حال.
+      a.meterSyllables - b.meterSyllables ||
+      a.meterId.localeCompare(b.meterId)
+  );
+  return results;
+}
+
+function pickForm(meter, index) {
+  const available = meter.forms && meter.forms.length
+    ? meter.forms
+    : [{ feet: meter.feet, role: null }];
+  return available[Math.min(index, available.length - 1)];
+}
+
+function expandForm(form) {
+  return form.feet.map((foot, i) => ({
+    ...foot,
+    isFirst: i === 0,
+    isArudDarb: i === form.feet.length - 1,
+  }));
+}
+
+function describeFoot(f, foot, variant, res, unitSpan, vCost, posMult) {
+  return {
+    footIndex: f,
+    tafila: foot.plain,
+    tafilaId: foot.tafilaId,
+    variant: { id: variant.id, name: variant.name, result: variant.result, kind: variant.kind },
+    expected: variant.syllables,
+    actual: res.syllables.map((e) => e.weight),
+    unitSpan,
+    alignCost: res.cost,
+    ops: res.ops,
+    complete: true,
+    totalCost: (vCost + res.cost) * posMult,
+  };
+}
+
+function partialFootView(p) {
+  return {
+    footIndex: p.footIndex,
+    tafila: p.foot.plain,
+    tafilaId: p.foot.tafilaId,
+    variant: { id: p.variant.id, name: p.variant.name, result: p.variant.result, kind: p.variant.kind },
+    // كم مقطعًا من التفعيلة تحقّق حتى الآن — منه يُشتقّ اسمها الجزئي.
+    filled: p.filled,
+    of: p.variant.syllables.length,
+    expected: p.variant.syllables,
+    actual: p.res.syllables.map((e) => e.weight),
+    unitSpan: p.unitSpan,
+    alignCost: p.res.cost,
+    ops: p.res.ops,
+    complete: false,
+  };
+}
+
+function countTyped(chosen, pending) {
+  let n = 0;
+  for (const c of chosen) n += c.actual.length;
+  if (pending) n += pending.res.syllables.length;
+  return n;
+}
+
+const round = (x) => Math.round(x * 1e6) / 1e6;
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+
+  Object.assign(__M, { matchMeterPartial, rankMetersPartial });
+}
+
+// ── engine/js/rhyme/rhymeAnalyzer.js ──
+{
+/**
+ * تحليل القافية.
+ *
+ * لا قاعدة واحدة مكتوبة في هذا الملف: الحدود والأنواع وحروف الردف
+ * والتأسيس كلها تُقرأ من `data/rhyme.json`، وهذا الملف يُجري الحساب
+ * وحده. تعديل قاعدة قافية تعديلُ ذلك الملف لا هذا.
+ *
+ * يعمل على **المقاطع التي اختارها الوزن** لا على الرسم، لأن القافية
+ * حكم صوتي: الحرف المشدَّد وحدتان، والتنوين نون ساكنة، واللام الشمسية
+ * لا تُنطق، وحركة آخر الشطر تُشبَع فتصير مدًّا. كل ذلك محسوم في طبقة
+ * المقاطع قبل أن تصل إلى هنا، فلا يُعاد هنا ولا يُخالَف.
+ *
+ * وما لا يُحسم من شطر واحد يبقى مُعلنًا: الرويّ إنما يثبت بالتزام
+ * الشاعر إياه في كل بيت، والشطر الواحد يُرجَّح فيه ولا يُقطَع.
+ */
+
+/** حرف المدّ المقابل لكل حركة. */
+const MADD = { a: 'ا', i: 'ي', u: 'و' };
+
+const TEH_MARBUTA = 'ة';
+
+/**
+ * يفرد المقاطع حروفًا متحركة وساكنة.
+ *
+ * الاشتقاق من صورة المقطع لا من نواته: المقطع المُشبَع آخر الشطر يبقى
+ * مرسومًا CV وحركته قصيرة، ومع ذلك يتولّد عنه مدٌّ ساكن هو الذي تُقفَل
+ * به القافية. والاعتماد على النواة وحدها يُسقطه فتختلّ الحدود والنوع.
+ *
+ * وهو الاشتقاق نفسه الذي يعتمده الترميز الحرفي (متحرك واحد للقصير،
+ * ومتحرك فساكن للطويل، ومتحرك فساكنين للمفرط)، فلا يفترقان.
+ */
+function lettersOf(syllables, units) {
+  const out = [];
+  const unitAt = (i) => (units && i !== undefined ? units[i] : undefined);
+
+  syllables.forEach((s, si) => {
+    const consumed = s.units || [];
+    const shape = s.shape || (s.weight === 'S' ? 'CV' : s.weight === 'X' ? 'CVVC' : 'CVC');
+    const hasMadd = shape === 'CVV' || shape === 'CVVC' || (!!s.ishbaa && !s.coda);
+    const hasCoda = !!s.coda && (shape === 'CVC' || shape === 'CVVC');
+
+    out.push({
+      ch: s.onset, moving: true, syllable: si, role: 'onset',
+      assumed: !!s.assumed, unit: unitAt(consumed[0]),
+    });
+    if (hasMadd) {
+      out.push({
+        ch: MADD[s.quality] || 'ا', moving: false, syllable: si, role: 'madd',
+        quality: s.quality, ishbaa: !!s.ishbaa, assumed: !!s.assumed,
+      });
+    }
+    if (hasCoda) {
+      out.push({
+        ch: s.coda, moving: false, syllable: si, role: 'coda',
+        assumed: !!s.assumed, unit: unitAt(consumed[1]),
+      });
+    }
+  });
+  return out;
+}
+
+/**
+ * يستبعد حرف الوصل من آخر الشطر ليظهر الرويّ تحته.
+ *
+ * الحالة الوحيدة التي يُقطَع فيها بالاستبعاد: هاء الوقف المنقلبة عن
+ * تاء مربوطة. وهذا استنتاج من عمل المحرك نفسه لا تخمين — هو الذي قلب
+ * التاء هاءً حين وقف، والوحدة محتفظة برسمها الأصلي. فرويّ «سهيرة»
+ * الراءُ لا الهاء.
+ *
+ * أمّا الهاء المرسومة هاءً والألف والواو والياء فلا يُقطَع فيها: قد
+ * تكون أصلًا في بنية الكلمة («وجه»، «دعا»)، وتمييز الأصلي من الزائد
+ * صرفٌ لا يملكه المحرك. فتُنبَّه في `caution` ولا تُستبعد — والبند 26
+ * يمنع أن يُخترع لها حكم.
+ */
+function stripWasl(letters) {
+  if (!letters.length) return { letters, wasl: null };
+  const last = letters[letters.length - 1];
+
+  // الهاء ساكنةً في آخر الشطر: حرف واحد يُستبعد.
+  if (last.role === 'coda' && last.unit && last.unit.letter === TEH_MARBUTA) {
+    return {
+      letters: letters.slice(0, -1),
+      wasl: { letter: last.ch, from: TEH_MARBUTA, reason: 'هاء الوقف عن تاء مربوطة' },
+    };
+  }
+
+  // الهاء متحركةً مُشبَعة: تُستبعد هي ومدُّ إشباعها معًا، فهما مقطع واحد.
+  const onset = letters.findLast
+    ? letters.findLast((l) => l.role === 'onset')
+    : [...letters].reverse().find((l) => l.role === 'onset');
+  if (onset && onset.unit && onset.unit.letter === TEH_MARBUTA) {
+    const kept = letters.filter((l) => l.syllable !== onset.syllable);
+    if (kept.length) {
+      return {
+        letters: kept,
+        wasl: { letter: onset.ch, from: TEH_MARBUTA, reason: 'هاء الوقف عن تاء مربوطة' },
+      };
+    }
+  }
+
+  return { letters, wasl: null };
+}
+
+/**
+ * @param {object[]} syllables مقاطع الشطر كما اختارها الوزن
+ * @param {object} rules data/rhyme.json
+ * @param {object[]} [units] الوحدات الصوتية — منها يُعرف رسم الحرف الأصلي
+ */
+function analyzeRhyme(syllables, rules, units) {
+  if (!syllables || syllables.length === 0) return null;
+  const all = lettersOf(syllables, units);
+  if (!all.length) return null;
+
+  const { letters, wasl } = stripWasl(all);
+  if (!letters.length) return null;
+  const assumed = all.some((l) => l.assumed);
+
+  // ── الرويّ والإطلاق ────────────────────────────────────────────────
+  const lastLetter = letters[letters.length - 1];
+  let rawiIndex;
+  let release;
+  if (lastLetter.role === 'coda') {
+    // مختوم بساكن صحيح: هو الرويّ، والقافية مقيَّدة.
+    rawiIndex = letters.length - 1;
+    release = rules.release.muqayyada;
+  } else if (lastLetter.role === 'madd') {
+    // مدٌّ في الآخر — إشباعًا كان أو أصليًّا — فالرويّ ما قبله متحركًا.
+    rawiIndex = letters.length - 2;
+    release = rules.release.mutlaqa;
+  } else {
+    // متحرك في الآخر بلا إشباع: يقع في بعض الأضرب المصدرية.
+    rawiIndex = letters.length - 1;
+    release = rules.release.mutlaqa;
+  }
+  // استُبعد وصلٌ فانكشف تحته متحرك: القافية مطلقة موصولة.
+  if (wasl) release = rules.release.mutlaqa;
+
+  const rawi = letters[rawiIndex] || lastLetter;
+
+  const excluded = rules.rawi.excludedWhenFinal;
+  const caution =
+    !wasl && rawi && !rawi.moving && excluded.letters.includes(rawi.ch)
+      ? excluded.condition
+      : null;
+
+  // ── الردف ─────────────────────────────────────────────────────────
+  // مدٌّ ساكن ملاصق للرويّ من قبله، بلا فاصل.
+  const before = letters[rawiIndex - 1];
+  const ridf =
+    before && before.role === 'madd' && rules.ridf.maddLetters.includes(before.ch)
+      ? { letter: before.ch, quality: before.quality }
+      : null;
+
+  // ── التأسيس ───────────────────────────────────────────────────────
+  // ألف بينها وبين الرويّ حرف واحد متحرك هو الدخيل.
+  const twoBefore = letters[rawiIndex - 2];
+  const tasees =
+    !ridf && before && before.moving &&
+    twoBefore && twoBefore.role === 'madd' && twoBefore.ch === rules.tasees.letter
+      ? { letter: twoBefore.ch, dakheel: before.ch }
+      : null;
+
+  // ── الحدود والنوع ─────────────────────────────────────────────────
+  // من آخر ساكن إلى أول ساكن يسبقه، مع المتحرك الذي قبل ذلك الساكن.
+  const s2 = lastIndexWhere(letters, (l) => !l.moving);
+  const s1 = s2 > 0 ? lastIndexWhere(letters, (l) => !l.moving, s2 - 1) : -1;
+
+  let type = null;
+  let movingBetween = null;
+  let start = 0;
+  if (s2 >= 0 && s1 >= 0) {
+    movingBetween = letters.slice(s1 + 1, s2).filter((l) => l.moving).length;
+    const found = rules.types.byMovingCount.find((t) => t.count === movingBetween);
+    type = found || { ...rules.types.beyondMax, count: movingBetween };
+    start = s1 > 0 && letters[s1 - 1].moving ? s1 - 1 : s1;
+  }
+
+  const span = letters.slice(start);
+
+  return {
+    text: span.map((l) => l.ch).join('') + (wasl ? wasl.letter : ''),
+    letters: span.map((l) => ({ ch: l.ch, moving: l.moving, role: l.role })),
+    rawi: {
+      letter: rawi.ch,
+      moving: rawi.moving,
+      // الرويّ لا يُقطع به من شطر واحد — التزام الشاعر هو الذي يثبته.
+      certain: false,
+      caution,
+      limitation: rules.rawi.limitation,
+    },
+    ridf,
+    tasees,
+    // حرف الوصل إن وُجد — يُعرَض ولا يُحسب من حدّ القافية.
+    wasl,
+    release: { id: release.id, name: release.name, definition: release.definition },
+    type: type
+      ? { id: type.id, name: type.name, definition: type.definition || type.note, movingBetween }
+      : null,
+    bounds: {
+      rule: rules.bounds.rule,
+      fromLetter: start,
+      letterCount: span.length,
+      silentPair: s1 >= 0 && s2 >= 0 ? [letters[s1].ch, letters[s2].ch] : null,
+    },
+    // القافية محسوبة على قراءةٍ افترض المحرك تشكيلها، فتُعلَن لا تُخفى.
+    assumedVocalization: assumed,
+    // ما يخصّ النبطي وحده غير منفَّذ — البند 26.
+    openQuestion: rules.nabatiSpecific.status === 'NEEDS_VALIDATION'
+      ? { note: rules.nabatiSpecific.note, gaps: rules.nabatiSpecific.knownGaps }
+      : null,
+  };
+}
+
+function lastIndexWhere(arr, pred, from = arr.length - 1) {
+  for (let i = from; i >= 0; i--) if (pred(arr[i])) return i;
+  return -1;
+}
+
+  Object.assign(__M, { analyzeRhyme });
+}
+
+// ── engine/js/analysis/liveAnalyzer.js ──
+{
+/**
+ * التحليل اللحظي: البيت وهو يُكتب حرفًا حرفًا.
+ *
+ * الواجهة لا زرّ فيها. فكل ضغطة مفتاح تستدعي هذا الملف، ويجب أن يخرج
+ * منه شيء نافع أيًّا كان ما كُتب — حرفٌ واحد، أو كلمة ناقصة، أو شطر
+ * تامّ، أو بيت كامل.
+ *
+ * ولذلك يجري تحليلان لا واحد:
+ *
+ *   التامّ (`analyzeLine`)   يفترض شطرًا منتهيًا، فيغرّم النقص. صوابه
+ *                            حين يفرغ الكاتب، وخطؤه حين يكون في وسط
+ *                            الكلمة.
+ *   الجزئي (`partialMatcher`) لا يحاسب ما لم يُكتب بعد. صوابه أثناء
+ *                            الكتابة، وقصورُه أنه لا يميّز الشطر التامّ
+ *                            من بادئةِ شطر أطول منه.
+ *
+ * فيُعرض التقطيع من التامّ إذا حكم بأن ما بين يديه موزون، ومن الجزئي
+ * فيما عدا ذلك. وهذا يعطي السلوك المطلوب من غير أن يُخمَّن متى فرغ
+ * الكاتب: «البا» تُعرض «مستف»، و«البارحه» تُعرض «مستفعلن»، والشطر
+ * التامّ يُعرض بتفعيلاته وزحافاتها المسمّاة.
+ */
+
+const { normalize } = __M;
+const { phonemize } = __M;
+const { buildSyllableDag, freeSyllabify, edgeToSyllable } = __M;
+const { rankMetersPartial } = __M;
+const { partialTafilaName } = __M;
+const { analyzeRhyme } = __M;
+const { analyzeLine } = __M;
+
+/** حالة كل تفعيلة كما تُعرض على بطاقتها. */
+const STATE = {
+  salim: 'سليمة',
+  partial: 'قيد الكتابة',
+  pending: 'لم تُكتب',
+};
+
+/**
+ * يحلّل شطرًا واحدًا وهو يُكتب.
+ * @param {string} text
+ * @param {object} engine
+ */
+function analyzeHemistich(text, engine) {
+  const clean = String(text || '').trim();
+  if (!clean) return null;
+
+  const norm = normalize(clean);
+  if (!norm.words.length) return null;
+
+  const { units } = phonemize(norm.words, engine.lexicon, { pausalEnd: true });
+  if (!units.length) return null;
+
+  const dag = buildSyllableDag(units);
+  const free = freeSyllabify(dag);
+  const partialRanking = rankMetersPartial(dag, engine.registry, engine.scorer);
+  const partialBest = partialRanking[0] || null;
+
+  // التحليل التامّ: صوابه إن كان المكتوب شطرًا منتهيًا.
+  const full = analyzeLine(clean, engine, { repeats: [1] });
+  const fullIsSound = full.verdict === 'sound' || full.verdict === 'acceptable';
+
+  // متى يُعرض الجزئي؟ حين يكون المكتوب **بادئة نظيفة** لبحر، أي يوافقه
+  // بلا كلفة تُذكر وإنما ينقصه تمامه.
+  //
+  // بغير هذا الشرط يلتبس الشطر المكسور بالشطر الذي لم يتمّ: كلاهما
+  // «ناقص» في نظر المطابق التامّ، فيُعرضان معًا «قيد الكتابة» ويُطوى
+  // موضع الكسر عن صاحبه. والفرق بينهما ظاهر في الرقم: البادئة الحقّة
+  // توافق بحرها موافقةً تامّة، والمكسور يقصر عنها.
+  //
+  // فإن قصر المكتوب عن عتبة السلامة، فليس ببادئة نظيفة، ويُعرض
+  // التحليل التامّ بموضع كسره — وهذا أنفع لكاتبه من أن يُقال له
+  // «أكمِل» وهو قد أكمل.
+  const cleanPrefix =
+    !!partialBest && partialBest.progressScore >= engine.scorer.thresholds.sound;
+  const writing = !fullIsSound && cleanPrefix;
+
+  // البحر مجهول تمامًا وليس ثمّ بادئة نظيفة: يُعرض أقرب ما وافق ما كُتب
+  // بدل أن تُترك الشاشة فارغة.
+  const fallbackToPartial = !writing && !full.bestMeter && !!partialBest;
+  const source = writing || fallbackToPartial ? 'partial' : 'full';
+
+  const cards = source === 'partial'
+    ? cardsFromPartial(partialBest, engine, units, norm.words)
+    : cardsFromFull(full, engine);
+
+  const syllables = source === 'full'
+    ? full.syllables
+    : free.syllables.map((s) => (s.weight ? s : edgeToSyllable(s)));
+
+  // البحور التي تساوت مع الأول في موافقة ما كُتب. أول الكتابة يوافقه
+  // كثير منها، وإخفاء ذلك ادّعاء حسمٍ لم يبلغه النصّ.
+  const tied = partialBest
+    ? partialRanking
+        .slice(1)
+        .filter((r) => partialBest.progressScore - r.progressScore <= engine.scorer.config.uncertainty.tieDelta)
+        .map((r) => ({ id: r.meterId, name: r.name, score: r.progressScore }))
+    : [];
+
+  return {
+    text: clean,
+    source,
+    // «تامّ» هنا: حُكِم عليه حكمَ شطرٍ منتهٍ، سليمًا كان أو مكسورًا.
+    complete: !writing,
+    writing,
+    meter: source === 'full'
+      ? full.bestMeter && {
+          id: full.bestMeter.id, name: full.bestMeter.name,
+          score: full.bestMeter.score, verdict: full.verdict,
+          formRole: full.bestMeter.formRole,
+        }
+      : partialBest && {
+          id: partialBest.meterId, name: partialBest.name,
+          score: partialBest.progressScore, verdict: 'writing',
+          formRole: partialBest.formRole,
+        },
+    tied,
+    cards,
+    typedSyllables: partialBest ? partialBest.typedSyllables : syllables.length,
+    meterSyllables: partialBest ? partialBest.meterSyllables : null,
+    brokenFeet: source === 'full' ? full.brokenFeet : [],
+    rhyme: analyzeRhyme(syllables, engine.data.rhyme, units),
+    assumedVocalization: dag.assumedVocalization,
+    verdict: full.verdict,
+  };
+}
+
+/**
+ * يحلّل البيت بحقلَيه. الحقل الفارغ لا يُعطَّل به شيء: يُحلَّل المكتوب
+ * وحده، ويُترك الآخر بلا نتيجة.
+ */
+function analyzeLive({ sadr, ajz }, engine) {
+  const parts = [
+    { role: 'sadr', label: 'الصدر', text: sadr },
+    { role: 'ajz', label: 'العجز', text: ajz },
+  ];
+
+  const hemistichs = parts.map((p) => ({
+    ...p,
+    result: analyzeHemistich(p.text, engine),
+  }));
+
+  const written = hemistichs.filter((h) => h.result);
+  if (!written.length) return { empty: true, hemistichs };
+
+  // بحر البيت: ما اتّفق عليه الشطران المكتوبان. اتّفاقهما تأكيدٌ،
+  // واختلافهما خبرٌ يُعرض ولا يُطوى.
+  const names = written.map((h) => h.result.meter?.name).filter(Boolean);
+  const agreed = names.length > 1 && names.every((n) => n === names[0]);
+  const lead = written
+    .slice()
+    .sort((a, b) => (b.result.meter?.score || 0) - (a.result.meter?.score || 0))[0];
+
+  return {
+    empty: false,
+    hemistichs,
+    meter: lead.result.meter,
+    agreed: names.length > 1 ? agreed : null,
+    disagreement: names.length > 1 && !agreed
+      ? written.map((h) => ({ role: h.role, label: h.label, name: h.result.meter?.name || null }))
+      : null,
+    complete: written.every((h) => h.result.complete),
+    writing: written.some((h) => !h.result.complete),
+  };
+}
+
+/* ─────────────── بطاقات التفعيلات ─────────────── */
+
+function card(engine, { name, syllables, state, kind, variation, text, broken, dim }) {
+  return {
+    name,
+    // الرمز العروضي يُشتقّ من المقاطع بالترميز نفسه الذي يستعمله المحرك،
+    // لا بجدول مكتوب في الواجهة.
+    symbol: engine.encoder.encode(syllables, 'arudi_slash_zero').value,
+    text: text || '',
+    state,
+    kind: kind || null,
+    variation: variation || null,
+    broken: !!broken,
+    dim: !!dim,
+  };
+}
+
+function cardsFromFull(full, engine) {
+  const threshold = engine.scorer.brokenFootThreshold;
+  return full.tafaeel.map((f) => {
+    const broken = f.sound === false;
+    const isSalim = !f.variation || f.variation === 'سالم';
+    return card(engine, {
+      name: f.tafila,
+      syllables: [...f.expected],
+      state: broken ? 'مكسورة' : isSalim ? STATE.salim : f.variation,
+      kind: broken ? 'broken' : isSalim ? 'salim' : 'licensed',
+      variation: isSalim ? null : f.variation,
+      text: (f.words || []).join(' ') || f.text || '',
+      broken,
+    });
+  });
+}
+
+/** الكلمات التي وقعت في مدى وحدات تفعيلة — نظير `linkFeetToWords`. */
+function wordsIn(unitSpan, units, words) {
+  if (!units || !words || !unitSpan) return '';
+  const [a, b] = unitSpan;
+  const idx = [...new Set(units.slice(a, b).map((u) => u.word))];
+  return idx.map((i) => words[i]?.text).filter(Boolean).join(' ');
+}
+
+function cardsFromPartial(best, engine, units, words) {
+  if (!best) return [];
+  const out = [];
+
+  for (const f of best.feet) {
+    const isSalim = f.variant.kind === 'salim';
+    const broken = f.alignCost >= engine.scorer.brokenFootThreshold;
+    out.push(card(engine, {
+      name: partialTafilaName(f.variant.result, f.expected, f.expected.length),
+      syllables: f.expected,
+      state: broken ? 'مكسورة' : isSalim ? STATE.salim : f.variant.name,
+      kind: broken ? 'broken' : isSalim ? 'salim' : 'licensed',
+      variation: isSalim ? null : f.variant.name,
+      text: wordsIn(f.unitSpan, units, words),
+      broken,
+    }));
+  }
+
+  if (best.partialFoot) {
+    const p = best.partialFoot;
+    out.push(card(engine, {
+      // الاسم مقتطعٌ بقدر ما كُتب: «مستف» لا «مستفعلن».
+      name: partialTafilaName(p.variant.result, p.expected, p.filled),
+      syllables: p.expected.slice(0, p.filled),
+      state: STATE.partial,
+      kind: 'partial',
+      text: wordsIn(p.unitSpan, units, words),
+    }));
+  }
+
+  for (const r of best.remaining) {
+    out.push(card(engine, {
+      name: r.tafila,
+      syllables: r.syllables,
+      state: STATE.pending,
+      kind: 'pending',
+      dim: true,
+    }));
+  }
+
+  return out;
+}
+
+  Object.assign(__M, { analyzeHemistich, analyzeLive });
 }
 
 // ── engine/js/analysis/trainingMode.js ──
@@ -2314,6 +3271,7 @@ const { createScorer } = __M;
 const { createEncoder } = __M;
 const { analyzeLine } = __M;
 const { analyzePoem } = __M;
+const { analyzeLive, analyzeHemistich } = __M;
 const { checkAttempt, exercises, DIFFICULTY } = __M;
 const { isDebugEnabled, traceReport, dumpDag } = __M;
 const { normalize, splitHemistichs, splitLines } = __M;
@@ -2339,6 +3297,19 @@ function createEngine(data) {
       const result = analyzeLine(input, engine, { ...options, debug });
       if (debug) result.trace = traceReport(result);
       return result;
+    },
+
+    /**
+     * التحليل اللحظي أثناء الكتابة — حقلا الصدر والعجز.
+     * الحقل الفارغ لا يُعطّل شيئًا: يُحلَّل المكتوب وحده.
+     */
+    analyzeLive(fields, options = {}) {
+      return analyzeLive(fields || {}, engine, options);
+    },
+
+    /** شطر واحد وهو يُكتب. */
+    analyzeHemistich(text, options = {}) {
+      return analyzeHemistich(text, engine, options);
     },
 
     /** تحليل قصيدة كاملة. */
@@ -2397,6 +3368,14 @@ function createEngine(data) {
       }
       for (const n of registry.notInSource) {
         out.push({ area: 'missing_meter', name: n.name, issue: n.reason, resolvedBy: 'تفعيلات البحر' });
+      }
+      if (data.rhyme?.nabatiSpecific?.status === 'NEEDS_VALIDATION') {
+        out.push({
+          area: 'rhyme', id: 'nabatiRhyme',
+          issue: data.rhyme.nabatiSpecific.note,
+          gaps: data.rhyme.nabatiSpecific.knownGaps,
+          resolvedBy: data.rhyme.nabatiSpecific.resolvedBy,
+        });
       }
       if (data.lexicon.nabatiDialect?.status === 'NEEDS_VALIDATION') {
         out.push({
@@ -4487,6 +5466,18 @@ const DATA = {
         "note": "نفس المستوى الحرفي بعلامات كتب العروض."
       },
       {
+        "id": "arudi_slash_zero",
+        "name": "الرمز التقليدي (/ و 0)",
+        "status": "STANDARD",
+        "level": "letter",
+        "map": {
+          "moving": "/",
+          "still": "0"
+        },
+        "separator": "",
+        "note": "نفس المستوى الحرفي، بالساكن صفرًا بدل الهاء. هذه صورة الرمز التي تعرضها واجهة الكتابة اللحظية على بطاقات التفعيلات، مثل /0/0//0 لمستفعلن."
+      },
+      {
         "id": "nabati_app",
         "name": "ترميز تطبيق ميزان النبط",
         "status": "NEEDS_VALIDATION",
@@ -4649,6 +5640,108 @@ const DATA = {
         "تسكين أواخر الكلمات في النبطي أكثر منه في الفصيح — يؤثر مباشرة في المقاطع، ويحتاج أمثلة مقطَّعة",
         "الكشكشة والكسكسة — لا أثر وزني متوقَّع لكنها غير محسومة",
         "حذف همزة القطع في أول الكلمة في النطق العامي"
+      ]
+    }
+  },
+  "rhyme": {
+    "description": "قواعد القافية. مصدرها علم القافية الخليلي المدوَّن، لا اجتهاد: حدودها وأنواعها وحروفها معرَّفة هنا بيانًا لا كودًا، فتعديلها تعديلُ هذا الملف وحده.",
+    "bounds": {
+      "rule": "القافية من آخر ساكن في الشطر إلى أول ساكن يسبقه، مع المتحرك الذي قبل ذلك الساكن.",
+      "source": "تعريف الخليل بن أحمد، وهو التعريف الجاري في كتب العروض.",
+      "note": "الحدّ يُحسب على الوحدات الصوتية لا على الرسم: الحرف المشدَّد وحدتان، والتنوين نون ساكنة، واللام الشمسية لا تُنطق."
+    },
+    "types": {
+      "rule": "نوع القافية يُحدَّد بعدد المتحركات الواقعة بين ساكنَي القافية.",
+      "byMovingCount": [
+        {
+          "count": 0,
+          "id": "mutaradif",
+          "name": "المترادف",
+          "definition": "ساكنان متجاوران لا متحرك بينهما."
+        },
+        {
+          "count": 1,
+          "id": "mutawatir",
+          "name": "المتواتر",
+          "definition": "متحرك واحد بين الساكنين."
+        },
+        {
+          "count": 2,
+          "id": "mutadarik",
+          "name": "المتدارك",
+          "definition": "متحركان بين الساكنين."
+        },
+        {
+          "count": 3,
+          "id": "mutarakib",
+          "name": "المتراكب",
+          "definition": "ثلاثة متحركات بين الساكنين."
+        },
+        {
+          "count": 4,
+          "id": "mutakawis",
+          "name": "المتكاوس",
+          "definition": "أربعة متحركات بين الساكنين، وهو أقصى ما يقع."
+        }
+      ],
+      "beyondMax": {
+        "id": "unknown",
+        "name": "خارج الأنواع الخمسة",
+        "note": "أكثر من أربعة متحركات بين الساكنين لا يقع في القافية العربية. وقوعه هنا يعني غالبًا أن الشطر ناقص أو أن التشكيل غير كافٍ، فلا يُسمّى نوعًا مخترعًا."
+      }
+    },
+    "release": {
+      "rule": "القافية المطلقة رويُّها متحرك، والمقيَّدة رويُّها ساكن.",
+      "mutlaqa": {
+        "id": "mutlaqa",
+        "name": "مطلقة",
+        "definition": "الرويّ متحرك، وتُشبَع حركته في الإنشاد فيتولَّد عنها حرف وصل."
+      },
+      "muqayyada": {
+        "id": "muqayyada",
+        "name": "مقيَّدة",
+        "definition": "الرويّ ساكن، فلا وصل بعده."
+      }
+    },
+    "rawi": {
+      "rule": "الرويّ آخر حرف صحيح يُبنى عليه الشطر وتلتزمه القصيدة.",
+      "limitation": "الرويّ إنما يثبت بالتزام الشاعر إياه في كل بيت، فلا يُقطَع به من شطر واحد — وما يُعرض ترجيحٌ لا حكم.",
+      "excludedWhenFinal": {
+        "note": "هذه الحروف إذا وقعت آخر الشطر كانت وصلًا لا رويًّا، فيُتجاوَز إلى ما قبلها.",
+        "letters": [
+          "ا",
+          "و",
+          "ي",
+          "ه"
+        ],
+        "condition": "ساكنًا تابعًا لحركة قبله (وصلًا أو إشباعًا)، لا حرفًا أصليًّا في بنية الكلمة.",
+        "note2": "تمييز الوصل من الأصلي يقينًا يحتاج صرفًا لا يملكه المحرك، فيُنبَّه على الاحتمال ولا يُستبعد الحرف."
+      }
+    },
+    "ridf": {
+      "rule": "الردف حرف مدّ أو لين ساكن يقع قبل الرويّ بلا فاصل.",
+      "maddLetters": [
+        "ا",
+        "و",
+        "ي"
+      ],
+      "note": "لا ردف إلا بمدّ أو لين ملاصق للرويّ؛ فإن فصل بينهما حرف فليس بردف."
+    },
+    "tasees": {
+      "rule": "التأسيس ألف بينها وبين الرويّ حرف واحد متحرك يسمّى الدخيل.",
+      "letter": "ا"
+    },
+    "nabatiSpecific": {
+      "status": "NEEDS_VALIDATION",
+      "note": "القواعد أعلاه قواعد القافية العربية المدوَّنة، وهي المطبَّقة هنا. ما يخصّ النبطي وحده لم يُنفَّذ لأن المادة المصدرية لم تُقدَّم — والبند 26 يمنع اختراعه.",
+      "knownGaps": [
+        "القصيدة النبطية كثيرًا ما تلتزم قافيتين: قافية للصدر وقافية للعجز. تمييزهما يحتاج القصيدة كاملة لا شطرًا واحدًا، والمحرك الآن يحلّل قافية كل شطر على حدة ولا يدّعي أكثر من ذلك.",
+        "تسكين أواخر الكلمات في النطق النبطي قد يغيّر إطلاق القافية (مطلقة/مقيَّدة) عمّا يوحي به الرسم — يحتاج أبياتًا نبطية مقطَّعة للتحقّق.",
+        "هل يُعتدّ في النبطي بالتأسيس والدخيل كما في الفصيح؟ لم تُقدَّم مادة تثبته أو تنفيه."
+      ],
+      "resolvedBy": [
+        "قصيدة نبطية كاملة (٦ أبيات فأكثر) مع بيان رويّها",
+        "أمثلة على قافية مقيَّدة وأخرى مطلقة من الشعر النبطي"
       ]
     }
   },
@@ -4854,7 +5947,6 @@ const DATA = {
 
 const { createEngine } = __M;
 const { DATA } = __M;
-const { traceReport, dumpDag } = __M;
 
 const engine = createEngine(DATA);
 const $ = (s) => document.querySelector(s);
@@ -4873,160 +5965,170 @@ document.querySelectorAll('[role=tab]').forEach((btn) => {
 
 /* ---------------- أمثلة جاهزة ---------------- */
 const SAMPLES = [
-  ['المسحوب — صدر', 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ'],
-  ['المسحوب — عجز', 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتَانْ'],
-  ['بيت كامل', 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ ... مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتَانْ'],
-  ['السامري الطويل', 'مُسْتَفْعِلُنْ فَاعِلَاتُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ'],
-  ['الصخري الشيباني', 'مَفَاعِيلُنْ مَفَاعِيلُنْ مَفَاعِيلُنْ مَفَاعِيلُنْ'],
-  ['الرمل', 'فَاعِلَاتُنْ فَاعِلَاتُنْ فَاعِلَاتُنْ'],
-  ['مزاحف (جائز)', 'مُتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ'],
-  ['مكسور', 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَعُولُنْ'],
-  ['غير مشكول', 'مستفعلن مستفعلن فاعلاتن'],
+  ['المسحوب', 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ', 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتَانْ'],
+  ['السامري الطويل', 'مُسْتَفْعِلُنْ فَاعِلَاتُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ', ''],
+  ['الشيباني', 'مَفَاعِيلُنْ مَفَاعِيلُنْ مَفَاعِيلُنْ مَفَاعِيلُنْ', ''],
+  ['مزاحف — جائز', 'مُتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ', ''],
+  ['مكسور', 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَعُولُنْ', ''],
+  ['غير مشكول', 'البارحه ما نمت من كثر شوقي', ''],
 ];
 $('#samples').innerHTML = SAMPLES.map(
-  (s, i) => `<button data-i="${i}">${esc(s[0])}</button>`
+  (s, i) => `<button type="button" data-i="${i}">${esc(s[0])}</button>`
 ).join('');
 $('#samples').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
-  $('#input').value = SAMPLES[+b.dataset.i][1];
-  runAnalyze();
+  const [, sadr, ajz] = SAMPLES[+b.dataset.i];
+  $('#sadr').value = sadr;
+  $('#ajz').value = ajz;
+  render();
 });
 
-/* ---------------- تحليل بيت ---------------- */
-function runAnalyze() {
-  const text = $('#input').value.trim();
-  if (!text) { $('#result').classList.add('hidden'); return; }
-  const t0 = performance.now();
-  let r;
-  try {
-    r = engine.analyze(text, { debug: $('#debug').checked });
-  } catch (err) {
-    $('#result').classList.remove('hidden');
-    $('#result').innerHTML = `<div class="panel"><div class="note warn">تعذّر التحليل: ${esc(err.message)}</div></div>`;
-    return;
-  }
-  const ms = performance.now() - t0;
-  $('#timing').textContent = `${ms.toFixed(0)} م.ث`;
-  $('#result').classList.remove('hidden');
-  $('#result').innerHTML = renderResult(r);
-}
-$('#run').addEventListener('click', runAnalyze);
-$('#input').addEventListener('keydown', (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') runAnalyze();
-});
+/* ---------------- التحليل اللحظي ---------------- */
 
 const VERDICT_LABEL = {
   sound: 'موزون',
   acceptable: 'موزون برخصة',
   broken: 'مكسور',
   unrecognized: 'غير محدَّد',
+  writing: 'قيد الكتابة',
 };
 
-/**
- * شارة صيغة كل شطر. الصدر والعجز صورتان للبحر الواحد لا بحران، فالمهمّ
- * إظهار أن البيت عُرِف وعلى أي صورة جاء كل شطر منه.
- */
 const FORM_LABEL = { sadr: 'صدر', ajz: 'عجز' };
-function formBadges(m) {
-  const roles = (m.formRoles && m.formRoles.length ? m.formRoles : [m.formRole])
-    .filter(Boolean);
-  if (!roles.length) return '';
-  if (roles.length === 1) return `<span class="badge">${FORM_LABEL[roles[0]] || roles[0]}</span>`;
-  return `<span class="badge">${roles.map((x) => FORM_LABEL[x] || x).join(' + ')}</span>`;
+
+/**
+ * لا زرّ في هذه الصفحة: كل ضغطة مفتاح تُعيد الحساب.
+ *
+ * والتأخير القصير ليس تجميلًا: الضغطات تتلاحق أسرع من التحليل، فبلا
+ * تأخير يُحسب الحرف الذي تجاوزه القلم. مئة وعشرون جزءًا من الألف
+ * أقصر من أن يُحسّ وأطول من فاصل الضغطتين، فيبقى الإحساس لحظيًّا
+ * ويُحسب آخر ما كُتب لا ما قبله.
+ */
+const DEBOUNCE_MS = 120;
+let timer = null;
+let lastKey = null;
+
+function schedule() {
+  clearTimeout(timer);
+  timer = setTimeout(render, DEBOUNCE_MS);
 }
 
-function renderResult(r) {
-  if (!r.bestMeter) {
-    return `<div class="panel"><div class="note warn"><strong>${esc(r.explanation.title)}</strong><br>${esc(r.explanation.text)}</div></div>`;
+function render() {
+  const sadr = $('#sadr').value;
+  const ajz = $('#ajz').value;
+  const key = `${sadr} ${ajz}`;
+  if (key === lastKey) return;
+  lastKey = key;
+
+  if (!sadr.trim() && !ajz.trim()) { $('#result').innerHTML = ''; return; }
+
+  let r;
+  try {
+    r = engine.analyzeLive({ sadr, ajz });
+  } catch (err) {
+    $('#result').innerHTML =
+      `<div class="panel"><div class="note warn">تعذّر التحليل: ${esc(err.message)}</div></div>`;
+    return;
   }
-  const m = r.bestMeter;
+  $('#result').innerHTML = r.empty ? '' : renderLive(r);
+}
+
+for (const id of ['#sadr', '#ajz']) {
+  $(id).addEventListener('input', schedule);
+}
+
+function renderLive(r) {
   const parts = [];
+  const m = r.meter;
 
-  parts.push(`<div class="panel">
+  // مربع الوزن — بلا نسبة ثقة: المطلوب البحر ودرجة المطابقة وحدهما.
+  parts.push(`<div class="panel verdict-panel">
     <div class="verdict">
-      <span class="name">${esc(m.name)}</span>
-      <span class="badge ${r.verdict}">${VERDICT_LABEL[r.verdict] || r.verdict}</span>
-      ${m.repeat > 1 ? '<span class="badge">شطران</span>' : ''}
-      ${formBadges(m)}
-      ${m.status === 'NEEDS_VALIDATION' ? '<span class="badge broken">تعريفه يحتاج تحقّقًا</span>' : ''}
+      <span class="name">${m ? esc(m.name) : 'لا بحر بعد'}</span>
+      ${m ? `<span class="badge ${m.verdict}">${VERDICT_LABEL[m.verdict] || m.verdict}</span>` : ''}
+      ${r.disagreement ? '<span class="badge broken">الشطران على بحرين</span>' : ''}
     </div>
-    <div class="scores">
-      <div class="score-box"><div class="n">${pct(m.score)}</div><div class="k">درجة المطابقة</div>
-        <div class="bar"><i style="width:${(m.score * 100).toFixed(1)}%"></i></div></div>
-      <div class="score-box"><div class="n">${pct(m.confidence)}</div><div class="k">الثقة</div>
-        <div class="bar"><i style="width:${(m.confidence * 100).toFixed(1)}%"></i></div></div>
-    </div>
-    <div class="note">${esc(r.explanation.text)}</div>
-    ${r.ambiguity ? `<div class="note warn"><strong>أكثر من بحر يوافق بالدرجة نفسها:</strong>
-       ${r.ambiguity.tiedWith.map((t) => `${esc(t.name)} (${pct(t.score)})`).join('، ')}<br>
-       ${esc(r.ambiguity.reason)}<br><em>${esc(r.ambiguity.advice)}</em></div>` : ''}
-    ${r.vocalization.assumed ? `<div class="note warn"><strong>التشكيل مفترض.</strong> ${esc(r.vocalization.note)}</div>` : ''}
+    ${m ? `<div class="score-line">
+      <div class="bar"><i style="width:${(m.score * 100).toFixed(1)}%"></i></div>
+      <span class="pctn">${pct(m.score)}</span>
+    </div>` : ''}
+    ${r.disagreement ? `<div class="note warn">
+      ${r.disagreement.map((d) => `${esc(d.label)}: ${esc(d.name || '—')}`).join(' · ')}
+    </div>` : ''}
   </div>`);
 
-  // التفعيلات
-  if (r.tafaeel.length) {
-    parts.push(`<div class="panel"><h2>التفعيلات</h2><div class="scroll"><table>
-      <tr><th>#</th><th>التفعيلة</th><th>الصورة</th><th>المتوقَّع</th><th>الواقع</th><th>الكلمات</th></tr>
-      ${r.tafaeel.map((f, i) => `<tr class="${f.sound === false ? 'bad' : ''}">
-        <td>${i + 1}${f.hemistich ? `<small class="muted"> ش${f.hemistich + 1}</small>` : ''}</td>
-        <td>${esc(f.tafila)}</td>
-        <td>${esc(f.realized || '—')}<br><small class="muted">${esc(f.variation || '')}</small></td>
-        <td class="pat">${esc(f.expected)}</td>
-        <td class="pat">${esc(f.actual)}</td>
-        <td>${esc((f.words || []).join(' '))}</td>
-      </tr>`).join('')}
-    </table></div></div>`);
-  }
-
-  // الكسر
-  if (r.brokenFeet.length) {
-    parts.push(`<div class="panel"><h2>موضع الكسر</h2>
-      ${r.brokenFeet.map((b) => `<div class="note warn">
-        <strong>التفعيلة ${b.footIndex + 1} — ${esc(b.tafila)}</strong><br>
-        المتوقَّع <code>${esc(b.expected)}</code> والواقع <code>${esc(b.actual)}</code>
-        ${b.issues.length ? '<ul style="margin:6px 0 0;padding-inline-start:18px">' + b.issues.map((i) => `<li>${esc(i.text)}</li>`).join('') + '</ul>' : ''}
-      </div>`).join('')}
-    </div>`);
-  }
-
-  // التقطيع
-  parts.push(`<div class="panel"><h2>التقطيع والأنماط</h2>
-    <p class="muted" style="margin:0 0 4px">الكتابة العروضية — النصّ كما يُنطق</p>
-    <div style="font-size:1.1rem;line-height:2.2">${esc(r.prosodic)}</div>
-    <p class="muted" style="margin:12px 0 0">المقاطع (${r.syllables.length})</p>
-    <div class="syls">${r.syllables.map((s) => `<span class="syl ${s.weight}" title="${esc(s.shape || '')}${s.rule ? ' — ' + esc(s.rule) : ''}">${s.weight}<small> ${esc(s.shape || '')}</small></span>`).join('')}</div>
-    <p class="muted" style="margin:12px 0 4px">النمط الداخلي</p>
-    <div class="mono">${esc(r.internalPattern)}</div>
-    ${Object.entries(r.numericPatterns).map(([id, e]) => `
-      <p class="muted" style="margin:10px 0 4px">${esc(id)} <span class="badge">${esc(e.status)}</span></p>
-      <div class="mono">${e.value === null ? '— غير مثبَّت، فلا يُخترع' : esc(e.value)}</div>`).join('')}
-  </div>`);
-
-  // البدائل
-  if (r.alternatives.length) {
-    parts.push(`<div class="panel"><h2>البحور البديلة</h2><ul class="alts">
-      ${r.alternatives.map((a) => `<li><span>${esc(a.name)}</span><span class="pctn">${pct(a.score)}</span></li>`).join('')}
-    </ul></div>`);
-  }
-
-  // التطبيع
-  if (r.removed.length) {
-    parts.push(`<div class="panel"><details><summary>ما حُذف في التطبيع (${r.removed.length})</summary>
-      <ul class="muted" style="padding-inline-start:18px">${r.removed.map((x) => `<li>${esc(x.what)} ×${x.count} — ${esc(x.why)}</li>`).join('')}</ul>
-    </details></div>`);
-  }
-
-  // التتبّع
-  if (r._internal) {
-    parts.push(`<div class="panel"><h2>التتبّع</h2>
-      <pre class="mono">${esc(traceReport(r))}</pre>
-      <details><summary>مخطّط المقاطع</summary><pre class="mono">${esc(dumpDag(r._internal.dag, r._internal.units))}</pre></details>
-      <details><summary>الترتيب الكامل</summary><pre class="mono">${esc(r._internal.ranking.map((x) => `${x.score.toFixed(4)}  ${x.name}  cost=${x.cost}`).join('\n'))}</pre></details>
-    </div>`);
+  for (const h of r.hemistichs) {
+    if (!h.result) continue;
+    parts.push(renderHemistich(h));
   }
 
   return parts.join('');
+}
+
+function renderHemistich(h) {
+  const x = h.result;
+  const licensed = x.cards.filter((c) => c.kind === 'licensed');
+  const broken = x.cards.filter((c) => c.kind === 'broken');
+
+  return `<div class="panel">
+    <div class="hemistich-head">
+      <span class="field-label">${esc(h.label)}</span>
+      ${x.meter ? `<span class="badge soft">${esc(x.meter.name)}</span>` : ''}
+      ${x.meter && x.meter.formRole ? `<span class="badge soft">${esc(FORM_LABEL[x.meter.formRole] || x.meter.formRole)}</span>` : ''}
+      ${x.complete ? '' : '<span class="badge writing">قيد الكتابة</span>'}
+    </div>
+
+    <div class="feet">${x.cards.map(footCard).join('')}</div>
+
+    ${licensed.length ? `<div class="licence">
+      <span class="licence-key">الزحافات والعلل</span>
+      ${licensed.map((c) => `<span class="licence-item">${esc(c.name)}: ${esc(c.variation)}</span>`).join('')}
+    </div>` : ''}
+
+    ${broken.length ? `<div class="note warn">
+      موضع الكسر: ${broken.map((c) => esc(c.name)).join('، ')}
+    </div>` : ''}
+
+    ${x.rhyme ? renderRhyme(x.rhyme) : ''}
+  </div>`;
+}
+
+/**
+ * بطاقة التفعيلة: الاسم، والرمز العروضي، والمقابل النصّي، والحالة.
+ * لا ترميز LS — ذاك التمثيل الداخلي للمحرك لا للقارئ.
+ */
+function footCard(c) {
+  return `<div class="foot ${c.kind}">
+    <div class="foot-name">${esc(c.name) || '—'}</div>
+    <div class="foot-symbol">${esc(c.symbol)}</div>
+    ${c.text ? `<div class="foot-text">${esc(c.text)}</div>` : ''}
+    <div class="foot-state">${esc(c.state)}</div>
+  </div>`;
+}
+
+function renderRhyme(q) {
+  const rows = [
+    ['الرويّ', q.rawi ? q.rawi.letter : null],
+    ['الوصل', q.wasl ? q.wasl.letter : null],
+    ['الردف', q.ridf ? q.ridf.letter : null],
+    ['التأسيس', q.tasees ? `${q.tasees.letter} — الدخيل ${q.tasees.dakheel}` : null],
+    ['النوع', q.type ? q.type.name : null],
+    ['الإطلاق', q.release ? q.release.name : null],
+    ['حدودها', q.text || null],
+  ];
+  return `<div class="rhyme">
+    <div class="rhyme-title">القافية</div>
+    <div class="rhyme-grid">
+      ${rows.map(([k, v]) => `<div class="rhyme-cell">
+        <span class="rhyme-key">${esc(k)}</span>
+        <span class="rhyme-val${v ? '' : ' none'}">${v ? esc(v) : 'لا يوجد'}</span>
+      </div>`).join('')}
+    </div>
+    ${q.wasl ? `<p class="rhyme-note">${esc(q.wasl.letter)} حرف وصل — ${esc(q.wasl.reason)} — فلا يُحسب رويًّا.</p>` : ''}
+    ${q.rawi && q.rawi.caution ? `<p class="rhyme-note">قد تكون «${esc(q.rawi.letter)}» حرف وصل لا رويًّا إن كانت ${esc(q.rawi.caution)}</p>` : ''}
+    ${q.assumedVocalization ? '<p class="rhyme-note">النصّ غير مشكول بالكامل، فالقافية محسوبة على القراءة التي قبِلها الوزن.</p>' : ''}
+    ${q.rawi ? `<p class="rhyme-note">${esc(q.rawi.limitation)}</p>` : ''}
+  </div>`;
 }
 
 /* ---------------- قصيدة ---------------- */
@@ -5082,23 +6184,20 @@ $('#runTrain').addEventListener('click', () => {
       <span class="name">${r.correct ? 'صحيح' : 'غير صحيح'}</span>
       <span class="badge ${r.correct ? 'sound' : 'broken'}">${pct(r.achievedScore)} / المطلوب ${pct(r.requiredScore)}</span>
     </div>
-    ${r.expectedPattern ? `<p class="muted" style="margin:12px 0 4px">النمط المتوقَّع</p><div class="mono">${esc(r.expectedPattern)}</div>` : ''}
-    <p class="muted" style="margin:10px 0 4px">النمط الفعلي</p><div class="mono">${esc(r.actualPattern)}</div>
     ${r.feedback.map((f) => `<div class="note ${f.kind === 'success' ? '' : 'warn'}">${esc(f.text)}</div>`).join('')}
   </div>`;
 });
 
 /* ---------------- البحور ---------------- */
 $('#metersTable').innerHTML = `
-  <tr><th>البحر</th><th>التفعيلات (المصدر): صدر / عجز</th><th>نمط الصدر</th><th>مقاطع</th><th>الحالة</th></tr>
+  <tr><th>البحر</th><th>التفعيلات (المصدر): صدر / عجز</th><th>مقاطع</th><th>الحالة</th></tr>
   ${engine.listMeters().map((m) => `<tr class="${m.enabled ? '' : 'bad'}">
     <td>${esc(m.name)}${m.aliases.length ? `<br><small class="muted">${esc(m.aliases.join('، '))}</small>` : ''}</td>
     <td>${esc(m.sourceQuote)}</td>
-    <td class="pat">${esc(m.pattern) || '—'}</td>
     <td>${m.syllableCount || '—'}</td>
     <td>${m.enabled ? esc(m.status) : `<strong>معطَّل</strong><br><small class="muted">${esc(m.blockedBy || '')}</small>`}</td>
   </tr>`).join('')}
-  ${engine.registry.notInSource.map((n) => `<tr class="bad"><td>${esc(n.name)}</td><td colspan="4"><small>${esc(n.reason)}</small></td></tr>`).join('')}`;
+  ${engine.registry.notInSource.map((n) => `<tr class="bad"><td>${esc(n.name)}</td><td colspan="3"><small>${esc(n.reason)}</small></td></tr>`).join('')}`;
 
 /* ---------------- معلَّق ---------------- */
 $('#openList').innerHTML = engine.openQuestions().map((q) => `<div class="note warn">
@@ -5109,9 +6208,9 @@ $('#openList').innerHTML = engine.openQuestions().map((q) => `<div class="note w
 </div>`).join('');
 
 /* ---------------- تشغيل أولي ---------------- */
-if (/[?&]debug=1\b/.test(location.search)) $('#debug').checked = true;
-$('#input').value = SAMPLES[0][1];
-runAnalyze();
+$('#sadr').value = SAMPLES[0][1];
+$('#ajz').value = SAMPLES[0][2];
+render();
 
 }
 </script>

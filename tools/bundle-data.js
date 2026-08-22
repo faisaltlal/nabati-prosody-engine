@@ -29,6 +29,7 @@ const FILES = {
   scoring: 'scoring.json',
   encodings: 'encodings.json',
   lexicon: 'lexicon.json',
+  rhyme: 'rhyme.json',
   goldenCases: 'golden_cases.json',
 };
 

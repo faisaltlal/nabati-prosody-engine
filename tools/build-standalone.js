@@ -108,10 +108,18 @@ const bundle = modules.map((m) => {
 }).join('\n');
 
 const html = readFileSync(join(root, 'web', 'index.html'), 'utf8');
-const css = readFileSync(join(root, 'web', 'style.css'), 'utf8');
+
+// تُحزَم كل صفحات التنسيق المحلّية بلا تسمية أيّها: إضافة ملف تنسيق
+// إلى الصفحة لا يجوز أن توجب تعديل هذا المولّد، وإلا لخرج الملف الواحد
+// بلا تنسيقٍ أُضيف ولم يُذكر هنا.
+const LOCAL_CSS = /<link rel="stylesheet" href="([^":]+\.css)">/g;
 
 const out = html
-  .replace('<link rel="stylesheet" href="style.css">', `<style>\n${css}\n</style>`)
+  .replace(LOCAL_CSS, (_, file) => {
+    const path = join(root, 'web', file);
+    if (!existsSync(path)) throw new Error(`ملف تنسيق مفقود: web/${file}`);
+    return `<style>\n${readFileSync(path, 'utf8')}\n</style>`;
+  })
   .replace(
     '<script type="module" src="app.js"></script>',
     `<script type="module">\nconst __M = {};\n${bundle}</script>`
@@ -119,8 +127,10 @@ const out = html
   .replace('<title>محرك عروض الشعر النبطي — واجهة تجربة</title>',
            '<title>محرك عروض الشعر النبطي — ملف واحد</title>');
 
-if (out.includes('src="app.js"') || out.includes('href="style.css"')) {
-  throw new Error('لم يُستبدل أحد المراجع الخارجية — الملف ليس مكتفيًا بذاته');
+// حارس الاكتفاء بالذات: أي مرجع محلّي بقي يعني أن الملف لا يعمل وحده.
+const leftover = out.match(/(?:src|href)="(?!https?:|data:)[^"]+\.(?:js|css)"/g);
+if (leftover) {
+  throw new Error(`لم تُستبدل مراجع خارجية — الملف ليس مكتفيًا بذاته: ${leftover.join('، ')}`);
 }
 
 const target = join(root, 'web', 'standalone.html');

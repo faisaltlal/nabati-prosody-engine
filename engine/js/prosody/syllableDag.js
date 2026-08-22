@@ -199,6 +199,9 @@ export function edgeToSyllable(e) {
     shape: e.meta.shape,
     onset: e.meta.onset,
     nucleus: e.meta.nucleus,
+    // حركة النواة: منها يُعرف حرف المدّ — ألفٌ من الفتحة وياءٌ من
+    // الكسرة وواوٌ من الضمة. تحليل القافية لا يقوم بدونها.
+    quality: e.meta.quality,
     coda: e.meta.coda || null,
     assumed: !!e.meta.assumed || !!e.meta.codaAssumed,
     rule: e.meta.rule || null,

@@ -162,6 +162,19 @@ public struct Lexicon: Codable, Sendable {
     public let nabatiDialect: NabatiDialect?
 }
 
+/// قواعد القافية. لا يقرأ التنفيذ في Swift منها إلا ما يلزم لإعلان
+/// ما لم يُحسم — تحليل القافية نفسه منفَّذ في جافاسكربت وحده حتى الآن،
+/// وهذا مسجَّل في OPEN-QUESTIONS.md. لكن **البند المعلَّق يجب أن
+/// يُعلَن في التنفيذين معًا**، وإلا اختلفا فيما يعدّانه محسومًا.
+public struct RhymeRules: Codable, Sendable {
+    public struct NabatiSpecific: Codable, Sendable {
+        public let status: String?
+        public let note: String?
+        public let knownGaps: [String]?
+    }
+    public let nabatiSpecific: NabatiSpecific?
+}
+
 // MARK: - الحالات المرجعية
 
 public struct GoldenPhonologyCase: Codable, Sendable {
@@ -188,6 +201,7 @@ public struct EngineData: Sendable {
     public let encodings: [EncodingScheme]
     public let defaultScheme: String
     public let lexicon: Lexicon
+    public let rhyme: RhymeRules
     public let goldenPhonology: [GoldenPhonologyCase]
 
     /// يحمّل البيانات من موارد الحزمة.
@@ -216,6 +230,7 @@ public struct EngineData: Sendable {
         let s: ScoringConfig = try load("scoring", as: ScoringConfig.self)
         let e: EncodingsFile = try load("encodings", as: EncodingsFile.self)
         let l: Lexicon = try load("lexicon", as: Lexicon.self)
+        let q: RhymeRules = try load("rhyme", as: RhymeRules.self)
         let g: GoldenFile = try load("golden_cases", as: GoldenFile.self)
 
         return EngineData(
@@ -227,6 +242,7 @@ public struct EngineData: Sendable {
             encodings: e.schemes,
             defaultScheme: e.defaultScheme,
             lexicon: l,
+            rhyme: q,
             goldenPhonology: g.phonology
         )
     }
