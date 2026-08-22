@@ -1178,21 +1178,52 @@ function phonemize(words, lexicon, options = {}) {
       const marks = L.marks;
       const v = markVowel(marks);
 
-      // ألف لم يستهلكها النظر المسبق. حالتان:
-      //  - في أول الكلمة: همزة قطع.
-      //  - في وسطها بعد ساكن: رسم شاذ؛ تُلحق مدًّا بما قبلها لئلا تضيع.
+      // ألف لم يستهلكها النظر المسبق. ثلاث حالات:
       if (L.ch === ALEF || L.ch === ALEF_MAQSURA) {
-        if (i > 0 && units.length) {
-          const prev = units[units.length - 1];
-          if (prev.vowel.known && prev.vowel.length === 'short') {
-            prev.vowel = KNOWN('long', 'a');
-          } else if (!prev.vowel.known) {
-            prev.vowel = KNOWN('long', 'a');
-          }
+        const prev = units.length ? units[units.length - 1] : null;
+
+        // (١) بعد متحرك: ألف مدّ تُطيل حركته.
+        if (i > 0 && prev && !(prev.vowel.known && prev.vowel.length === 'none')) {
+          prev.vowel = KNOWN('long', 'a');
           log('materFallback', `ألف مدّ ألحقت بـ ${prev.c}`);
           continue;
         }
-        // أول الكلمة: همزة قطع.
+
+        // (٢) بعد ساكن: **همزة** لا مدّ.
+        //
+        // المدّ يقتضي متحركًا قبله، فالألف بعد الساكن لا تكون مدًّا
+        // البتّة — وإنما هي همزة قطع كُتبت بلا رأسها: «الاطلال»
+        // موضعها «الأطلال»، والرسم النبطي يُغفل الهمزة كثيرًا.
+        //
+        // وكانت تسقط هنا سقوطًا صامتًا: لا مدًّا تُلحق ولا همزةً
+        // تُنطق، فيضيع حرفٌ من الوزن كلّه.
+        if (i > 0 && prev) {
+          push({
+            c: HAMZA,
+            vowel: v.kind === 'short' ? KNOWN('short', v.quality) : UNKNOWN(['short']),
+            word: w,
+            source: 'hamzat_qat_bare',
+            // في النطق المتصل — وهو الغالب في النبطي — تسقط هذه الهمزة
+            // وتنتقل حركتها إلى الساكن قبلها: «غطّ الاطلال» تُنطق
+            // «غَطْ‑طَ‑لَطْ‑لَالْ». والقراءتان مشروعتان، فتُعرضان معًا
+            // على الوزن وهو الذي يحسم — لا تُفرض إحداهما.
+            elidable: true,
+          });
+          // والساكن قبلها يُعلَّم أنه قد يبتلعها فيأخذ حركتها. ولا
+          // تُمسّ حركته المصرَّح بها: السكون يبقى قراءةً قائمة (وهي
+          // الفصيحة)، وإنما تُضاف إليها قراءةٌ ثانية. فالقراءتان
+          // معروضتان على الوزن وهو الذي يحسم.
+          //
+          // ولا يُعلَّم ساكنٌ كتبه الشاعر بيده — إنما ما أوجبته قاعدةٌ
+          // من قواعد المحرك (لام «أل» القمرية مثلًا).
+          if (prev.source && prev.vowel.known && prev.vowel.length === 'none') {
+            prev.absorbsNextIfShort = true;
+          }
+          log('hamzatQatBare', `ألف بعد ساكن عوملت همزة — ${prev.c} قد يأخذ حركتها`);
+          continue;
+        }
+
+        // (٣) أول الكلمة: همزة قطع.
         push({
           c: HAMZA,
           vowel: v.kind === 'short' ? KNOWN('short', v.quality) : UNKNOWN(['none', 'short']),
@@ -1351,12 +1382,19 @@ const OVERLONG = 'X';
 
 function nucleusOptions(unit) {
   const v = unit.vowel;
+
+  // ساكنٌ يليه همزةٌ تسقط في الوصل: له قراءتان — يبقى ساكنًا فتُنطق
+  // الهمزة، أو يبتلعها فيأخذ حركتها. تُعرضان معًا ويحسم الوزن.
+  const absorbing = unit.absorbsNextIfShort
+    ? [{ kind: 'short', quality: null, assumed: true, absorbsNext: true }]
+    : [];
+
   if (v.known) {
-    if (v.length === 'none') return [];
-    if (v.length === 'long') return [{ kind: 'long', quality: v.quality }];
-    return [{ kind: 'short', quality: v.quality }];
+    if (v.length === 'none') return absorbing;
+    if (v.length === 'long') return [{ kind: 'long', quality: v.quality }, ...absorbing];
+    return [{ kind: 'short', quality: v.quality }, ...absorbing];
   }
-  const out = [];
+  const out = [...absorbing];
   if (v.options.includes('short')) out.push({ kind: 'short', quality: null, assumed: true });
   if (v.options.includes('long')) {
     out.push({ kind: 'long', quality: v.longQuality || null, assumed: true, suppressesNext: true });
@@ -1410,8 +1448,11 @@ function buildSyllableDag(units, options = {}) {
     for (const nuc of nucleusOptions(onset)) {
       if (nuc.assumed) assumed = true;
       // الواو/الياء التي احتُسبت حرف مدّ لا تعود وحدةً مستقلة.
+      // وكذلك الهمزة الساقطة في الوصل: إن تحرّك الساكن قبلها فقد أخذ
+      // حركتها، فهي مستهلَكة معه ولا تعود وحدةً.
+      const absorbsHamza = !!nuc.absorbsNext;
       const afterNucleus =
-        nuc.kind === 'long' && onset.suppressNextIfLong && nuc.suppressesNext
+        (nuc.kind === 'long' && onset.suppressNextIfLong && nuc.suppressesNext) || absorbsHamza
           ? i + 2
           : i + 1;
       if (afterNucleus > n) continue;
@@ -1422,7 +1463,8 @@ function buildSyllableDag(units, options = {}) {
         nucleus: nuc.kind,
         quality: nuc.quality,
         assumed: !!nuc.assumed,
-        consumed: [i],
+        consumed: absorbsHamza ? [i, i + 1] : [i],
+        elidedHamza: absorbsHamza || undefined,
       };
 
       // مقطع مفتوح
@@ -6065,7 +6107,7 @@ const DATA = {
         "إمالة الألف في بعض اللهجات — هل تغيّر كمّية المقطع؟ الأرجح لا، لكنها غير مؤكدة",
         "تسكين أواخر الكلمات في النبطي أكثر منه في الفصيح — يؤثر مباشرة في المقاطع، ويحتاج أمثلة مقطَّعة",
         "الكشكشة والكسكسة — لا أثر وزني متوقَّع لكنها غير محسومة",
-        "حذف همزة القطع في أول الكلمة في النطق العامي"
+        "حذف همزة القطع في أول الكلمة في النطق العامي — **مُعالَج**: الألف بعد ساكن همزةٌ لا مدّ، وقد تسقط في الوصل فيأخذ الساكنُ قبلها حركتَها. والقراءتان تُعرضان على الوزن وهو الذي يحسم، فلم تُفرض إحداهما. أثبته بيت «البارحه يوم الدجا غطّ الاطلال» — المسحوب بالإسقاط، والرجز بغيره."
       ]
     }
   },

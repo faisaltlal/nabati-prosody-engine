@@ -184,21 +184,52 @@ export function phonemize(words, lexicon, options = {}) {
       const marks = L.marks;
       const v = markVowel(marks);
 
-      // ألف لم يستهلكها النظر المسبق. حالتان:
-      //  - في أول الكلمة: همزة قطع.
-      //  - في وسطها بعد ساكن: رسم شاذ؛ تُلحق مدًّا بما قبلها لئلا تضيع.
+      // ألف لم يستهلكها النظر المسبق. ثلاث حالات:
       if (L.ch === ALEF || L.ch === ALEF_MAQSURA) {
-        if (i > 0 && units.length) {
-          const prev = units[units.length - 1];
-          if (prev.vowel.known && prev.vowel.length === 'short') {
-            prev.vowel = KNOWN('long', 'a');
-          } else if (!prev.vowel.known) {
-            prev.vowel = KNOWN('long', 'a');
-          }
+        const prev = units.length ? units[units.length - 1] : null;
+
+        // (١) بعد متحرك: ألف مدّ تُطيل حركته.
+        if (i > 0 && prev && !(prev.vowel.known && prev.vowel.length === 'none')) {
+          prev.vowel = KNOWN('long', 'a');
           log('materFallback', `ألف مدّ ألحقت بـ ${prev.c}`);
           continue;
         }
-        // أول الكلمة: همزة قطع.
+
+        // (٢) بعد ساكن: **همزة** لا مدّ.
+        //
+        // المدّ يقتضي متحركًا قبله، فالألف بعد الساكن لا تكون مدًّا
+        // البتّة — وإنما هي همزة قطع كُتبت بلا رأسها: «الاطلال»
+        // موضعها «الأطلال»، والرسم النبطي يُغفل الهمزة كثيرًا.
+        //
+        // وكانت تسقط هنا سقوطًا صامتًا: لا مدًّا تُلحق ولا همزةً
+        // تُنطق، فيضيع حرفٌ من الوزن كلّه.
+        if (i > 0 && prev) {
+          push({
+            c: HAMZA,
+            vowel: v.kind === 'short' ? KNOWN('short', v.quality) : UNKNOWN(['short']),
+            word: w,
+            source: 'hamzat_qat_bare',
+            // في النطق المتصل — وهو الغالب في النبطي — تسقط هذه الهمزة
+            // وتنتقل حركتها إلى الساكن قبلها: «غطّ الاطلال» تُنطق
+            // «غَطْ‑طَ‑لَطْ‑لَالْ». والقراءتان مشروعتان، فتُعرضان معًا
+            // على الوزن وهو الذي يحسم — لا تُفرض إحداهما.
+            elidable: true,
+          });
+          // والساكن قبلها يُعلَّم أنه قد يبتلعها فيأخذ حركتها. ولا
+          // تُمسّ حركته المصرَّح بها: السكون يبقى قراءةً قائمة (وهي
+          // الفصيحة)، وإنما تُضاف إليها قراءةٌ ثانية. فالقراءتان
+          // معروضتان على الوزن وهو الذي يحسم.
+          //
+          // ولا يُعلَّم ساكنٌ كتبه الشاعر بيده — إنما ما أوجبته قاعدةٌ
+          // من قواعد المحرك (لام «أل» القمرية مثلًا).
+          if (prev.source && prev.vowel.known && prev.vowel.length === 'none') {
+            prev.absorbsNextIfShort = true;
+          }
+          log('hamzatQatBare', `ألف بعد ساكن عوملت همزة — ${prev.c} قد يأخذ حركتها`);
+          continue;
+        }
+
+        // (٣) أول الكلمة: همزة قطع.
         push({
           c: HAMZA,
           vowel: v.kind === 'short' ? KNOWN('short', v.quality) : UNKNOWN(['none', 'short']),

@@ -11,7 +11,7 @@ import { DATA } from '../engine/js/data.generated.js';
 import { partialTafilaName, lettersFromSyllables } from '../engine/js/meters/registry.js';
 import { normalize } from '../engine/js/text/normalizer.js';
 import { phonemize, relaxWrittenSukun } from '../engine/js/phonology/phonemizer.js';
-import { buildSyllableDag } from '../engine/js/prosody/syllableDag.js';
+import { buildSyllableDag, enumeratePaths } from '../engine/js/prosody/syllableDag.js';
 import { rankMeters } from '../engine/js/matching/meterMatcher.js';
 import { rankMetersPartial } from '../engine/js/matching/partialMatcher.js';
 import { createAlignmentCache } from '../engine/js/matching/footMatcher.js';
@@ -541,5 +541,69 @@ describe('التحفّظات — بيانٌ لا عرض', () => {
       equal(typeof JSON.parse(JSON.stringify(w)).message, 'string',
         'كل تحفّظ يجب أن يكون قابلًا للتسلسل');
     }
+  });
+});
+
+/* ═════════════════ الهمزة المرسومة ألفًا ═════════════════ */
+
+describe('الألف بعد الساكن همزةٌ لا مدّ', () => {
+  const unitsOf = (t) => {
+    const n = normalize(t);
+    return phonemize(n.words, DATA.lexicon, { pausalEnd: true }).units;
+  };
+
+  it('لا يضيع حرف: «الاطلال» فيها همزة', () => {
+    // كانت تسقط سقوطًا صامتًا: لا مدًّا تُلحق — والمدّ يقتضي متحركًا
+    // قبله، واللام ساكنة — ولا همزةً تُنطق. فيضيع حرفٌ من الوزن كلّه.
+    // «الاطلال» ← ء ل ء ط ل ل: ألف «لال» مدٌّ يندمج في اللام، وألفُ
+    // الوسط همزةٌ قائمة بنفسها.
+    for (const [word, count] of [
+      ['الاطلال', 6], ['الارض', 5], ['الاسم', 5], ['الامل', 5],
+    ]) {
+      equal(unitsOf(word).length, count, `${word}: عدد الوحدات`);
+      assert(unitsOf(word).some((u) => u.source === 'hamzat_qat_bare'),
+        `${word}: الألف بعد الساكن يجب أن تكون همزة`);
+    }
+  });
+
+  it('الألف بعد متحرك تبقى مدًّا لا همزة', () => {
+    // الشرط الفارق هو سكون ما قبلها. فألف «قال» مدٌّ كما كانت.
+    for (const w of ['قال', 'باب', 'سماء']) {
+      assert(!unitsOf(w).some((u) => u.source === 'hamzat_qat_bare'),
+        `${w}: ألف مدّ عوملت همزةً خطأً`);
+    }
+  });
+
+  it('القراءتان معروضتان على الوزن: منطوقةً وساقطة', () => {
+    // في النطق المتصل تسقط الهمزة وتنتقل حركتها إلى الساكن قبلها:
+    // «غطّ الاطلال» تُنطق «غَطْ‑طَ‑لَطْ‑لَالْ». والقراءتان مشروعتان،
+    // فلا تُفرض إحداهما — يُعرضان ويحسم الوزن.
+    const dag = buildSyllableDag(unitsOf('غطّ الاطلال'));
+    const patterns = new Set(
+      enumeratePaths(dag, 500).paths.map((p) => p.map((e) => e.weight).join(''))
+    );
+    assert(patterns.has('LLLX'), 'القراءة الفصيحة — الهمزة منطوقة — مفقودة');
+    assert(patterns.has('LSLX'), 'القراءة المتصلة — الهمزة ساقطة — مفقودة');
+  });
+
+  it('لا يُمسّ سكونٌ كتبه الشاعر بيده', () => {
+    // الابتلاع لا يُعلَّم به إلا ساكنٌ أوجبته قاعدةٌ من قواعد المحرك،
+    // لا سكونٌ صرّح به صاحب النصّ.
+    for (const u of unitsOf('قِفْ الان')) {
+      if (!u.source && u.vowel.known && u.vowel.length === 'none') {
+        assert(!u.absorbsNextIfShort, `سكون مكتوب عُلّم بالابتلاع: ${u.c}`);
+      }
+    }
+  });
+
+  it('«البارحه يوم الدجا غطّ الاطلال» على المسحوب', () => {
+    // بيتٌ نبطي حقيقي أورده المستخدم، وأكّد وزنَه محرّكٌ آخر.
+    // والفرق بين المسحوب والرجز هنا موضعٌ واحد: أساكنةٌ اللام أم
+    // متحركة. وكان المحرك يقفلها على السكون فيقرأه رجزًا.
+    const r = engine.analyzeHemistich('البارحه يوم الدجا غطّ الاطلال', { preferRole: 'ajz' });
+    equal(r.meter.name, 'المسحوب');
+    equal(r.meter.score, 1);
+    equal(r.cards.map((c) => c.name).join(' '), 'مستفعلن مستفعلن فاعلاتان');
+    equal(r.cards[2].licence.name, 'التسبيغ');
   });
 });

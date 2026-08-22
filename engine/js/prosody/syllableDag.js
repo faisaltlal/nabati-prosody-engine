@@ -25,12 +25,19 @@ const OVERLONG = 'X';
 
 function nucleusOptions(unit) {
   const v = unit.vowel;
+
+  // ساكنٌ يليه همزةٌ تسقط في الوصل: له قراءتان — يبقى ساكنًا فتُنطق
+  // الهمزة، أو يبتلعها فيأخذ حركتها. تُعرضان معًا ويحسم الوزن.
+  const absorbing = unit.absorbsNextIfShort
+    ? [{ kind: 'short', quality: null, assumed: true, absorbsNext: true }]
+    : [];
+
   if (v.known) {
-    if (v.length === 'none') return [];
-    if (v.length === 'long') return [{ kind: 'long', quality: v.quality }];
-    return [{ kind: 'short', quality: v.quality }];
+    if (v.length === 'none') return absorbing;
+    if (v.length === 'long') return [{ kind: 'long', quality: v.quality }, ...absorbing];
+    return [{ kind: 'short', quality: v.quality }, ...absorbing];
   }
-  const out = [];
+  const out = [...absorbing];
   if (v.options.includes('short')) out.push({ kind: 'short', quality: null, assumed: true });
   if (v.options.includes('long')) {
     out.push({ kind: 'long', quality: v.longQuality || null, assumed: true, suppressesNext: true });
@@ -84,8 +91,11 @@ export function buildSyllableDag(units, options = {}) {
     for (const nuc of nucleusOptions(onset)) {
       if (nuc.assumed) assumed = true;
       // الواو/الياء التي احتُسبت حرف مدّ لا تعود وحدةً مستقلة.
+      // وكذلك الهمزة الساقطة في الوصل: إن تحرّك الساكن قبلها فقد أخذ
+      // حركتها، فهي مستهلَكة معه ولا تعود وحدةً.
+      const absorbsHamza = !!nuc.absorbsNext;
       const afterNucleus =
-        nuc.kind === 'long' && onset.suppressNextIfLong && nuc.suppressesNext
+        (nuc.kind === 'long' && onset.suppressNextIfLong && nuc.suppressesNext) || absorbsHamza
           ? i + 2
           : i + 1;
       if (afterNucleus > n) continue;
@@ -96,7 +106,8 @@ export function buildSyllableDag(units, options = {}) {
         nucleus: nuc.kind,
         quality: nuc.quality,
         assumed: !!nuc.assumed,
-        consumed: [i],
+        consumed: absorbsHamza ? [i, i + 1] : [i],
+        elidedHamza: absorbsHamza || undefined,
       };
 
       // مقطع مفتوح
