@@ -152,21 +152,25 @@ export function analyzeHemistich(text, engine, options = {}) {
  * يحلّل البيت بحقلَيه. الحقل الفارغ لا يُعطَّل به شيء: يُحلَّل المكتوب
  * وحده، ويُترك الآخر بلا نتيجة.
  */
-export function analyzeLive({ sadr, ajz }, engine) {
-  const parts = [
-    { role: 'sadr', label: 'الصدر', text: sadr },
-    { role: 'ajz', label: 'العجز', text: ajz },
-  ];
+export function analyzeLive(fields, engine) {
+  // وضعان للإدخال:
+  //   شطر — حقل واحد. لا يُعرف أصدرٌ هو أم عجز، فلا تُرجَّح صيغة على
+  //         أخرى ويُترك الوزن وحده يحسم.
+  //   بيت — حقلان. الحقل نفسه خبرٌ يُرجَّح به عند تساوي الدرجات.
+  const parts = fields.single !== undefined
+    ? [{ role: null, label: 'الشطر', text: fields.single }]
+    : [
+        { role: 'sadr', label: 'الصدر', text: fields.sadr },
+        { role: 'ajz', label: 'العجز', text: fields.ajz },
+      ];
 
   const hemistichs = parts.map((p) => ({
     ...p,
-    // الحقل نفسه خبرٌ: ما كُتب في حقل العجز فصورة العجز أولى به
-    // عند تساوي الدرجات.
-    result: analyzeHemistich(p.text, engine, { preferRole: p.role }),
+    result: analyzeHemistich(p.text, engine, { preferRole: p.role || undefined }),
   }));
 
   const written = hemistichs.filter((h) => h.result);
-  if (!written.length) return { empty: true, hemistichs };
+  if (!written.length) return { empty: true, hemistichs, warnings: [] };
 
   // بحر البيت: ما اتّفق عليه الشطران المكتوبان. اتّفاقهما تأكيدٌ،
   // واختلافهما خبرٌ يُعرض ولا يُطوى.
@@ -176,17 +180,80 @@ export function analyzeLive({ sadr, ajz }, engine) {
     .slice()
     .sort((a, b) => (b.result.meter?.score || 0) - (a.result.meter?.score || 0))[0];
 
+  const disagreement = names.length > 1 && !agreed
+    ? written.map((h) => ({ role: h.role, label: h.label, name: h.result.meter?.name || null }))
+    : null;
+
   return {
     empty: false,
     hemistichs,
     meter: lead.result.meter,
     agreed: names.length > 1 ? agreed : null,
-    disagreement: names.length > 1 && !agreed
-      ? written.map((h) => ({ role: h.role, label: h.label, name: h.result.meter?.name || null }))
-      : null,
+    disagreement,
     complete: written.every((h) => h.result.complete),
     writing: written.some((h) => !h.result.complete),
+    warnings: collectWarnings(written, disagreement, engine),
   };
+}
+
+/**
+ * كل ما يتحفّظ عليه المحرك في هذا التحليل، بيانًا لا عرضًا.
+ *
+ * هذه بدلٌ من صفحةٍ كانت تعرض التحفّظات للقارئ. والتحفّظ ليس خطأً
+ * يُخفى ولا نتيجةً تُعرض: هو خبرٌ عن حدود ما يستطيع المحرك أن يقطع به،
+ * موضعه سجلٌّ يقرؤه المطوّر لا شاشةٌ تُربك الشاعر.
+ *
+ * ولا يُطبَع هنا شيء: الطباعة سلوك مضيف لا سلوك محرك، وطبقةُ العرض هي
+ * التي تختار أتكتبه في السجلّ أم ترسله إلى مكان آخر. فيبقى المحرك
+ * صالحًا لتطبيق iOS كما هو صالح للمتصفح.
+ */
+function collectWarnings(written, disagreement, engine) {
+  const out = [];
+  const add = (area, message, detail) => out.push({ area, message, ...detail });
+
+  for (const h of written) {
+    const x = h.result;
+    const where = h.label;
+
+    if (x.relaxedSukun) {
+      add('vocalization', `${where}: تشكيلٌ لا يقبل تقطيعًا، فأُرخيت ${x.relaxedSukun} من سكوناته`, {
+        hemistich: h.role, count: x.relaxedSukun,
+      });
+    }
+    if (x.assumedVocalization) {
+      add('vocalization', `${where}: النصّ غير مشكول بالكامل، فالتقطيع قراءةٌ قبِلها الوزن لا قراءةٌ يقينية`, {
+        hemistich: h.role,
+      });
+    }
+    if (x.tied && x.tied.length) {
+      add('ambiguity', `${where}: بحور توافق بالدرجة نفسها — ${x.tied.map((t) => t.name).join('، ')}`, {
+        hemistich: h.role, tiedWith: x.tied,
+      });
+    }
+    if (x.meter && x.meter.status === 'NEEDS_VALIDATION') {
+      add('meter', `${where}: تعريف «${x.meter.name}» يحتاج تحقّقًا`, {
+        hemistich: h.role, meterId: x.meter.id,
+      });
+    }
+    if (x.rhyme && x.rhyme.rawi && x.rhyme.rawi.caution) {
+      add('rhyme', `${where}: قد تكون «${x.rhyme.rawi.letter}» حرف وصل لا رويًّا`, {
+        hemistich: h.role, letter: x.rhyme.rawi.letter,
+      });
+    }
+  }
+
+  if (disagreement) {
+    add('meter', `الشطران على بحرين: ${disagreement.map((d) => `${d.label} ${d.name || '—'}`).join('، ')}`, {
+      hemistichs: disagreement,
+    });
+  }
+
+  // ما لم يُحسم في القاعدة نفسها — لا يتعلّق بهذا البيت بل بالبيانات.
+  for (const q of engine.openQuestions()) {
+    add('open_question', `${q.area}: ${q.issue || ''}`.trim(), { id: q.id, gaps: q.gaps });
+  }
+
+  return out;
 }
 
 /* ─────────────── بطاقات التفعيلات ─────────────── */

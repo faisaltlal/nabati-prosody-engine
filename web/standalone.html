@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>محرك عروض الشعر النبطي — ملف واحد</title>
-<meta name="description" content="تحليل ووزن الشعر النبطي: البحر، التفعيلات، التقطيع، النمط الرقمي، وموضع الكسر.">
+<meta name="description" content="وزن الشعر النبطي: البحر، التفعيلات، التقطيع، وموضع الكسر.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
@@ -51,13 +51,13 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
-.wrap { max-width: 960px; margin: 0 auto; padding: 16px 14px 64px; }
+.wrap { max-width: 960px; margin: 0 auto; padding: 10px 14px 48px; }
 
-header { padding: 20px 0 12px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
-header h1 { margin: 0; font-size: 1.35rem; font-weight: 700; }
-header p { margin: 6px 0 0; color: var(--muted); font-size: .88rem; }
+header { padding: 12px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+header h1 { margin: 0; font-size: 1.15rem; font-weight: 700; }
+header p { margin: 3px 0 0; color: var(--muted); font-size: .8rem; }
 
-.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 16px 0; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
 .tabs button {
   font: inherit; font-size: .88rem; padding: 7px 14px; border-radius: 999px;
   border: 1px solid var(--line); background: var(--panel); color: var(--muted);
@@ -67,7 +67,7 @@ header p { margin: 6px 0 0; color: var(--muted); font-size: .88rem; }
 
 .panel {
   background: var(--panel); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 14px; margin-bottom: 14px;
+  border-radius: var(--radius); padding: 13px; margin-bottom: 11px;
 }
 .panel h2 { margin: 0 0 10px; font-size: .95rem; color: var(--muted); font-weight: 600; }
 
@@ -171,22 +171,42 @@ footer code { font-family: var(--mono); font-size: .95em; }
    ملحق بـ style.css لا بديل عنه: بقية التبويبات تستعمله كما هو.
    ============================================================ */
 
-/* ── حقلا الإدخال ─────────────────────────────────────────── */
-.fields { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
-@media (max-width: 620px) { .fields { grid-template-columns: 1fr; } }
+/* ── الإدخال ──────────────────────────────────────────────── */
+/* الارتفاع مقصود ضيّقًا: التفعيلات تتولّد أثناء الكتابة، فلا تنفع إن
+   احتاج صاحبها إلى تمرير الصفحة ليراها. */
+.panel.compact { padding: 10px 12px; margin-bottom: 10px; }
+
+.mode {
+  display: inline-flex; gap: 0; margin-bottom: 8px;
+  border: 1px solid var(--line); border-radius: 999px; padding: 2px;
+  background: var(--bg);
+}
+.mode button {
+  font: inherit; font-size: .82rem; font-weight: 600;
+  padding: 4px 18px; border: 0; border-radius: 999px;
+  background: transparent; color: var(--muted); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.mode button[aria-checked="true"] { background: var(--brand); color: #fff; }
+
+.fields { display: grid; gap: 8px; grid-template-columns: 1fr; }
 
 .field { display: block; }
 .field-label {
-  display: block; font-size: .78rem; font-weight: 600;
-  color: var(--muted); margin-bottom: 5px;
+  display: block; font-size: .72rem; font-weight: 600;
+  color: var(--muted); margin-bottom: 3px;
 }
-.field textarea { min-height: 68px; font-size: 1.1rem; line-height: 1.9; }
-
-.hint { margin: 10px 0 0; font-size: .8rem; color: var(--muted); }
+/* سطر واحد يكفي ابتداءً، ويتّسع بالتمرير إن طال الشطر. */
+.field textarea {
+  min-height: 0; height: 44px; padding: 9px 11px;
+  font-size: 1.05rem; line-height: 1.5; resize: none;
+}
 
 /* ── مربع الوزن ───────────────────────────────────────────── */
+.verdict-panel { padding: 11px 13px; }
+.verdict-panel .verdict .name { font-size: 1.25rem; }
 .verdict-panel .score-line {
-  display: flex; align-items: center; gap: 10px; margin-top: 12px;
+  display: flex; align-items: center; gap: 10px; margin-top: 8px;
 }
 .verdict-panel .bar { flex: 1 1 auto; margin-top: 0; }
 .verdict-panel .pctn {
@@ -195,9 +215,10 @@ footer code { font-family: var(--mono); font-size: .95em; }
 }
 
 .hemistich-head {
-  display: flex; align-items: center; gap: 8px;
-  flex-wrap: wrap; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 7px;
+  flex-wrap: wrap; margin-bottom: 8px;
 }
+.hemistich-head:empty { display: none; }
 .hemistich-head .field-label { margin: 0; }
 
 .badge.soft { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
@@ -261,22 +282,6 @@ footer code { font-family: var(--mono); font-size: .95em; }
 }
 .rhyme-note { margin: 8px 0 0; font-size: .74rem; color: var(--muted); line-height: 1.6; }
 
-/* ── شريط التشكيل ─────────────────────────────────────────── */
-.marks {
-  display: flex; gap: 5px; overflow-x: auto; padding: 0 0 9px;
-  margin-bottom: 4px; -webkit-overflow-scrolling: touch;
-}
-.marks button {
-  flex: 0 0 auto; font: inherit; min-width: 46px; height: 46px;
-  display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--line); border-radius: 9px;
-  background: var(--panel); color: var(--ink); cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.marks button:active { background: var(--brand-soft); border-color: var(--brand); }
-/* الحركة رسمها صغير على الكرسيّ، فتُكبَّر لتُقرأ وتُصاب بالإبهام. */
-.mark-glyph { font-size: 1.7rem; line-height: 1; }
-
 /* ── الكتابة العروضية حرفًا حرفًا ──────────────────────────── */
 .glyphs {
   display: flex; gap: 3px; overflow-x: auto; padding-bottom: 6px;
@@ -321,68 +326,50 @@ footer code { font-family: var(--mono); font-size: .95em; }
 
 <header>
   <h1>محرك عروض الشعر النبطي</h1>
-  <p>اكتب، ويتولّد التقطيع حرفًا حرفًا. محرك حتمي قائم على القواعد — بلا نموذج لغوي وبلا نسب مقدَّرة.</p>
+  <p>اكتب، ويتولّد التقطيع حرفًا حرفًا.</p>
 </header>
 
 <nav class="tabs" role="tablist">
-  <button role="tab" data-tab="analyze" aria-selected="true">تحليل بيت</button>
-  <button role="tab" data-tab="poem" aria-selected="false">تحليل قصيدة</button>
+  <button role="tab" data-tab="analyze" aria-selected="true">أوزن البيت</button>
   <button role="tab" data-tab="train" aria-selected="false">تدريب</button>
   <button role="tab" data-tab="meters" aria-selected="false">البحور</button>
-  <button role="tab" data-tab="open" aria-selected="false">ما يحتاج تحقّقًا</button>
 </nav>
 
-<!-- ============ تحليل بيت ============ -->
+<!-- ============ أوزن البيت ============ -->
 <section id="tab-analyze">
-  <div class="panel">
-    <!-- شريط التشكيل: دقّة الوزن مقيَّدة بتشكيل ما يُكتب، ولوحة مفاتيح
-         الهاتف تجعل إدخال الحركات عسيرًا. فتُوضع في متناول الإبهام. -->
-    <div class="marks" id="marks" role="toolbar" aria-label="إدخال التشكيل"></div>
+  <div class="panel compact">
+    <!-- شطر أو بيت. الافتراضي شطر: أكثر ما يُكتب شطرٌ يُجرَّب وزنه. -->
+    <div class="mode" role="radiogroup" aria-label="وضع الإدخال">
+      <button type="button" role="radio" data-mode="single" aria-checked="true">شطر</button>
+      <button type="button" role="radio" data-mode="pair" aria-checked="false">بيت</button>
+    </div>
 
-    <div class="fields">
-      <label class="field">
+    <div class="fields" id="fields">
+      <label class="field" id="field-single">
+        <textarea id="single" rows="1" spellcheck="false" autocomplete="off"
+          placeholder="اكتب شطرًا…"></textarea>
+      </label>
+      <label class="field hidden" id="field-sadr">
         <span class="field-label">الصدر</span>
-        <textarea id="sadr" rows="2" spellcheck="false" autocomplete="off"
+        <textarea id="sadr" rows="1" spellcheck="false" autocomplete="off"
           placeholder="اكتب صدر البيت…"></textarea>
       </label>
-      <label class="field">
+      <label class="field hidden" id="field-ajz">
         <span class="field-label">العجز</span>
-        <textarea id="ajz" rows="2" spellcheck="false" autocomplete="off"
+        <textarea id="ajz" rows="1" spellcheck="false" autocomplete="off"
           placeholder="اكتب عجز البيت…"></textarea>
       </label>
     </div>
-    <p class="hint">
-      التفعيلات تتولّد وأنت تكتب. اكتب شطرًا واحدًا أو الشطرين —
-      والتشكيل يرفع الدقّة ولا يُشترط.
-    </p>
-    <div class="samples" id="samples"></div>
   </div>
 
   <div id="result"></div>
-</section>
-
-<!-- ============ قصيدة ============ -->
-<section id="tab-poem" class="hidden">
-  <div class="panel">
-    <h2>القصيدة — بيت في كل سطر</h2>
-    <textarea id="poemInput" rows="8" spellcheck="false" placeholder="بيت في كل سطر…"></textarea>
-    <div class="row"><button class="go" id="runPoem">حلّل القصيدة</button></div>
-  </div>
-  <div id="poemResult"></div>
 </section>
 
 <!-- ============ تدريب ============ -->
 <section id="tab-train" class="hidden">
   <div class="panel">
     <h2>وضع التدريب</h2>
-    <div class="row">
-      <select id="trainMeter" class="grow"></select>
-      <select id="trainLevel" style="width:auto">
-        <option value="easy">سهل — ٨٠٪</option>
-        <option value="medium" selected>متوسط — ٩٠٪</option>
-        <option value="hard">صعب — ٩٧٪ وبلا رخص</option>
-      </select>
-    </div>
+    <div class="row"><select id="trainMeter" class="grow"></select></div>
     <p class="muted" id="trainHint"></p>
     <textarea id="trainInput" spellcheck="false" placeholder="اكتب بيتك على هذا البحر…"></textarea>
     <div class="row"><button class="go" id="runTrain">تحقّق</button></div>
@@ -395,15 +382,6 @@ footer code { font-family: var(--mono); font-size: .95em; }
   <div class="panel">
     <h2>قاعدة الأوزان</h2>
     <div class="scroll"><table id="metersTable"></table></div>
-  </div>
-</section>
-
-<!-- ============ معلَّق ============ -->
-<section id="tab-open" class="hidden">
-  <div class="panel">
-    <h2>ما لم يُحسم بعد</h2>
-    <p class="muted">كل بند هنا قاعدة لم تُثبَّت لأن المادة المصدرية لم تكفِ لإثباتها. لم يُخترع شيء مكانها.</p>
-    <div id="openList"></div>
   </div>
 </section>
 
@@ -3184,21 +3162,25 @@ function analyzeHemistich(text, engine, options = {}) {
  * يحلّل البيت بحقلَيه. الحقل الفارغ لا يُعطَّل به شيء: يُحلَّل المكتوب
  * وحده، ويُترك الآخر بلا نتيجة.
  */
-function analyzeLive({ sadr, ajz }, engine) {
-  const parts = [
-    { role: 'sadr', label: 'الصدر', text: sadr },
-    { role: 'ajz', label: 'العجز', text: ajz },
-  ];
+function analyzeLive(fields, engine) {
+  // وضعان للإدخال:
+  //   شطر — حقل واحد. لا يُعرف أصدرٌ هو أم عجز، فلا تُرجَّح صيغة على
+  //         أخرى ويُترك الوزن وحده يحسم.
+  //   بيت — حقلان. الحقل نفسه خبرٌ يُرجَّح به عند تساوي الدرجات.
+  const parts = fields.single !== undefined
+    ? [{ role: null, label: 'الشطر', text: fields.single }]
+    : [
+        { role: 'sadr', label: 'الصدر', text: fields.sadr },
+        { role: 'ajz', label: 'العجز', text: fields.ajz },
+      ];
 
   const hemistichs = parts.map((p) => ({
     ...p,
-    // الحقل نفسه خبرٌ: ما كُتب في حقل العجز فصورة العجز أولى به
-    // عند تساوي الدرجات.
-    result: analyzeHemistich(p.text, engine, { preferRole: p.role }),
+    result: analyzeHemistich(p.text, engine, { preferRole: p.role || undefined }),
   }));
 
   const written = hemistichs.filter((h) => h.result);
-  if (!written.length) return { empty: true, hemistichs };
+  if (!written.length) return { empty: true, hemistichs, warnings: [] };
 
   // بحر البيت: ما اتّفق عليه الشطران المكتوبان. اتّفاقهما تأكيدٌ،
   // واختلافهما خبرٌ يُعرض ولا يُطوى.
@@ -3208,17 +3190,80 @@ function analyzeLive({ sadr, ajz }, engine) {
     .slice()
     .sort((a, b) => (b.result.meter?.score || 0) - (a.result.meter?.score || 0))[0];
 
+  const disagreement = names.length > 1 && !agreed
+    ? written.map((h) => ({ role: h.role, label: h.label, name: h.result.meter?.name || null }))
+    : null;
+
   return {
     empty: false,
     hemistichs,
     meter: lead.result.meter,
     agreed: names.length > 1 ? agreed : null,
-    disagreement: names.length > 1 && !agreed
-      ? written.map((h) => ({ role: h.role, label: h.label, name: h.result.meter?.name || null }))
-      : null,
+    disagreement,
     complete: written.every((h) => h.result.complete),
     writing: written.some((h) => !h.result.complete),
+    warnings: collectWarnings(written, disagreement, engine),
   };
+}
+
+/**
+ * كل ما يتحفّظ عليه المحرك في هذا التحليل، بيانًا لا عرضًا.
+ *
+ * هذه بدلٌ من صفحةٍ كانت تعرض التحفّظات للقارئ. والتحفّظ ليس خطأً
+ * يُخفى ولا نتيجةً تُعرض: هو خبرٌ عن حدود ما يستطيع المحرك أن يقطع به،
+ * موضعه سجلٌّ يقرؤه المطوّر لا شاشةٌ تُربك الشاعر.
+ *
+ * ولا يُطبَع هنا شيء: الطباعة سلوك مضيف لا سلوك محرك، وطبقةُ العرض هي
+ * التي تختار أتكتبه في السجلّ أم ترسله إلى مكان آخر. فيبقى المحرك
+ * صالحًا لتطبيق iOS كما هو صالح للمتصفح.
+ */
+function collectWarnings(written, disagreement, engine) {
+  const out = [];
+  const add = (area, message, detail) => out.push({ area, message, ...detail });
+
+  for (const h of written) {
+    const x = h.result;
+    const where = h.label;
+
+    if (x.relaxedSukun) {
+      add('vocalization', `${where}: تشكيلٌ لا يقبل تقطيعًا، فأُرخيت ${x.relaxedSukun} من سكوناته`, {
+        hemistich: h.role, count: x.relaxedSukun,
+      });
+    }
+    if (x.assumedVocalization) {
+      add('vocalization', `${where}: النصّ غير مشكول بالكامل، فالتقطيع قراءةٌ قبِلها الوزن لا قراءةٌ يقينية`, {
+        hemistich: h.role,
+      });
+    }
+    if (x.tied && x.tied.length) {
+      add('ambiguity', `${where}: بحور توافق بالدرجة نفسها — ${x.tied.map((t) => t.name).join('، ')}`, {
+        hemistich: h.role, tiedWith: x.tied,
+      });
+    }
+    if (x.meter && x.meter.status === 'NEEDS_VALIDATION') {
+      add('meter', `${where}: تعريف «${x.meter.name}» يحتاج تحقّقًا`, {
+        hemistich: h.role, meterId: x.meter.id,
+      });
+    }
+    if (x.rhyme && x.rhyme.rawi && x.rhyme.rawi.caution) {
+      add('rhyme', `${where}: قد تكون «${x.rhyme.rawi.letter}» حرف وصل لا رويًّا`, {
+        hemistich: h.role, letter: x.rhyme.rawi.letter,
+      });
+    }
+  }
+
+  if (disagreement) {
+    add('meter', `الشطران على بحرين: ${disagreement.map((d) => `${d.label} ${d.name || '—'}`).join('، ')}`, {
+      hemistichs: disagreement,
+    });
+  }
+
+  // ما لم يُحسم في القاعدة نفسها — لا يتعلّق بهذا البيت بل بالبيانات.
+  for (const q of engine.openQuestions()) {
+    add('open_question', `${q.area}: ${q.issue || ''}`.trim(), { id: q.id, gaps: q.gaps });
+  }
+
+  return out;
 }
 
 /* ─────────────── بطاقات التفعيلات ─────────────── */
@@ -6336,6 +6381,9 @@ const DATA = {
  * لا منطق عروضي هنا إطلاقًا — هذه طبقة عرض بحتة تستدعي المحرك نفسه
  * الذي تشغّله الاختبارات. أي فرق بين ما تراه هنا وما يعطيه `npm test`
  * يكون خطأ في العرض لا في المحرك.
+ *
+ * والمحرك لا يعرف شيئًا عن هذه الصفحة: لا DOM فيه ولا طباعة ولا شيء
+ * من سلوك المتصفح. هو نفسه الذي سيعمل داخل تطبيق iOS.
  */
 
 const { createEngine } = __M;
@@ -6347,7 +6395,7 @@ const pct = (x) => `${Math.round(x * 100)}%`;
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /* ---------------- التبويبات ---------------- */
-const TABS = ['analyze', 'poem', 'train', 'meters', 'open'];
+const TABS = ['analyze', 'train', 'meters'];
 document.querySelectorAll('[role=tab]').forEach((btn) => {
   btn.addEventListener('click', () => {
     const t = btn.dataset.tab;
@@ -6356,67 +6404,38 @@ document.querySelectorAll('[role=tab]').forEach((btn) => {
   });
 });
 
-/* ---------------- أمثلة جاهزة ---------------- */
-const SAMPLES = [
-  ['المسحوب', 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ', 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتَانْ'],
-  ['السامري الطويل', 'مُسْتَفْعِلُنْ فَاعِلَاتُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ', ''],
-  ['الشيباني', 'مَفَاعِيلُنْ مَفَاعِيلُنْ مَفَاعِيلُنْ مَفَاعِيلُنْ', ''],
-  ['مزاحف — جائز', 'مُتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ', ''],
-  ['مكسور', 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَعُولُنْ', ''],
-  ['غير مشكول', 'البارحه ما نمت من كثر شوقي', ''],
-];
-$('#samples').innerHTML = SAMPLES.map(
-  (s, i) => `<button type="button" data-i="${i}">${esc(s[0])}</button>`
-).join('');
-$('#samples').addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  const [, sadr, ajz] = SAMPLES[+b.dataset.i];
-  $('#sadr').value = sadr;
-  $('#ajz').value = ajz;
-  render();
-});
-
-/* ---------------- شريط التشكيل ---------------- */
+/* ---------------- شطر أو بيت ---------------- */
 
 /**
- * دقّة الوزن مقيَّدة بتشكيل ما يُكتب — هذا مذكور في كل توثيق المشروع.
- * ولوحة مفاتيح الهاتف تُخفي الحركات خلف ضغطة مطوّلة، فتُترك الكتابة
- * مجرّدة ويُترك المحرك يخمّن. فالشريط ليس زينة: هو ما يجعل التشكيل
- * ممكنًا أصلًا على الجهاز الذي يُكتب عليه.
+ * الوضع الافتراضي شطر: أكثر ما يُجرَّب وزنه شطرٌ واحد، وإظهار حقلين
+ * لمن يريد واحدًا يضاعف ارتفاع الإدخال بلا فائدة.
+ *
+ * والتبديل لا يمسح شيئًا: الحقول الثلاثة قائمة دائمًا، وإنما يُخفى
+ * ما لا يخصّ الوضع. فمن كتب شطرًا ثم أراد بيتًا وجد ما كتبه في الصدر.
  */
-const MARKS = [
-  ['َ', 'فتحة'], ['ُ', 'ضمة'], ['ِ', 'كسرة'],
-  ['ْ', 'سكون'], ['ّ', 'شدة'],
-  ['ً', 'تنوين فتح'], ['ٌ', 'تنوين ضم'], ['ٍ', 'تنوين كسر'],
-  ['آ', 'آ'], ['أ', 'أ'], ['إ', 'إ'], ['ة', 'ة'], ['ى', 'ى'],
-];
+let mode = 'single';
 
-$('#marks').innerHTML = MARKS.map(
-  ([ch, label]) =>
-    `<button type="button" data-ch="${ch}" title="${esc(label)}" aria-label="${esc(label)}">` +
-    `<span class="mark-glyph">ـ${ch}</span></button>`
-).join('');
-
-/** آخر حقل لمسه المستخدم — الشريط يكتب فيه. */
-let activeField = null;
-for (const id of ['#sadr', '#ajz']) {
-  $(id).addEventListener('focus', () => { activeField = $(id); });
+function setMode(next, { carry = true } = {}) {
+  if (next === mode) return;
+  if (carry) {
+    // ما كُتب يُنقل مع صاحبه: الشطر يصير صدرًا، والصدر يعود شطرًا.
+    if (next === 'pair' && !$('#sadr').value.trim()) $('#sadr').value = $('#single').value;
+    if (next === 'single' && !$('#single').value.trim()) $('#single').value = $('#sadr').value;
+  }
+  mode = next;
+  document.querySelectorAll('.mode button').forEach((b) =>
+    b.setAttribute('aria-checked', String(b.dataset.mode === mode))
+  );
+  $('#field-single').classList.toggle('hidden', mode !== 'single');
+  $('#field-sadr').classList.toggle('hidden', mode !== 'pair');
+  $('#field-ajz').classList.toggle('hidden', mode !== 'pair');
+  lastKey = null;
+  render();
 }
 
-$('#marks').addEventListener('mousedown', (e) => e.preventDefault());
-$('#marks').addEventListener('click', (e) => {
+document.querySelector('.mode').addEventListener('click', (e) => {
   const b = e.target.closest('button');
-  if (!b) return;
-  const field = activeField || $('#sadr');
-  const ch = b.dataset.ch;
-  const start = field.selectionStart ?? field.value.length;
-  const end = field.selectionEnd ?? field.value.length;
-  field.value = field.value.slice(0, start) + ch + field.value.slice(end);
-  const caret = start + ch.length;
-  field.focus();
-  field.setSelectionRange(caret, caret);
-  render();
+  if (b) setMode(b.dataset.mode);
 });
 
 /* ---------------- التحليل اللحظي ---------------- */
@@ -6448,27 +6467,56 @@ function schedule() {
   timer = setTimeout(render, DEBOUNCE_MS);
 }
 
+/** ما يُرسل إلى المحرك، بحسب الوضع. */
+function currentFields() {
+  return mode === 'single'
+    ? { single: $('#single').value }
+    : { sadr: $('#sadr').value, ajz: $('#ajz').value };
+}
+
 function render() {
-  const sadr = $('#sadr').value;
-  const ajz = $('#ajz').value;
-  const key = `${sadr} ${ajz}`;
+  const fields = currentFields();
+  const key = mode + ' ' + Object.values(fields).join(' ');
   if (key === lastKey) return;
   lastKey = key;
 
-  if (!sadr.trim() && !ajz.trim()) { $('#result').innerHTML = ''; return; }
+  if (!Object.values(fields).some((v) => (v || '').trim())) {
+    $('#result').innerHTML = '';
+    return;
+  }
 
   let r;
   try {
-    r = engine.analyzeLive({ sadr, ajz });
+    r = engine.analyzeLive(fields);
   } catch (err) {
     $('#result').innerHTML =
       `<div class="panel"><div class="note warn">تعذّر التحليل: ${esc(err.message)}</div></div>`;
     return;
   }
+
+  // التحفّظات لا تُعرض في الصفحة: هي خبرٌ عن حدود ما يقطع به المحرك،
+  // موضعه سجلٌّ يقرؤه المطوّر لا شاشةٌ تُربك الشاعر. والمحرك يُرجعها
+  // بيانًا، وهذه الطبقة هي التي تختار أن تكتبها هنا.
+  reportWarnings(r.warnings);
+
   $('#result').innerHTML = r.empty ? '' : renderLive(r);
 }
 
-for (const id of ['#sadr', '#ajz']) {
+/** آخر ما أُبلغ عنه — يمنع تكرار السطر نفسه عند كل ضغطة مفتاح. */
+let lastWarned = '';
+function reportWarnings(warnings) {
+  const list = warnings || [];
+  window.nabatiWarnings = list;
+  const key = list.map((w) => w.area + ':' + w.message).join('|');
+  if (key === lastWarned) return;
+  lastWarned = key;
+  if (!list.length) return;
+  console.groupCollapsed(`محرك العروض — تحفّظات (${list.length})`);
+  for (const w of list) console.log(`[${w.area}] ${w.message}`, w);
+  console.groupEnd();
+}
+
+for (const id of ['#single', '#sadr', '#ajz']) {
   $(id).addEventListener('input', schedule);
 }
 
@@ -6504,10 +6552,12 @@ function renderHemistich(h) {
   const x = h.result;
   const licences = x.cards.map((c) => c.licence).filter(Boolean);
   const broken = x.cards.filter((c) => c.kind === 'broken');
+  // في وضع الشطر لا معنى لتسمية الحقل: ليس صدرًا ولا عجزًا.
+  const showLabel = h.role !== null;
 
   return `<div class="panel">
     <div class="hemistich-head">
-      <span class="field-label">${esc(h.label)}</span>
+      ${showLabel ? `<span class="field-label">${esc(h.label)}</span>` : ''}
       ${x.meter ? `<span class="badge soft">${esc(x.meter.name)}</span>` : ''}
       ${x.meter && x.meter.formRole ? `<span class="badge soft">${esc(FORM_LABEL[x.meter.formRole] || x.meter.formRole)}</span>` : ''}
       ${x.complete ? '' : '<span class="badge writing">قيد الكتابة</span>'}
@@ -6525,11 +6575,6 @@ function renderHemistich(h) {
 
     ${broken.length ? `<div class="note warn">
       موضع الكسر: ${broken.map((c) => esc(c.name)).join('، ')}
-    </div>` : ''}
-
-    ${x.relaxedSukun ? `<div class="note warn">
-      التشكيل المكتوب لا يقبل تقطيعًا (التقاء ساكنين)، فأُرخيت
-      ${x.relaxedSukun} من سكوناته لتُقرأ. النتيجة على القراءة المُرخاة.
     </div>` : ''}
 
     ${x.rhyme ? renderRhyme(x.rhyme) : ''}
@@ -6563,44 +6608,8 @@ function renderRhyme(q) {
     <div class="rhyme-line"><span class="rhyme-key">حدودها</span> ${esc(q.type ? q.type.feminine : '—')}${
       q.text ? ` <span class="rhyme-span">${esc(q.text)}</span>` : ''
     }</div>
-    ${q.wasl ? `<p class="rhyme-note">${esc(q.wasl.letter)} حرف وصل — ${esc(q.wasl.reason)} — فلا يُحسب رويًّا.</p>` : ''}
-    ${q.rawi && q.rawi.caution ? `<p class="rhyme-note">قد تكون «${esc(q.rawi.letter)}» حرف وصل لا رويًّا إن كانت ${esc(q.rawi.caution)}</p>` : ''}
-    ${q.assumedVocalization ? '<p class="rhyme-note">النصّ غير مشكول بالكامل، فالقافية محسوبة على القراءة التي قبِلها الوزن.</p>' : ''}
-    ${q.rawi ? `<p class="rhyme-note">${esc(q.rawi.limitation)}</p>` : ''}
   </div>`;
 }
-
-/* ---------------- قصيدة ---------------- */
-$('#runPoem').addEventListener('click', () => {
-  const text = $('#poemInput').value.trim();
-  if (!text) return;
-  const r = engine.analyzePoem(text);
-  $('#poemResult').innerHTML = `
-    <div class="panel">
-      <div class="verdict">
-        <span class="name">${r.dominantMeter ? esc(r.dominantMeter.name) : 'لا بحر غالب'}</span>
-        <span class="badge">الوزن الغالب</span>
-      </div>
-      <div class="scores">
-        <div class="score-box"><div class="n">${r.lineCount}</div><div class="k">أبيات</div></div>
-        <div class="score-box"><div class="n">${pct(r.consistency)}</div><div class="k">اتّساق</div></div>
-        <div class="score-box"><div class="n">${r.unclear}</div><div class="k">غير واضح</div></div>
-      </div>
-    </div>
-    <div class="panel"><h2>توزيع البحور</h2><div class="scroll"><table>
-      <tr><th>البحر</th><th>أبيات</th><th>النسبة</th><th>متوسط الدرجة</th></tr>
-      ${r.distribution.map((d) => `<tr><td>${esc(d.name)}</td><td>${d.lines}</td><td>${pct(d.share)}</td><td>${pct(d.averageScore)}</td></tr>`).join('')}
-    </table></div></div>
-    ${r.outliers.length ? `<div class="panel"><h2>الأبيات الخارجة (${r.outliers.length})</h2>
-      ${r.outliers.map((o) => `<div class="note warn"><strong>البيت ${o.index + 1}</strong> — ${esc(o.reason)}<br><span class="muted">${esc(o.input)}</span></div>`).join('')}
-    </div>` : ''}
-    <div class="panel"><h2>كل بيت</h2><div class="scroll"><table>
-      <tr><th>#</th><th>البيت</th><th>البحر</th><th>الدرجة</th><th>الحكم</th></tr>
-      ${r.lines.map((l) => `<tr class="${l.verdict === 'broken' || l.verdict === 'unrecognized' ? 'bad' : ''}">
-        <td>${l.index + 1}</td><td>${esc(l.input)}</td><td>${esc(l.meter || '—')}</td>
-        <td>${pct(l.score)}</td><td>${VERDICT_LABEL[l.verdict] || l.verdict}</td></tr>`).join('')}
-    </table></div></div>`;
-});
 
 /* ---------------- تدريب ---------------- */
 const ex = engine.exercises();
@@ -6613,7 +6622,7 @@ $('#trainMeter').addEventListener('change', updateHint);
 updateHint();
 
 $('#runTrain').addEventListener('click', () => {
-  const r = engine.train($('#trainInput').value, $('#trainMeter').value, { difficulty: $('#trainLevel').value });
+  const r = engine.train($('#trainInput').value, $('#trainMeter').value);
   if (!r.ok) {
     $('#trainResult').innerHTML = `<div class="panel"><div class="note warn">${esc(r.error)}${r.reason ? '<br>' + esc(r.reason) : ''}</div></div>`;
     return;
@@ -6629,26 +6638,14 @@ $('#runTrain').addEventListener('click', () => {
 
 /* ---------------- البحور ---------------- */
 $('#metersTable').innerHTML = `
-  <tr><th>البحر</th><th>التفعيلات (المصدر): صدر / عجز</th><th>مقاطع</th><th>الحالة</th></tr>
-  ${engine.listMeters().map((m) => `<tr class="${m.enabled ? '' : 'bad'}">
+  <tr><th>البحر</th><th>التفعيلات (المصدر): صدر / عجز</th></tr>
+  ${engine.listMeters().filter((m) => m.enabled).map((m) => `<tr>
     <td>${esc(m.name)}${m.aliases.length ? `<br><small class="muted">${esc(m.aliases.join('، '))}</small>` : ''}</td>
     <td>${esc(m.sourceQuote)}</td>
-    <td>${m.syllableCount || '—'}</td>
-    <td>${m.enabled ? esc(m.status) : `<strong>معطَّل</strong><br><small class="muted">${esc(m.blockedBy || '')}</small>`}</td>
-  </tr>`).join('')}
-  ${engine.registry.notInSource.map((n) => `<tr class="bad"><td>${esc(n.name)}</td><td colspan="3"><small>${esc(n.reason)}</small></td></tr>`).join('')}`;
-
-/* ---------------- معلَّق ---------------- */
-$('#openList').innerHTML = engine.openQuestions().map((q) => `<div class="note warn">
-  <strong>${esc(q.area)}${q.name ? ' — ' + esc(q.name) : ''}</strong><br>
-  ${esc(q.issue || '')}
-  ${q.gaps ? '<ul style="margin:6px 0 0;padding-inline-start:18px">' + q.gaps.map((g) => `<li>${esc(g)}</li>`).join('') + '</ul>' : ''}
-  ${q.resolvedBy ? `<br><em>ما يحسمه: ${esc(Array.isArray(q.resolvedBy) ? q.resolvedBy.join('؛ ') : q.resolvedBy)}</em>` : ''}
-</div>`).join('');
+  </tr>`).join('')}`;
 
 /* ---------------- تشغيل أولي ---------------- */
-$('#sadr').value = SAMPLES[0][1];
-$('#ajz').value = SAMPLES[0][2];
+// الحقل يُفتح فارغًا: مثالٌ معبّأ يُضطرّ صاحبه إلى مسحه قبل أن يكتب.
 render();
 
 }

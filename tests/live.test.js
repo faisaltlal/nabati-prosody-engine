@@ -462,3 +462,84 @@ describe('الكتابة العروضية', () => {
     equal(joined, r.letters.map((l) => l.ch).join(''));
   });
 });
+
+/* ═════════════════ وضع الشطر الواحد ═════════════════ */
+
+describe('شطر واحد أو بيت', () => {
+  it('الشطر الواحد لا تُرجَّح له صيغة، ويُترك الوزن يحسم', () => {
+    // في وضع البيت يرجّح الحقلُ صيغتَه. وفي وضع الشطر لا حقل يرجّح،
+    // فلا يجوز أن تُفرض صورة الصدر لمجرّد أنها الأولى في البيانات.
+    const ajzText = 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتَانْ';
+    equal(engine.analyzeLive({ single: ajzText }).meter.formRole, 'ajz',
+      'عجزٌ صريح يجب أن يُعرف عجزًا ولو كُتب في حقل الشطر');
+  });
+
+  it('الشطر الواحد يُسمّى شطرًا لا صدرًا', () => {
+    const r = engine.analyzeLive({ single: 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ' });
+    equal(r.hemistichs.length, 1);
+    equal(r.hemistichs[0].role, null, 'لا دور له: ليس صدرًا ولا عجزًا');
+    equal(r.hemistichs[0].label, 'الشطر');
+  });
+
+  it('الفارغ في الوضعين لا يُنتج شيئًا ولا ينهار', () => {
+    for (const fields of [{ single: '' }, { single: '   ' }, { sadr: '', ajz: '' }, {}]) {
+      const r = engine.analyzeLive(fields);
+      equal(r.empty, true, JSON.stringify(fields));
+      equal(r.warnings.length, 0, 'لا تحفّظات على نصّ لا وجود له');
+    }
+  });
+});
+
+/* ═════════════════ التحفّظات ═════════════════ */
+
+describe('التحفّظات — بيانٌ لا عرض', () => {
+  it('يُرجعها المحرك مصفوفةً في كل تحليل', () => {
+    const r = engine.analyzeLive({ single: 'البارحه ما نمت من كثر شوقي' });
+    assert(Array.isArray(r.warnings), 'warnings يجب أن تكون مصفوفة دائمًا');
+    atLeast(r.warnings.length, 1, 'نصّ غير مشكول لا بدّ له من تحفّظ');
+    for (const w of r.warnings) {
+      assert(w.area && w.message, `تحفّظ ناقص: ${JSON.stringify(w)}`);
+      equal(typeof w.message, 'string');
+    }
+  });
+
+  it('النصّ غير المشكول يُعلَن، والمشكول لا يُتحفَّظ عليه بلا سبب', () => {
+    const loose = engine.analyzeLive({ single: 'البارحه ما نمت من كثر شوقي' });
+    assert(loose.warnings.some((w) => w.area === 'vocalization'), 'يجب الإعلان عن افتراض التشكيل');
+
+    const tight = engine.analyzeLive({ single: 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ' });
+    assert(!tight.warnings.some((w) => w.area === 'vocalization'),
+      'النصّ المشكول تقطيعه قاطع، فلا تحفّظ على تشكيله');
+  });
+
+  it('السكون المُرخى والتعادل واختلاف الشطرين كلها تُعلَن', () => {
+    const relaxed = engine.analyzeLive({ single: 'ياما ذكْرْتك ولْقصايد مقابيل' });
+    assert(relaxed.warnings.some((w) => w.area === 'vocalization' && w.count > 0),
+      'إرخاء السكون يجب أن يُعلَن مع عدده');
+
+    const split = engine.analyzeLive({
+      sadr: 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ',
+      ajz: 'فَعُولُنْ مَفَاعِيلُنْ فَعُولُنْ مَفَاعِيلُنْ',
+    });
+    assert(split.warnings.some((w) => w.area === 'meter' && w.hemistichs),
+      'اختلاف الشطرين يجب أن يُعلَن');
+  });
+
+  it('ما لم يُحسم في القاعدة يُرافق كل تحليل', () => {
+    const r = engine.analyzeLive({ single: 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ' });
+    const open = r.warnings.filter((w) => w.area === 'open_question');
+    equal(open.length, engine.openQuestions().length,
+      'كل بند معلَّق في القاعدة يجب أن يظهر في التحفّظات');
+  });
+
+  it('لا طباعة ولا DOM في المحرك — التحفّظات بيانات محضة', () => {
+    // المحرك نفسه سيعمل داخل تطبيق iOS. فإن طبع في الطرفية أو مسّ
+    // شيئًا من المتصفح لم يعد صالحًا هناك. وطبقةُ العرض هي التي تختار
+    // ما تفعله بالتحفّظات.
+    const r = engine.analyzeLive({ single: 'البارحه ما نمت' });
+    for (const w of r.warnings) {
+      equal(typeof JSON.parse(JSON.stringify(w)).message, 'string',
+        'كل تحفّظ يجب أن يكون قابلًا للتسلسل');
+    }
+  });
+});

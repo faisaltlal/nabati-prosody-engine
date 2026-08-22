@@ -75,10 +75,14 @@ r.tafaeel              // كل تفعيلة مع صورتها وكلماتها
 r.brokenFeet           // موضع الكسر إن وُجد
 r.alternatives         // البحور البديلة مرتَّبة
 
+engine.analyzeLive({ single: text });  // شطر يُكتب — التفعيلات والقافية
+engine.analyzeLive({ sadr, ajz });     // بيت بشطريه
 engine.analyzePoem(text);              // البحر الغالب والتوزيع والأبيات الخارجة
 engine.train(bayt, 'المسحوب');          // وضع التدريب
 engine.listMeters();                   // القاعدة كاملة
 engine.openQuestions();                // كل ما لم يُحسم
+// وكل تحليل يرجع معه warnings: تحفّظات المحرك على هذا النصّ بعينه —
+// بيانات محضة، لا طباعة فيها ولا DOM. طبقة العرض تختار ما تفعله بها.
 ```
 
 ```swift

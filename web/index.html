@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>محرك عروض الشعر النبطي — واجهة تجربة</title>
-<meta name="description" content="تحليل ووزن الشعر النبطي: البحر، التفعيلات، التقطيع، النمط الرقمي، وموضع الكسر.">
+<meta name="description" content="وزن الشعر النبطي: البحر، التفعيلات، التقطيع، وموضع الكسر.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
@@ -17,68 +17,50 @@
 
 <header>
   <h1>محرك عروض الشعر النبطي</h1>
-  <p>اكتب، ويتولّد التقطيع حرفًا حرفًا. محرك حتمي قائم على القواعد — بلا نموذج لغوي وبلا نسب مقدَّرة.</p>
+  <p>اكتب، ويتولّد التقطيع حرفًا حرفًا.</p>
 </header>
 
 <nav class="tabs" role="tablist">
-  <button role="tab" data-tab="analyze" aria-selected="true">تحليل بيت</button>
-  <button role="tab" data-tab="poem" aria-selected="false">تحليل قصيدة</button>
+  <button role="tab" data-tab="analyze" aria-selected="true">أوزن البيت</button>
   <button role="tab" data-tab="train" aria-selected="false">تدريب</button>
   <button role="tab" data-tab="meters" aria-selected="false">البحور</button>
-  <button role="tab" data-tab="open" aria-selected="false">ما يحتاج تحقّقًا</button>
 </nav>
 
-<!-- ============ تحليل بيت ============ -->
+<!-- ============ أوزن البيت ============ -->
 <section id="tab-analyze">
-  <div class="panel">
-    <!-- شريط التشكيل: دقّة الوزن مقيَّدة بتشكيل ما يُكتب، ولوحة مفاتيح
-         الهاتف تجعل إدخال الحركات عسيرًا. فتُوضع في متناول الإبهام. -->
-    <div class="marks" id="marks" role="toolbar" aria-label="إدخال التشكيل"></div>
+  <div class="panel compact">
+    <!-- شطر أو بيت. الافتراضي شطر: أكثر ما يُكتب شطرٌ يُجرَّب وزنه. -->
+    <div class="mode" role="radiogroup" aria-label="وضع الإدخال">
+      <button type="button" role="radio" data-mode="single" aria-checked="true">شطر</button>
+      <button type="button" role="radio" data-mode="pair" aria-checked="false">بيت</button>
+    </div>
 
-    <div class="fields">
-      <label class="field">
+    <div class="fields" id="fields">
+      <label class="field" id="field-single">
+        <textarea id="single" rows="1" spellcheck="false" autocomplete="off"
+          placeholder="اكتب شطرًا…"></textarea>
+      </label>
+      <label class="field hidden" id="field-sadr">
         <span class="field-label">الصدر</span>
-        <textarea id="sadr" rows="2" spellcheck="false" autocomplete="off"
+        <textarea id="sadr" rows="1" spellcheck="false" autocomplete="off"
           placeholder="اكتب صدر البيت…"></textarea>
       </label>
-      <label class="field">
+      <label class="field hidden" id="field-ajz">
         <span class="field-label">العجز</span>
-        <textarea id="ajz" rows="2" spellcheck="false" autocomplete="off"
+        <textarea id="ajz" rows="1" spellcheck="false" autocomplete="off"
           placeholder="اكتب عجز البيت…"></textarea>
       </label>
     </div>
-    <p class="hint">
-      التفعيلات تتولّد وأنت تكتب. اكتب شطرًا واحدًا أو الشطرين —
-      والتشكيل يرفع الدقّة ولا يُشترط.
-    </p>
-    <div class="samples" id="samples"></div>
   </div>
 
   <div id="result"></div>
-</section>
-
-<!-- ============ قصيدة ============ -->
-<section id="tab-poem" class="hidden">
-  <div class="panel">
-    <h2>القصيدة — بيت في كل سطر</h2>
-    <textarea id="poemInput" rows="8" spellcheck="false" placeholder="بيت في كل سطر…"></textarea>
-    <div class="row"><button class="go" id="runPoem">حلّل القصيدة</button></div>
-  </div>
-  <div id="poemResult"></div>
 </section>
 
 <!-- ============ تدريب ============ -->
 <section id="tab-train" class="hidden">
   <div class="panel">
     <h2>وضع التدريب</h2>
-    <div class="row">
-      <select id="trainMeter" class="grow"></select>
-      <select id="trainLevel" style="width:auto">
-        <option value="easy">سهل — ٨٠٪</option>
-        <option value="medium" selected>متوسط — ٩٠٪</option>
-        <option value="hard">صعب — ٩٧٪ وبلا رخص</option>
-      </select>
-    </div>
+    <div class="row"><select id="trainMeter" class="grow"></select></div>
     <p class="muted" id="trainHint"></p>
     <textarea id="trainInput" spellcheck="false" placeholder="اكتب بيتك على هذا البحر…"></textarea>
     <div class="row"><button class="go" id="runTrain">تحقّق</button></div>
@@ -91,15 +73,6 @@
   <div class="panel">
     <h2>قاعدة الأوزان</h2>
     <div class="scroll"><table id="metersTable"></table></div>
-  </div>
-</section>
-
-<!-- ============ معلَّق ============ -->
-<section id="tab-open" class="hidden">
-  <div class="panel">
-    <h2>ما لم يُحسم بعد</h2>
-    <p class="muted">كل بند هنا قاعدة لم تُثبَّت لأن المادة المصدرية لم تكفِ لإثباتها. لم يُخترع شيء مكانها.</p>
-    <div id="openList"></div>
   </div>
 </section>
 
