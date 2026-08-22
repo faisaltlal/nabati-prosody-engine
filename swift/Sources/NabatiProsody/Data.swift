@@ -29,6 +29,10 @@ public struct Variation: Codable, Sendable {
     public let kind: String
     public let scope: String
     public let severity: Int?
+    /// صورة مسجَّلة ومعطَّلة: قاعدة وردت في المادة ولم تثبت في النبطي
+    /// بعد. تبقى في البيانات ولا تدخل المطابقة، وتُعلَن في
+    /// `openQuestions()` كي لا تُنسى.
+    public let enabled: Bool?
 }
 
 struct VariationsFile: Codable { let variations: [String: [Variation]] }

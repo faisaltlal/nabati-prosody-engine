@@ -385,7 +385,8 @@ export const DATA = {
           ],
           "kind": "illa",
           "scope": "arud_darb",
-          "severity": 1
+          "severity": 1,
+          "beforeTransfer": "فَاعِلْ"
         },
         {
           "id": "tadhyil",
@@ -399,6 +400,30 @@ export const DATA = {
           "kind": "illa",
           "scope": "arud_darb",
           "severity": 1
+        },
+        {
+          "id": "tarfeel",
+          "name": "الترفيل",
+          "result": "فَاعِلَاتُنْ",
+          "syllables": [
+            "L",
+            "S",
+            "L",
+            "L"
+          ],
+          "kind": "illa",
+          "scope": "arud_darb",
+          "severity": 1,
+          "enabled": false,
+          "status": "NEEDS_VALIDATION",
+          "validation": {
+            "issue": "الترفيل علّة فصيحة مقرَّرة (زيادة سبب خفيف على ما آخره وتد مجموع)، ووردت في المادة التي قدّمها المستخدم. لكنه نبّه في الموضع نفسه أن علل الفصيح لا تُعامل في النبطي بالطريقة نفسها، فلم تُفعَّل.",
+            "measured": "قيست قبل التعطيل: لا تغيّر شيئًا في القاعدة الحالية. ٧٢ نصًّا — صيغ البحور الأربع والستون مشكولةً ومجرّدة، وأبيات نبطية حقيقية — لم يختلف فيها بحرٌ ولا درجة. والسبب أنها مقصورة على العروض والضرب وتكلّف كلفة علّة، فلا تسبق مطابقةً تامّة.",
+            "resolvedBy": [
+              "بيت نبطي حقيقي وزنه على فاعلن مُرفَّلة، أي يقع في ضربه فاعلاتن حيث يطلب البحر فاعلن",
+              "أو تصريح بأن الترفيل غير جارٍ في النبطي فتُحذف"
+            ]
+          }
         }
       ],
       "mafailun": [
@@ -540,7 +565,8 @@ export const DATA = {
           ],
           "kind": "illa",
           "scope": "arud_darb",
-          "severity": 1
+          "severity": 1,
+          "beforeTransfer": "مُسْتَفْعِلْ"
         },
         {
           "id": "tadhyil",
@@ -976,6 +1002,10 @@ export const DATA = {
       "faalun_reading": {
         "category": "قراءة",
         "definition": "صورة تحتملها الكلمة نفسها بتشكيلين، لا زحاف فيها ولا علّة"
+      },
+      "tarfeel": {
+        "category": "علل الزيادة",
+        "definition": "زيادة سبب خفيف على ما آخره وتد مجموع"
       }
     }
   },

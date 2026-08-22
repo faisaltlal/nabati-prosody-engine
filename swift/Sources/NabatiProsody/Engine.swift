@@ -346,6 +346,12 @@ public struct ProsodyEngine: Sendable {
         for n in registry.notInSource {
             out.append("missing_meter: \(n.name) — \(n.reason)")
         }
+        // صور مسجَّلة ومعطَّلة: قواعد وردت في المادة ولم تثبت في النبطي.
+        for (tafilaId, list) in data.variations.sorted(by: { $0.key < $1.key }) {
+            for v in list where v.enabled == false {
+                out.append("variation: \(tafilaId)/\(v.id) — \(v.name) غير مفعَّلة حتى تثبت في النبطي")
+            }
+        }
         // ما يخصّ قافية النبطي وحدها غير منفَّذ — البند 26.
         if data.rhyme.nabatiSpecific?.status == "NEEDS_VALIDATION" {
             out.append("rhyme: nabatiRhyme — \(data.rhyme.nabatiSpecific?.note ?? "قواعد القافية النبطية غير محسومة")")

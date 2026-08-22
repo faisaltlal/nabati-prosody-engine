@@ -259,9 +259,13 @@ function collectWarnings(written, disagreement, engine) {
 /* ─────────────── بطاقات التفعيلات ─────────────── */
 
 /** تعريف الصورة من البيانات — لا نصّ منها مكتوب في الكود. */
-function licenceOf(engine, variantId, baseName, resultName, variantName) {
+function licenceOf(engine, variantId, baseName, resultName, variantName, tafilaId) {
   const def = engine.data.variations.definitions?.[variantId];
   if (!def) return null;
+  // بعض العلل لها صورة قبل النقل: «مستفعلن» مقطوعةً «مُسْتَفْعِلْ»
+  // ثم يُنقل إلى «مفعولن». والصورتان واحدة وزنًا، والأولى أدلّ عليها.
+  const raw = (engine.data.variations.variations[tafilaId] || [])
+    .find((v) => v.id === variantId);
   return {
     id: variantId,
     name: variantName,
@@ -269,6 +273,7 @@ function licenceOf(engine, variantId, baseName, resultName, variantName) {
     definition: def.definition,
     from: baseName,
     to: resultName,
+    beforeTransfer: (raw && raw.beforeTransfer) ? plainName(raw.beforeTransfer) : null,
   };
 }
 
@@ -349,7 +354,7 @@ function cardsFromFull(full, engine, letters) {
       variation: isSalim ? null : f.variation,
       licence: isSalim
         ? addedSakinLicence(engine, f.tafilaId)
-        : licenceOf(engine, f.variationId, f.tafila, plainName(f.realized), f.variation),
+        : licenceOf(engine, f.variationId, f.tafila, plainName(f.realized), f.variation, f.tafilaId),
       text: texts[i] || '',
       broken,
     });
@@ -375,7 +380,7 @@ function cardsFromPartial(best, engine, letters) {
       variation: isSalim ? null : f.variant.name,
       licence: isSalim
         ? addedSakinLicence(engine, f.tafilaId)
-        : licenceOf(engine, f.variant.id, f.tafila, plainName(f.variant.result), f.variant.name),
+        : licenceOf(engine, f.variant.id, f.tafila, plainName(f.variant.result), f.variant.name, f.tafilaId),
       text: texts[i++] || '',
       broken,
     }));

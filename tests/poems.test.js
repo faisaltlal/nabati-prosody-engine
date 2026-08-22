@@ -132,6 +132,7 @@ describe('الأسئلة المعلَّقة', () => {
     assert(q.some((x) => x.area === 'encoding'), 'ترميز التطبيق الرقمي غير محسوم');
     assert(q.some((x) => x.area === 'dialect'), 'قواعد اللهجة النبطية غير محسومة');
     assert(q.some((x) => x.area === 'rhyme'), 'قواعد قافية النبطي غير محسومة');
+    assert(q.some((x) => x.area === 'variation'), 'الصور المعطَّلة معلَنة');
     // البنود التي كانت على مستوى التفعيلة والبحر حُسمت كلها بقائمة
     // البحور التي أعطاها المستخدم: «فاعل» صارت «فاعلن»، والصخري
     // والهلالي والسامري نالت تفعيلات صريحة. فلا يُشترط بقاء بند منها.
@@ -148,6 +149,8 @@ describe('الأسئلة المعلَّقة', () => {
     expected += engine.registry.meters.filter((m) => m.status === 'NEEDS_VALIDATION').length;
     expected += DATA.encodings.schemes.filter((s) => s.status === 'NEEDS_VALIDATION').length;
     expected += engine.registry.notInSource.length;
+    expected += Object.values(DATA.variations.variations)
+      .flat().filter((v) => v.enabled === false).length;
     if (DATA.rhyme.nabatiSpecific?.status === 'NEEDS_VALIDATION') expected += 1;
     if (DATA.lexicon.nabatiDialect?.status === 'NEEDS_VALIDATION') expected += 1;
     equal(engine.openQuestions().length, expected,

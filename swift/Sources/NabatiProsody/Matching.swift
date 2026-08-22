@@ -60,7 +60,8 @@ public struct MeterRegistry: Sendable {
         }
 
         func variantsOf(_ id: String) -> [Variation] {
-            if let v = data.variations[id] { return v }
+            // الصور المعطَّلة لا تدخل المطابقة — انظر Variation.enabled.
+            if let v = data.variations[id] { return v.filter { $0.enabled != false } }
             problems.append(.init(kind: "missing_variations", detail: id))
             guard let t = tafilaById[id] else { return [] }
             return [Variation(id: "salim", name: "سالم", result: t.vocalized,

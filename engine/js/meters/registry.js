@@ -24,7 +24,10 @@ export function buildRegistry({ tafaeel, variations, meters }) {
       const t = tafilaById.get(tafilaId);
       return t ? [{ id: 'salim', name: 'سالم', result: t.vocalized, syllables: t.syllables, kind: 'salim', scope: 'any', severity: 1 }] : [];
     }
-    return list;
+    // صورة مسجَّلة ومعطَّلة تبقى في البيانات ولا تدخل المطابقة: هي
+    // قاعدة لم تثبت في النبطي بعد، فتُحفظ ولا يُحكَم بها. وتُعلن في
+    // `openQuestions()` كي لا تُنسى.
+    return list.filter((v) => v.enabled !== false);
   }
 
   function buildForm(meterId, form) {

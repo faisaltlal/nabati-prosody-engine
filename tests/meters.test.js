@@ -228,3 +228,77 @@ describe('قاعدة الأوزان — التناسق', () => {
     }
   });
 });
+
+/* ═════════════════ مطابقة المادة المرجعية ═════════════════ */
+
+describe('صور التفعيلات كما وردت في المادة المرجعية', () => {
+  // جدولٌ قدّمه المستخدم لصور ستّ تفعيلات. مثبَّت هنا حرفًا بحرف كي
+  // يبقى محروسًا: أي تغيير في `variations.json` يخالفه يظهر فشلًا لا
+  // انحرافًا صامتًا.
+  const REFERENCE = {
+    faulun: [['qabd', 'فَعُولُ']],
+    mafailun: [['qabd', 'مَفَاعِلُنْ'], ['kaff', 'مَفَاعِيلُ'], ['hadhf', 'فَعُولُنْ']],
+    failatun: [['kaff', 'فَاعِلَاتُ'], ['khabn', 'فَعِلَاتُنْ']],
+    mustafilun: [['khabn', 'مُتَفْعِلُنْ'], ['tayy', 'مُسْتَعِلُنْ'], ['khabl', 'مُتَعِلُنْ']],
+    failun: [['khabn', 'فَعِلُنْ'], ['tadhyil', 'فَاعِلَانْ']],
+  };
+
+  it('كل صورة في المادة موجودة في البيانات بالصيغة نفسها', () => {
+    for (const [tafilaId, expected] of Object.entries(REFERENCE)) {
+      const list = DATA.variations.variations[tafilaId];
+      assert(list, `تفعيلة مفقودة: ${tafilaId}`);
+      for (const [id, result] of expected) {
+        const v = list.find((x) => x.id === id);
+        assert(v, `${tafilaId}: صورة مفقودة ${id}`);
+        equal(v.result, result, `${tafilaId}/${id}`);
+      }
+    }
+  });
+
+  it('القطع يحفظ صورته قبل النقل', () => {
+    // كتب العروض: «مستفعلن مقطوعةً ← مُسْتَفْعِلْ، ويُنقل إلى مَفْعُولُنْ».
+    // الصورتان واحدة وزنًا، والأولى أدلّ على العلّة — فحُفظتا معًا.
+    for (const [tafilaId, before, after] of [
+      ['mustafilun', 'مُسْتَفْعِلْ', 'مَفْعُولُنْ'],
+      ['failun', 'فَاعِلْ', 'فَعْلُنْ'],
+    ]) {
+      const v = DATA.variations.variations[tafilaId].find((x) => x.id === 'qat');
+      equal(v.beforeTransfer, before, `${tafilaId}: الصورة قبل النقل`);
+      equal(v.result, after, `${tafilaId}: الصورة بعد النقل`);
+      // ولا يجوز أن تختلفا وزنًا.
+      const letters = (s) => [...s].filter((c) => !/[ً-ْٰ]/.test(c)).length;
+      equal(letters(before), letters(after), `${tafilaId}: الصورتان تختلفان في عدد الحروف`);
+    }
+  });
+
+  it('الصورة المعطَّلة لا تدخل المطابقة وتبقى مُعلَنة', () => {
+    // الترفيل وارد في المادة، ونبّه المستخدم أن علل الفصيح لا تُعامل
+    // في النبطي بالطريقة نفسها — فسُجّل ولم يُفعَّل.
+    const raw = DATA.variations.variations.failun.find((v) => v.id === 'tarfeel');
+    assert(raw, 'الترفيل يجب أن يبقى مسجَّلًا في البيانات');
+    equal(raw.enabled, false, 'ولا يُفعَّل حتى يثبت');
+    assert(raw.validation && raw.validation.resolvedBy, 'ويُبيَّن ما يحسمه');
+
+    const built = engine.registry.tafilaById.get('failun');
+    assert(built, 'فاعلن مبنيّة');
+    const inMatcher = engine.registry.enabled
+      .flatMap((m) => m.forms).flatMap((f) => f.feet)
+      .filter((f) => f.tafilaId === 'failun')
+      .flatMap((f) => f.variants);
+    assert(!inMatcher.some((v) => v.id === 'tarfeel'), 'الصورة المعطَّلة دخلت المطابقة');
+    assert(engine.openQuestions().some((q) => q.area === 'variation'), 'ولم تُعلن');
+  });
+
+  it('كل صورة معطَّلة مقيسٌ أثرُها لا مظنون', () => {
+    // التعطيل قرارٌ، والقرار يحتاج دليلًا. فيُشترط أن يُسجَّل مع كل
+    // صورة معطَّلة ما قِيس من أثرها.
+    for (const [tafilaId, list] of Object.entries(DATA.variations.variations)) {
+      for (const v of list) {
+        if (v.enabled !== false) continue;
+        assert(v.validation, `${tafilaId}/${v.id}: بلا بيان`);
+        assert(v.validation.issue, `${tafilaId}/${v.id}: بلا سبب`);
+        assert(v.validation.measured, `${tafilaId}/${v.id}: بلا قياس لأثرها`);
+      }
+    }
+  });
+});

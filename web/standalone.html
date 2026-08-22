@@ -531,7 +531,10 @@ function buildRegistry({ tafaeel, variations, meters }) {
       const t = tafilaById.get(tafilaId);
       return t ? [{ id: 'salim', name: 'سالم', result: t.vocalized, syllables: t.syllables, kind: 'salim', scope: 'any', severity: 1 }] : [];
     }
-    return list;
+    // صورة مسجَّلة ومعطَّلة تبقى في البيانات ولا تدخل المطابقة: هي
+    // قاعدة لم تثبت في النبطي بعد، فتُحفظ ولا يُحكَم بها. وتُعلن في
+    // `openQuestions()` كي لا تُنسى.
+    return list.filter((v) => v.enabled !== false);
   }
 
   function buildForm(meterId, form) {
@@ -3430,9 +3433,13 @@ function collectWarnings(written, disagreement, engine) {
 /* ─────────────── بطاقات التفعيلات ─────────────── */
 
 /** تعريف الصورة من البيانات — لا نصّ منها مكتوب في الكود. */
-function licenceOf(engine, variantId, baseName, resultName, variantName) {
+function licenceOf(engine, variantId, baseName, resultName, variantName, tafilaId) {
   const def = engine.data.variations.definitions?.[variantId];
   if (!def) return null;
+  // بعض العلل لها صورة قبل النقل: «مستفعلن» مقطوعةً «مُسْتَفْعِلْ»
+  // ثم يُنقل إلى «مفعولن». والصورتان واحدة وزنًا، والأولى أدلّ عليها.
+  const raw = (engine.data.variations.variations[tafilaId] || [])
+    .find((v) => v.id === variantId);
   return {
     id: variantId,
     name: variantName,
@@ -3440,6 +3447,7 @@ function licenceOf(engine, variantId, baseName, resultName, variantName) {
     definition: def.definition,
     from: baseName,
     to: resultName,
+    beforeTransfer: (raw && raw.beforeTransfer) ? plainName(raw.beforeTransfer) : null,
   };
 }
 
@@ -3520,7 +3528,7 @@ function cardsFromFull(full, engine, letters) {
       variation: isSalim ? null : f.variation,
       licence: isSalim
         ? addedSakinLicence(engine, f.tafilaId)
-        : licenceOf(engine, f.variationId, f.tafila, plainName(f.realized), f.variation),
+        : licenceOf(engine, f.variationId, f.tafila, plainName(f.realized), f.variation, f.tafilaId),
       text: texts[i] || '',
       broken,
     });
@@ -3546,7 +3554,7 @@ function cardsFromPartial(best, engine, letters) {
       variation: isSalim ? null : f.variant.name,
       licence: isSalim
         ? addedSakinLicence(engine, f.tafilaId)
-        : licenceOf(engine, f.variant.id, f.tafila, plainName(f.variant.result), f.variant.name),
+        : licenceOf(engine, f.variant.id, f.tafila, plainName(f.variant.result), f.variant.name, f.tafilaId),
       text: texts[i++] || '',
       broken,
     }));
@@ -3929,6 +3937,18 @@ function createEngine(data) {
       }
       for (const n of registry.notInSource) {
         out.push({ area: 'missing_meter', name: n.name, issue: n.reason, resolvedBy: 'تفعيلات البحر' });
+      }
+      // صور مسجَّلة ومعطَّلة: قواعد وردت في المادة ولم تثبت في النبطي.
+      for (const [tafilaId, list] of Object.entries(data.variations.variations)) {
+        for (const v of list) {
+          if (v.enabled === false) {
+            out.push({
+              area: 'variation', id: `${tafilaId}/${v.id}`, name: v.name,
+              issue: v.validation?.issue,
+              resolvedBy: v.validation?.resolvedBy,
+            });
+          }
+        }
       }
       if (data.rhyme?.nabatiSpecific?.status === 'NEEDS_VALIDATION') {
         out.push({
@@ -4398,7 +4418,8 @@ const DATA = {
           ],
           "kind": "illa",
           "scope": "arud_darb",
-          "severity": 1
+          "severity": 1,
+          "beforeTransfer": "فَاعِلْ"
         },
         {
           "id": "tadhyil",
@@ -4412,6 +4433,30 @@ const DATA = {
           "kind": "illa",
           "scope": "arud_darb",
           "severity": 1
+        },
+        {
+          "id": "tarfeel",
+          "name": "الترفيل",
+          "result": "فَاعِلَاتُنْ",
+          "syllables": [
+            "L",
+            "S",
+            "L",
+            "L"
+          ],
+          "kind": "illa",
+          "scope": "arud_darb",
+          "severity": 1,
+          "enabled": false,
+          "status": "NEEDS_VALIDATION",
+          "validation": {
+            "issue": "الترفيل علّة فصيحة مقرَّرة (زيادة سبب خفيف على ما آخره وتد مجموع)، ووردت في المادة التي قدّمها المستخدم. لكنه نبّه في الموضع نفسه أن علل الفصيح لا تُعامل في النبطي بالطريقة نفسها، فلم تُفعَّل.",
+            "measured": "قيست قبل التعطيل: لا تغيّر شيئًا في القاعدة الحالية. ٧٢ نصًّا — صيغ البحور الأربع والستون مشكولةً ومجرّدة، وأبيات نبطية حقيقية — لم يختلف فيها بحرٌ ولا درجة. والسبب أنها مقصورة على العروض والضرب وتكلّف كلفة علّة، فلا تسبق مطابقةً تامّة.",
+            "resolvedBy": [
+              "بيت نبطي حقيقي وزنه على فاعلن مُرفَّلة، أي يقع في ضربه فاعلاتن حيث يطلب البحر فاعلن",
+              "أو تصريح بأن الترفيل غير جارٍ في النبطي فتُحذف"
+            ]
+          }
         }
       ],
       "mafailun": [
@@ -4553,7 +4598,8 @@ const DATA = {
           ],
           "kind": "illa",
           "scope": "arud_darb",
-          "severity": 1
+          "severity": 1,
+          "beforeTransfer": "مُسْتَفْعِلْ"
         },
         {
           "id": "tadhyil",
@@ -4989,6 +5035,10 @@ const DATA = {
       "faalun_reading": {
         "category": "قراءة",
         "definition": "صورة تحتملها الكلمة نفسها بتشكيلين، لا زحاف فيها ولا علّة"
+      },
+      "tarfeel": {
+        "category": "علل الزيادة",
+        "definition": "زيادة سبب خفيف على ما آخره وتد مجموع"
       }
     }
   },
@@ -6766,7 +6816,10 @@ function renderHemistich(h) {
     <div class="feet">${x.cards.map(footCard).join('')}</div>
 
     ${licences.map((L) => `<div class="licence">
-      ${[L.name, L.category, L.definition, `${L.from} : ${L.to}`].map(esc).join(' - ')}
+      ${[
+        L.name, L.category, L.definition,
+        L.beforeTransfer ? `${L.from} : ${L.beforeTransfer} (وتُنقل إلى ${L.to})` : `${L.from} : ${L.to}`,
+      ].map(esc).join(' - ')}
     </div>`).join('')}
 
     ${broken.length ? `<div class="note warn">

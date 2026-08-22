@@ -146,6 +146,18 @@ export function createEngine(data) {
       for (const n of registry.notInSource) {
         out.push({ area: 'missing_meter', name: n.name, issue: n.reason, resolvedBy: 'تفعيلات البحر' });
       }
+      // صور مسجَّلة ومعطَّلة: قواعد وردت في المادة ولم تثبت في النبطي.
+      for (const [tafilaId, list] of Object.entries(data.variations.variations)) {
+        for (const v of list) {
+          if (v.enabled === false) {
+            out.push({
+              area: 'variation', id: `${tafilaId}/${v.id}`, name: v.name,
+              issue: v.validation?.issue,
+              resolvedBy: v.validation?.resolvedBy,
+            });
+          }
+        }
+      }
       if (data.rhyme?.nabatiSpecific?.status === 'NEEDS_VALIDATION') {
         out.push({
           area: 'rhyme', id: 'nabatiRhyme',
