@@ -300,3 +300,27 @@ export function phonemize(words, lexicon, options = {}) {
 
   return { units, trace };
 }
+
+/**
+ * يُرخي السكونات التي كتبها الشاعر بيده، فتصير حركتها مجهولة.
+ *
+ * لا يُستعمل إلا حين يعجز التشكيل المكتوب عن أن يُقرأ أصلًا: «ذكْرْتك»
+ * فيها ساكنان متتاليان، والمقطع لا يبدأ بساكن، فلا تقطيع لها البتّة.
+ * وهذا يقع كثيرًا في النبطي، إذ يضع الشاعر السكون علامةَ سرعةٍ في
+ * النطق لا سكونًا صرفيًّا.
+ *
+ * ولا يُمسّ إلا ما كتبه صاحب النصّ: السكون المتولّد عن الشدّة أو
+ * التنوين أو اللام الشمسية بنيةٌ في الكلمة لا اختيارٌ في الرسم،
+ * فيبقى كما هو. ولذلك يُشترط ألّا يكون للوحدة `source`.
+ *
+ * والإرخاء لا يُخفى: من استعمله أعلن `relaxedSukun` وعدد ما أُرخي.
+ */
+export function relaxWrittenSukun(units) {
+  let relaxed = 0;
+  const out = units.map((u) => {
+    if (u.source || !u.vowel.known || u.vowel.length !== 'none') return u;
+    relaxed++;
+    return { ...u, vowel: UNKNOWN(['none', 'short']), relaxedSukun: true };
+  });
+  return { units: out, relaxed };
+}

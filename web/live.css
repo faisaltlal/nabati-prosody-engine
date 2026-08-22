@@ -87,31 +87,60 @@
 /* ما لم يبلغه القلم بعد — يُرى ولا يُحاسَب. */
 .foot.pending { opacity: .38; border-style: dashed; }
 
-/* ── الزحافات والعلل ──────────────────────────────────────── */
-.licence {
-  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-  margin-top: 12px; font-size: .82rem;
-}
-.licence-key { color: var(--muted); font-weight: 600; }
-.licence-item {
-  background: color-mix(in srgb, var(--warn) 12%, transparent);
-  color: var(--warn); border-radius: 999px; padding: 3px 10px;
-}
-
 /* ── القافية ──────────────────────────────────────────────── */
 .rhyme {
   margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
 }
-.rhyme-title { font-size: .8rem; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
-.rhyme-grid {
-  display: grid; gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-}
-.rhyme-cell {
-  border: 1px solid var(--line); border-radius: 9px;
-  padding: 7px 10px; background: var(--bg);
-}
-.rhyme-key { display: block; font-size: .7rem; color: var(--muted); }
-.rhyme-val { display: block; font-size: 1.05rem; font-weight: 700; margin-top: 1px; }
-.rhyme-val.none { font-size: .82rem; font-weight: 400; color: var(--muted); }
 .rhyme-note { margin: 8px 0 0; font-size: .74rem; color: var(--muted); line-height: 1.6; }
+
+/* ── شريط التشكيل ─────────────────────────────────────────── */
+.marks {
+  display: flex; gap: 5px; overflow-x: auto; padding: 0 0 9px;
+  margin-bottom: 4px; -webkit-overflow-scrolling: touch;
+}
+.marks button {
+  flex: 0 0 auto; font: inherit; min-width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: var(--panel); color: var(--ink); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.marks button:active { background: var(--brand-soft); border-color: var(--brand); }
+/* الحركة رسمها صغير على الكرسيّ، فتُكبَّر لتُقرأ وتُصاب بالإبهام. */
+.mark-glyph { font-size: 1.7rem; line-height: 1; }
+
+/* ── الكتابة العروضية حرفًا حرفًا ──────────────────────────── */
+.glyphs {
+  display: flex; gap: 3px; overflow-x: auto; padding-bottom: 6px;
+  margin-bottom: 12px; -webkit-overflow-scrolling: touch;
+}
+.glyph {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
+  min-width: 26px; border: 1px solid var(--line); border-radius: 7px;
+  padding: 3px 4px; background: var(--bg);
+}
+.glyph b { font-weight: 600; font-size: .95rem; line-height: 1.4; }
+.glyph i {
+  font-style: normal; font-family: var(--mono); font-size: .78rem;
+  color: var(--brand); line-height: 1.2;
+}
+
+/* ── سطر العلّة ───────────────────────────────────────────── */
+.licence {
+  display: block; margin-top: 10px; font-size: .8rem; line-height: 1.9;
+  padding: 8px 11px; border-radius: 9px;
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  color: var(--ink);
+  border-inline-start: 3px solid var(--warn);
+}
+
+/* ── القافية: أسطر لا شبكة، كما يكتبها الوزّانون ──────────── */
+.rhyme-line { font-size: .88rem; line-height: 2; }
+.rhyme-line .rhyme-key {
+  display: inline-block; min-width: 6.5em; color: var(--muted);
+  font-size: .78rem; font-weight: 600;
+}
+.rhyme-span {
+  font-weight: 700; background: var(--brand-soft);
+  border-radius: 6px; padding: 1px 7px; margin-inline-start: 4px;
+}

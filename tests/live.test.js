@@ -10,7 +10,7 @@ import { createEngine } from '../engine/js/index.js';
 import { DATA } from '../engine/js/data.generated.js';
 import { partialTafilaName, lettersFromSyllables } from '../engine/js/meters/registry.js';
 import { normalize } from '../engine/js/text/normalizer.js';
-import { phonemize } from '../engine/js/phonology/phonemizer.js';
+import { phonemize, relaxWrittenSukun } from '../engine/js/phonology/phonemizer.js';
 import { buildSyllableDag } from '../engine/js/prosody/syllableDag.js';
 import { rankMeters } from '../engine/js/matching/meterMatcher.js';
 import { rankMetersPartial } from '../engine/js/matching/partialMatcher.js';
@@ -325,5 +325,140 @@ describe('ذاكرة المحاذاة — تسريعٌ لا تغيير', () => {
         `المطابق الجزئي اختلف على «${text}»`
       );
     }
+  });
+});
+
+/* ═════════════════ التشكيل الذي لا يُقرأ ═════════════════ */
+
+describe('تشكيل لا يقبل تقطيعًا', () => {
+  it('الساكنان المتتاليان لا يُخرجان الشاشة بيضاء', () => {
+    // «ذكْرْتك» ساكنان متتاليان، والمقطع لا يبدأ بساكن، فلا مسار في
+    // المخطّط أصلًا. وكان هذا يُرجع تحليلًا بلا بحر ولا مقاطع — أسوأ ما
+    // يقع في واجهة تُحلّل عند كل ضغطة مفتاح.
+    const r = engine.analyzeHemistich('ياما ذكْرْتك ولْقصايد مقابيل', { preferRole: 'ajz' });
+    assert(r, 'لا نتيجة البتّة');
+    assert(r.meter, 'لا بحر');
+    atLeast(r.cards.length, 1, 'لا بطاقات');
+    atLeast(r.relaxedSukun, 1, 'يجب الإفصاح عن السكونات التي أُرخيت');
+  });
+
+  it('لا يُرخي سكونًا إلا عند العجز عنه', () => {
+    // النصّ المشكول السليم يُقرأ كما كُتب، فلا يُمسّ سكونه.
+    for (const meter of engine.registry.enabled) {
+      for (const form of meter.forms) {
+        const r = engine.analyzeHemistich(form.feet.map((f) => f.vocalized).join(' '));
+        equal(r.relaxedSukun, 0, `${meter.name} (${form.role}) أُرخي سكونه بلا موجب`);
+      }
+    }
+  });
+
+  it('لا يمسّ إلا سكون الكاتب، لا سكون البنية', () => {
+    // السكون المتولّد عن الشدّة أو التنوين أو اللام الشمسية بنيةٌ في
+    // الكلمة لا اختيارٌ في الرسم.
+    const { units } = phonemize(normalize('الشَّمْسُ كِتَابًا').words, DATA.lexicon, { pausalEnd: true });
+    const structural = units.filter((u) => u.source && u.vowel.known && u.vowel.length === 'none');
+    atLeast(structural.length, 1, 'يجب أن يكون في النصّ سكون بنيويّ');
+    const { units: after } = relaxWrittenSukun(units);
+    for (const u of after) {
+      if (u.source) assert(!u.relaxedSukun, `أُرخي سكون بنيويّ: ${u.c} (${u.source})`);
+    }
+  });
+});
+
+/* ═════════════════ التذييل والتسبيغ ═════════════════ */
+
+describe('علل الزيادة — التذييل والتسبيغ', () => {
+  it('اسم الزيادة مشتقّ من آخر التفعيلة لا مكتوب اجتهادًا', () => {
+    // التذييل زيادة ساكن على ما آخره وتد مجموع (//0 = مقطعان S ثم L)،
+    // والتسبيغ زيادة ساكن على سبب خفيف (/0 = مقطع L). الخلط بينهما كان
+    // في البيانات: أربع تفعيلات وُسمت تذييلًا وهي تسبيغ.
+    const byId = new Map(DATA.tafaeel.tafaeel.map((t) => [t.id, t]));
+    for (const [tid, list] of Object.entries(DATA.variations.variations)) {
+      const base = byId.get(tid);
+      const watad = base.syllables.slice(-2).join('') === 'SL';
+      for (const v of list) {
+        if (v.id !== 'tadhyil' && v.id !== 'tasbeegh') continue;
+        equal(v.id, watad ? 'tadhyil' : 'tasbeegh', `${base.plain} (${base.syllables.join('')})`);
+        equal(v.name, watad ? 'التذييل' : 'التسبيغ', base.plain);
+      }
+    }
+  });
+
+  it('التفعيلة المزيدة المستقلّة تُعرض معلولة لا سالمة', () => {
+    // «فاعلاتان» تفعيلة قائمة في هذه القاعدة، لكنها في العروض زيادةُ
+    // ساكن على فاعلاتن. وإخفاء ذلك يجعل عجز البيت يبدو بلا علّة وهو معلول.
+    const r = engine.analyzeHemistich('مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتَانْ', { preferRole: 'ajz' });
+    const last = r.cards[r.cards.length - 1];
+    equal(last.name, 'فاعلاتان');
+    assert(last.licence, 'يجب بيان العلّة');
+    equal(last.licence.name, 'التسبيغ');
+    equal(last.licence.from, 'فاعلاتن');
+    equal(last.licence.to, 'فاعلاتان');
+  });
+
+  it('لكل صورة تعريف في البيانات لا في الكود', () => {
+    const defs = DATA.variations.definitions;
+    assert(defs, 'ملف الصور يجب أن يحمل التعريفات');
+    const used = new Set();
+    for (const list of Object.values(DATA.variations.variations)) {
+      for (const v of list) used.add(v.id);
+    }
+    for (const id of used) {
+      assert(defs[id], `صورة بلا تعريف: ${id}`);
+      assert(defs[id].category && defs[id].definition, `تعريف ناقص: ${id}`);
+    }
+  });
+});
+
+/* ═════════════════ ترجيح الصيغة بالحقل ═════════════════ */
+
+describe('الحقل يرجّح صيغته عند التساوي', () => {
+  it('ما كُتب في حقل العجز تُرجَّح له صورة العجز', () => {
+    // الشطر الواحد يقبل الصورتين بالدرجة نفسها كثيرًا، والوزن لا
+    // يرجّح بينهما حينئذ — لكن الحقل المكتوب فيه يرجّح.
+    const text = 'ياما ذكْرْتك ولْقصايد مقابيل';
+    equal(engine.analyzeHemistich(text, { preferRole: 'ajz' }).meter.formRole, 'ajz');
+  });
+
+  it('الترجيح لا يتجاوز الوزن: الأعلى درجةً يفوز دائمًا', () => {
+    // صدرٌ صريح لا يقبل صورة العجز، فلا يُقلَب إليها بحجّة الحقل.
+    const sadrOnly = 'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ';
+    equal(engine.analyzeHemistich(sadrOnly, { preferRole: 'ajz' }).meter.formRole, 'sadr');
+  });
+});
+
+/* ═════════════════ الحروف والرموز تصطفّ ═════════════════ */
+
+describe('الكتابة العروضية', () => {
+  it('لكل حرف رمز واحد، وعددهما سواء', () => {
+    const r = engine.analyzeHemistich('مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ');
+    for (const l of r.letters) assert(l.symbol === '/' || l.symbol === '0', `رمز غريب: ${l.symbol}`);
+    equal(r.letters.filter((l) => l.symbol === '/').length + r.letters.filter((l) => l.symbol === '0').length,
+      r.letters.length);
+  });
+
+  it('نصّ التفعيلة يساوي رمزها حرفًا برمز', () => {
+    // «ياماذكر» تحت `/0/0//0` — سبعة بسبعة. لو اختلّا لظهر النصّ
+    // مزاحًا عن رمزه على البطاقة.
+    for (const text of [
+      'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ',
+      'مُتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ',
+      'البارحه ما نمت من كثر شوقي',
+    ]) {
+      const r = engine.analyzeHemistich(text);
+      for (const c of r.cards) {
+        if (c.kind === 'pending') continue;
+        equal([...c.text].length, [...c.symbol].length,
+          `«${c.name}» نصّها ${c.text} ورمزها ${c.symbol} في «${text}»`);
+      }
+    }
+  });
+
+  it('حروف التفعيلات لا تتداخل ولا تتكرّر', () => {
+    // عرضُ كلماتِ التفعيلة كان يُكرّر الكلمة الواحدة في تفعيلتين.
+    // أمّا الحروف فتقع في واحدة لا غير، فمجموعها يساوي حروف الشطر.
+    const r = engine.analyzeHemistich('مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ');
+    const joined = r.cards.filter((c) => c.kind !== 'pending').map((c) => c.text).join('');
+    equal(joined, r.letters.map((l) => l.ch).join(''));
   });
 });

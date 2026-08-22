@@ -14,50 +14,9 @@
  * الشاعر إياه في كل بيت، والشطر الواحد يُرجَّح فيه ولا يُقطَع.
  */
 
-/** حرف المدّ المقابل لكل حركة. */
-const MADD = { a: 'ا', i: 'ي', u: 'و' };
+import { prosodicLetters } from '../prosody/prosodicLetters.js';
 
 const TEH_MARBUTA = 'ة';
-
-/**
- * يفرد المقاطع حروفًا متحركة وساكنة.
- *
- * الاشتقاق من صورة المقطع لا من نواته: المقطع المُشبَع آخر الشطر يبقى
- * مرسومًا CV وحركته قصيرة، ومع ذلك يتولّد عنه مدٌّ ساكن هو الذي تُقفَل
- * به القافية. والاعتماد على النواة وحدها يُسقطه فتختلّ الحدود والنوع.
- *
- * وهو الاشتقاق نفسه الذي يعتمده الترميز الحرفي (متحرك واحد للقصير،
- * ومتحرك فساكن للطويل، ومتحرك فساكنين للمفرط)، فلا يفترقان.
- */
-function lettersOf(syllables, units) {
-  const out = [];
-  const unitAt = (i) => (units && i !== undefined ? units[i] : undefined);
-
-  syllables.forEach((s, si) => {
-    const consumed = s.units || [];
-    const shape = s.shape || (s.weight === 'S' ? 'CV' : s.weight === 'X' ? 'CVVC' : 'CVC');
-    const hasMadd = shape === 'CVV' || shape === 'CVVC' || (!!s.ishbaa && !s.coda);
-    const hasCoda = !!s.coda && (shape === 'CVC' || shape === 'CVVC');
-
-    out.push({
-      ch: s.onset, moving: true, syllable: si, role: 'onset',
-      assumed: !!s.assumed, unit: unitAt(consumed[0]),
-    });
-    if (hasMadd) {
-      out.push({
-        ch: MADD[s.quality] || 'ا', moving: false, syllable: si, role: 'madd',
-        quality: s.quality, ishbaa: !!s.ishbaa, assumed: !!s.assumed,
-      });
-    }
-    if (hasCoda) {
-      out.push({
-        ch: s.coda, moving: false, syllable: si, role: 'coda',
-        assumed: !!s.assumed, unit: unitAt(consumed[1]),
-      });
-    }
-  });
-  return out;
-}
 
 /**
  * يستبعد حرف الوصل من آخر الشطر ليظهر الرويّ تحته.
@@ -108,7 +67,7 @@ function stripWasl(letters) {
  */
 export function analyzeRhyme(syllables, rules, units) {
   if (!syllables || syllables.length === 0) return null;
-  const all = lettersOf(syllables, units);
+  const all = prosodicLetters(syllables, units);
   if (!all.length) return null;
 
   const { letters, wasl } = stripWasl(all);
@@ -177,8 +136,16 @@ export function analyzeRhyme(syllables, rules, units) {
 
   const span = letters.slice(start);
 
+  // وصف القافية: إطلاقها، ثم ردفها أو تأسيسها إن وُجد.
+  const classification = [
+    release.name,
+    ridf ? rules.ridf.qualifier : null,
+    tasees ? rules.tasees.qualifier : null,
+  ].filter(Boolean).join(' ');
+
   return {
     text: span.map((l) => l.ch).join('') + (wasl ? wasl.letter : ''),
+    classification,
     letters: span.map((l) => ({ ch: l.ch, moving: l.moving, role: l.role })),
     rawi: {
       letter: rawi.ch,
@@ -194,7 +161,10 @@ export function analyzeRhyme(syllables, rules, units) {
     wasl,
     release: { id: release.id, name: release.name, definition: release.definition },
     type: type
-      ? { id: type.id, name: type.name, definition: type.definition || type.note, movingBetween }
+      ? {
+          id: type.id, name: type.name, feminine: type.feminine || type.name,
+          definition: type.definition || type.note, movingBetween,
+        }
       : null,
     bounds: {
       rule: rules.bounds.rule,

@@ -20,6 +20,7 @@
  */
 
 import { matchFootBoth, minSyllablesToEnd, createAlignmentCache } from './footMatcher.js';
+import { edgeToSyllable } from '../prosody/syllableDag.js';
 
 /**
  * @param {object} dag مخطّط مقاطع ما كُتب
@@ -142,6 +143,14 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
     complete,
     feet: best.chosen,
     partialFoot,
+    // المقاطع التي اختارها هذا التطابق بعينه — لا القراءة الحرّة.
+    // منها تُشتقّ حروف كل تفعيلة، فتصطفّ مع رمزها.
+    syllables: [
+      ...best.chosen.flatMap((c) => c.ops.filter((o) => o.edge).map((o) => edgeToSyllable(o.edge))),
+      ...(best.pending
+        ? best.pending.res.ops.filter((o) => o.edge).map((o) => edgeToSyllable(o.edge))
+        : []),
+    ],
     // التفعيلات التي لم يبلغها القلم بعد — تُعرض باهتةً لا ناقصةً.
     remaining: feet
       .slice(best.footsDone + (best.pending ? 1 : 0))
@@ -161,7 +170,7 @@ export function rankMetersPartial(dag, registry, scorer, options = {}) {
     for (let f = 0; f < formCount; f++) {
       const r = matchMeterPartial(dag, meter, scorer, { ...options, form: f, cache: cache || false });
       if (!r) continue;
-      if (!bestForMeter || r.progressScore > bestForMeter.progressScore) bestForMeter = r;
+      if (!bestForMeter || better(r, bestForMeter, options.preferRole)) bestForMeter = r;
     }
     if (bestForMeter) results.push(bestForMeter);
   }
@@ -172,9 +181,33 @@ export function rankMetersPartial(dag, registry, scorer, options = {}) {
       // احتمالًا من ربع الرجز، وهذا ترجيح عرضٍ لا حكمٌ على الوزن —
       // والتساوي مُعلَن في `tied` على كل حال.
       a.meterSyllables - b.meterSyllables ||
+      // ثم الأسبق في قائمة المصدر، لا الأسبق هجاءً.
+      order(registry, a.meterId) - order(registry, b.meterId) ||
       a.meterId.localeCompare(b.meterId)
   );
   return results;
+}
+
+/**
+ * أيّ الصيغتين أولى حين تتساوى الدرجتان؟
+ *
+ * الصدر والعجز صورتان للبحر الواحد، وكثيرًا ما يقبل الشطرُ الواحد
+ * الصورتين بالدرجة نفسها. والوزن لا يرجّح بينهما حينئذ — لكن الحقل
+ * الذي كُتب فيه يرجّح: ما كُتب في حقل العجز فصورة العجز أولى به.
+ *
+ * وهذا استعمالٌ لخبرٍ تملكه الواجهة، لا تجاوزٌ للوزن: الأعلى درجةً
+ * يفوز دائمًا، والدور هنا عند التساوي وحده.
+ */
+function better(candidate, current, preferRole) {
+  if (candidate.progressScore > current.progressScore + 1e-12) return true;
+  if (candidate.progressScore < current.progressScore - 1e-12) return false;
+  if (!preferRole) return false;
+  return candidate.formRole === preferRole && current.formRole !== preferRole;
+}
+
+function order(registry, meterId) {
+  const m = registry.byId.get(meterId);
+  return m && Number.isFinite(m.sourceIndex) ? m.sourceIndex : Number.MAX_SAFE_INTEGER;
 }
 
 function pickForm(meter, index) {

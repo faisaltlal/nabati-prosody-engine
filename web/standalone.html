@@ -255,34 +255,63 @@ footer code { font-family: var(--mono); font-size: .95em; }
 /* ما لم يبلغه القلم بعد — يُرى ولا يُحاسَب. */
 .foot.pending { opacity: .38; border-style: dashed; }
 
-/* ── الزحافات والعلل ──────────────────────────────────────── */
-.licence {
-  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-  margin-top: 12px; font-size: .82rem;
-}
-.licence-key { color: var(--muted); font-weight: 600; }
-.licence-item {
-  background: color-mix(in srgb, var(--warn) 12%, transparent);
-  color: var(--warn); border-radius: 999px; padding: 3px 10px;
-}
-
 /* ── القافية ──────────────────────────────────────────────── */
 .rhyme {
   margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
 }
-.rhyme-title { font-size: .8rem; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
-.rhyme-grid {
-  display: grid; gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-}
-.rhyme-cell {
-  border: 1px solid var(--line); border-radius: 9px;
-  padding: 7px 10px; background: var(--bg);
-}
-.rhyme-key { display: block; font-size: .7rem; color: var(--muted); }
-.rhyme-val { display: block; font-size: 1.05rem; font-weight: 700; margin-top: 1px; }
-.rhyme-val.none { font-size: .82rem; font-weight: 400; color: var(--muted); }
 .rhyme-note { margin: 8px 0 0; font-size: .74rem; color: var(--muted); line-height: 1.6; }
+
+/* ── شريط التشكيل ─────────────────────────────────────────── */
+.marks {
+  display: flex; gap: 5px; overflow-x: auto; padding: 0 0 9px;
+  margin-bottom: 4px; -webkit-overflow-scrolling: touch;
+}
+.marks button {
+  flex: 0 0 auto; font: inherit; min-width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: var(--panel); color: var(--ink); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.marks button:active { background: var(--brand-soft); border-color: var(--brand); }
+/* الحركة رسمها صغير على الكرسيّ، فتُكبَّر لتُقرأ وتُصاب بالإبهام. */
+.mark-glyph { font-size: 1.7rem; line-height: 1; }
+
+/* ── الكتابة العروضية حرفًا حرفًا ──────────────────────────── */
+.glyphs {
+  display: flex; gap: 3px; overflow-x: auto; padding-bottom: 6px;
+  margin-bottom: 12px; -webkit-overflow-scrolling: touch;
+}
+.glyph {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
+  min-width: 26px; border: 1px solid var(--line); border-radius: 7px;
+  padding: 3px 4px; background: var(--bg);
+}
+.glyph b { font-weight: 600; font-size: .95rem; line-height: 1.4; }
+.glyph i {
+  font-style: normal; font-family: var(--mono); font-size: .78rem;
+  color: var(--brand); line-height: 1.2;
+}
+
+/* ── سطر العلّة ───────────────────────────────────────────── */
+.licence {
+  display: block; margin-top: 10px; font-size: .8rem; line-height: 1.9;
+  padding: 8px 11px; border-radius: 9px;
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  color: var(--ink);
+  border-inline-start: 3px solid var(--warn);
+}
+
+/* ── القافية: أسطر لا شبكة، كما يكتبها الوزّانون ──────────── */
+.rhyme-line { font-size: .88rem; line-height: 2; }
+.rhyme-line .rhyme-key {
+  display: inline-block; min-width: 6.5em; color: var(--muted);
+  font-size: .78rem; font-weight: 600;
+}
+.rhyme-span {
+  font-weight: 700; background: var(--brand-soft);
+  border-radius: 6px; padding: 1px 7px; margin-inline-start: 4px;
+}
 
 </style>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📜</text></svg>">
@@ -306,6 +335,10 @@ footer code { font-family: var(--mono); font-size: .95em; }
 <!-- ============ تحليل بيت ============ -->
 <section id="tab-analyze">
   <div class="panel">
+    <!-- شريط التشكيل: دقّة الوزن مقيَّدة بتشكيل ما يُكتب، ولوحة مفاتيح
+         الهاتف تجعل إدخال الحركات عسيرًا. فتُوضع في متناول الإبهام. -->
+    <div class="marks" id="marks" role="toolbar" aria-label="إدخال التشكيل"></div>
+
     <div class="fields">
       <label class="field">
         <span class="field-label">الصدر</span>
@@ -1284,7 +1317,31 @@ function phonemize(words, lexicon, options = {}) {
   return { units, trace };
 }
 
-  Object.assign(__M, { splitLetters, phonemize });
+/**
+ * يُرخي السكونات التي كتبها الشاعر بيده، فتصير حركتها مجهولة.
+ *
+ * لا يُستعمل إلا حين يعجز التشكيل المكتوب عن أن يُقرأ أصلًا: «ذكْرْتك»
+ * فيها ساكنان متتاليان، والمقطع لا يبدأ بساكن، فلا تقطيع لها البتّة.
+ * وهذا يقع كثيرًا في النبطي، إذ يضع الشاعر السكون علامةَ سرعةٍ في
+ * النطق لا سكونًا صرفيًّا.
+ *
+ * ولا يُمسّ إلا ما كتبه صاحب النصّ: السكون المتولّد عن الشدّة أو
+ * التنوين أو اللام الشمسية بنيةٌ في الكلمة لا اختيارٌ في الرسم،
+ * فيبقى كما هو. ولذلك يُشترط ألّا يكون للوحدة `source`.
+ *
+ * والإرخاء لا يُخفى: من استعمله أعلن `relaxedSukun` وعدد ما أُرخي.
+ */
+function relaxWrittenSukun(units) {
+  let relaxed = 0;
+  const out = units.map((u) => {
+    if (u.source || !u.vowel.known || u.vowel.length !== 'none') return u;
+    relaxed++;
+    return { ...u, vowel: UNKNOWN(['none', 'short']), relaxedSukun: true };
+  });
+  return { units: out, relaxed };
+}
+
+  Object.assign(__M, { splitLetters, phonemize, relaxWrittenSukun });
 }
 
 // ── engine/js/prosody/syllableDag.js ──
@@ -1349,6 +1406,8 @@ function codaAllowed(onset, coda, isWordInitial) {
   if (coda.word === onset.word) return true;
   return isWordInitial && coda.vowel.known && coda.vowel.length === 'none';
 }
+
+const { relaxWrittenSukun } = __M;
 
 /**
  * @param {object[]} units
@@ -1441,6 +1500,49 @@ function buildSyllableDag(units, options = {}) {
   return { edges, size: n, assumedVocalization: assumed };
 }
 
+/**
+ * هل في المخطّط مسار كامل من أوله إلى آخره؟
+ *
+ * قد لا يكون: تشكيلٌ يجمع ساكنَين لا يقبل تقطيعًا أصلًا («ذكْرْتك»)،
+ * لأن المقطع لا يبدأ بساكن. والمخطّط حينها فارغ من المسارات، فتخرج
+ * الشاشة بيضاء بلا خبر — وهذا أسوأ ما يقع في واجهةٍ تُحلّل عند كل
+ * ضغطة مفتاح.
+ */
+function hasCompletePath(dag) {
+  const n = dag.size;
+  if (n === 0) return false;
+  const reach = new Array(n + 1).fill(false);
+  reach[n] = true;
+  for (let u = n - 1; u >= 0; u--) {
+    for (const e of dag.edges[u] || []) {
+      if (reach[e.to]) { reach[u] = true; break; }
+    }
+  }
+  return reach[0];
+}
+
+/**
+ * يبني مخطّطًا **قابلًا للقراءة** دائمًا.
+ *
+ * إن كان التشكيل المكتوب لا يقبل تقطيعًا البتّة، أُرخيت سكوناتُ
+ * الكاتب وأُعيد البناء، وأُعلن ذلك في `relaxed`. فلا تخرج الشاشة
+ * بيضاء، ولا يُدَّعى في الوقت نفسه أن النصّ قُرئ كما كُتب.
+ *
+ * @returns {{dag:object, units:object[], relaxed:number, readable:boolean}}
+ */
+function buildReadableDag(units, options = {}) {
+  const dag = buildSyllableDag(units, options);
+  if (hasCompletePath(dag)) return { dag, units, relaxed: 0, readable: true };
+
+  const { units: relaxedUnits, relaxed } = relaxWrittenSukun(units);
+  const retry = buildSyllableDag(relaxedUnits, options);
+  if (hasCompletePath(retry)) {
+    return { dag: retry, units: relaxedUnits, relaxed, readable: true };
+  }
+  // لا مسار حتى بعد الإرخاء — يُرجَع الأصل ويُعلَن أنه غير مقروء.
+  return { dag, units, relaxed: 0, readable: false };
+}
+
 /** كل المسارات الكاملة عبر المخطّط، بسقف يمنع الانفجار. */
 function enumeratePaths(dag, limit = 2000) {
   const results = [];
@@ -1503,7 +1605,7 @@ function edgeToSyllable(e) {
 
 
 
-  Object.assign(__M, { buildSyllableDag, enumeratePaths, freeSyllabify, edgeToSyllable, SHORT, LONG, OVERLONG });
+  Object.assign(__M, { buildSyllableDag, hasCompletePath, buildReadableDag, enumeratePaths, freeSyllabify, edgeToSyllable, SHORT, LONG, OVERLONG });
 }
 
 // ── engine/js/matching/footMatcher.js ──
@@ -1925,13 +2027,26 @@ function rankMeters(dag, registry, scorer, options = {}) {
       for (const forms of formCombinations(formCount, repeat)) {
         const r = matchMeter(dag, meter, scorer, { repeat, forms, cache: cache || false });
         if (!r || !r.matched) continue;
-        if (!bestForMeter || r.score > bestForMeter.score) bestForMeter = r;
+        if (!bestForMeter || betterForm(r, bestForMeter, options.preferRole)) bestForMeter = r;
       }
     }
     if (bestForMeter) results.push(bestForMeter);
   }
 
-  results.sort((a, b) => b.score - a.score || a.meterId.localeCompare(b.meterId));
+  // عند تساوي الدرجة يُقدَّم الأسبق في قائمة المصدر.
+  //
+  // كان الترجيح بترتيب المعرّف أبجديًّا، وهو لا يدلّ على شيء: يُقدّم
+  // `al_baseet_1` على `al_maskhub` لأن الباء قبل الميم لا غير. وترتيب
+  // القائمة دلالةٌ حقيقية — صاحبها قدّم المسحوب على سائر البحور —
+  // فاتّباعه أولى من اتّباع الهجاء.
+  //
+  // ولا يُخفي هذا التعادلَ: البحور المتساوية تبقى معلَنة في `ambiguity`.
+  results.sort(
+    (a, b) =>
+      b.score - a.score ||
+      sourceOrder(registry, a.meterId) - sourceOrder(registry, b.meterId) ||
+      a.meterId.localeCompare(b.meterId)
+  );
   return results;
 }
 
@@ -1956,6 +2071,24 @@ function round(x) {
   return Math.round(x * 1e6) / 1e6;
 }
 
+/**
+ * عند تساوي الدرجتين تُرجَّح الصيغة الموافقة للحقل المكتوب فيه:
+ * ما كُتب في حقل العجز فصورة العجز أولى به. والأعلى درجةً يفوز دائمًا،
+ * فلا يُتجاوَز الوزن — الترجيح عند التساوي وحده.
+ */
+function betterForm(candidate, current, preferRole) {
+  if (candidate.score > current.score + 1e-12) return true;
+  if (candidate.score < current.score - 1e-12) return false;
+  if (!preferRole) return false;
+  return candidate.formRole === preferRole && current.formRole !== preferRole;
+}
+
+/** موضع البحر في قائمة المصدر — به يُرجَّح عند تساوي الدرجات. */
+function sourceOrder(registry, meterId) {
+  const m = registry.byId.get(meterId);
+  return m && Number.isFinite(m.sourceIndex) ? m.sourceIndex : Number.MAX_SAFE_INTEGER;
+}
+
   Object.assign(__M, { matchMeter, rankMeters });
 }
 
@@ -1967,7 +2100,7 @@ function round(x) {
 
 const { normalize, splitHemistichs } = __M;
 const { phonemize } = __M;
-const { buildSyllableDag, freeSyllabify, edgeToSyllable } = __M;
+const { buildReadableDag, freeSyllabify, edgeToSyllable } = __M;
 const { rankMeters } = __M;
 
 /** يبني الكتابة العروضية من الوحدات — النصّ كما يُنطق لا كما يُرسم. */
@@ -1990,15 +2123,20 @@ function prosodicSpelling(units) {
 
 function analyzeUnit(text, engine, options) {
   const norm = normalize(text, options.normalize);
-  const { units, trace } = phonemize(norm.words, engine.lexicon, {
+  const { units: raw, trace } = phonemize(norm.words, engine.lexicon, {
     pausalEnd: options.pausalEnd !== false,
   });
-  const dag = buildSyllableDag(units, options.dag);
+  // تشكيلٌ لا يقبل تقطيعًا (ساكنان متتاليان) يُرخى ويُعلَن، ولا يُترك
+  // فيخرج التحليل فارغًا.
+  const readable = buildReadableDag(raw, options.dag);
+  const units = readable.units;
+  const dag = readable.dag;
   const free = freeSyllabify(dag);
   const ranking = rankMeters(dag, engine.registry, engine.scorer, {
     repeats: options.repeats || [1],
+    preferRole: options.preferRole,
   });
-  return { norm, units, phonTrace: trace, dag, free, ranking };
+  return { norm, units, phonTrace: trace, dag, free, ranking, readable };
 }
 
 /** يستخرج المقاطع الفعلية التي اختارها البحر الفائز. */
@@ -2020,8 +2158,11 @@ function linkFeetToWords(match, units, words, brokenThreshold) {
       footIndex: f.footIndex,
       hemistich: f.hemistich,
       tafila: f.tafila,
+      tafilaId: f.tafilaId,
       realized: f.variant.result,
       variation: f.variant.name,
+      // معرّف الصورة لا اسمها: التعريف يُقرأ به من البيانات.
+      variationId: f.variant.id,
       variationKind: f.variant.kind,
       expected: f.expected.join(''),
       actual: f.actual.join('') || '—',
@@ -2110,7 +2251,7 @@ function analyzeLine(input, engine, options = {}) {
       confidence: r.confidence, verdict: r.verdict, repeat: r.repeat,
     }));
 
-  const { norm, units, dag, free, phonTrace } = unitsAnalysis;
+  const { norm, units, dag, free, phonTrace, readable } = unitsAnalysis;
   const chosenSyllables = mode === 'single' && best
     ? syllablesFromMatch(best)
     : free.syllables;
@@ -2128,6 +2269,9 @@ function analyzeLine(input, engine, options = {}) {
       hasDiacritics: norm.hasDiacritics,
       coverage: norm.vocalizationCoverage,
       assumed: dag.assumedVocalization,
+      // سكونات أُرخيت لأن التشكيل المكتوب لا يقبل تقطيعًا.
+      relaxedSukun: readable ? readable.relaxed : 0,
+      readable: readable ? readable.readable : true,
       note: dag.assumedVocalization
         ? 'النصّ غير مشكول بالكامل، فالتقطيع المعروض هو القراءة التي يقبلها الوزن الفائز، لا قراءة يقينية.'
         : 'النصّ مشكول بما يكفي لتقطيع قاطع.',
@@ -2355,6 +2499,7 @@ const round = (x) => Math.round(x * 1e6) / 1e6;
  */
 
 const { matchFootBoth, minSyllablesToEnd, createAlignmentCache } = __M;
+const { edgeToSyllable } = __M;
 
 /**
  * @param {object} dag مخطّط مقاطع ما كُتب
@@ -2477,6 +2622,14 @@ function matchMeterPartial(dag, meter, scorer, options = {}) {
     complete,
     feet: best.chosen,
     partialFoot,
+    // المقاطع التي اختارها هذا التطابق بعينه — لا القراءة الحرّة.
+    // منها تُشتقّ حروف كل تفعيلة، فتصطفّ مع رمزها.
+    syllables: [
+      ...best.chosen.flatMap((c) => c.ops.filter((o) => o.edge).map((o) => edgeToSyllable(o.edge))),
+      ...(best.pending
+        ? best.pending.res.ops.filter((o) => o.edge).map((o) => edgeToSyllable(o.edge))
+        : []),
+    ],
     // التفعيلات التي لم يبلغها القلم بعد — تُعرض باهتةً لا ناقصةً.
     remaining: feet
       .slice(best.footsDone + (best.pending ? 1 : 0))
@@ -2496,7 +2649,7 @@ function rankMetersPartial(dag, registry, scorer, options = {}) {
     for (let f = 0; f < formCount; f++) {
       const r = matchMeterPartial(dag, meter, scorer, { ...options, form: f, cache: cache || false });
       if (!r) continue;
-      if (!bestForMeter || r.progressScore > bestForMeter.progressScore) bestForMeter = r;
+      if (!bestForMeter || better(r, bestForMeter, options.preferRole)) bestForMeter = r;
     }
     if (bestForMeter) results.push(bestForMeter);
   }
@@ -2507,9 +2660,33 @@ function rankMetersPartial(dag, registry, scorer, options = {}) {
       // احتمالًا من ربع الرجز، وهذا ترجيح عرضٍ لا حكمٌ على الوزن —
       // والتساوي مُعلَن في `tied` على كل حال.
       a.meterSyllables - b.meterSyllables ||
+      // ثم الأسبق في قائمة المصدر، لا الأسبق هجاءً.
+      order(registry, a.meterId) - order(registry, b.meterId) ||
       a.meterId.localeCompare(b.meterId)
   );
   return results;
+}
+
+/**
+ * أيّ الصيغتين أولى حين تتساوى الدرجتان؟
+ *
+ * الصدر والعجز صورتان للبحر الواحد، وكثيرًا ما يقبل الشطرُ الواحد
+ * الصورتين بالدرجة نفسها. والوزن لا يرجّح بينهما حينئذ — لكن الحقل
+ * الذي كُتب فيه يرجّح: ما كُتب في حقل العجز فصورة العجز أولى به.
+ *
+ * وهذا استعمالٌ لخبرٍ تملكه الواجهة، لا تجاوزٌ للوزن: الأعلى درجةً
+ * يفوز دائمًا، والدور هنا عند التساوي وحده.
+ */
+function better(candidate, current, preferRole) {
+  if (candidate.progressScore > current.progressScore + 1e-12) return true;
+  if (candidate.progressScore < current.progressScore - 1e-12) return false;
+  if (!preferRole) return false;
+  return candidate.formRole === preferRole && current.formRole !== preferRole;
+}
+
+function order(registry, meterId) {
+  const m = registry.byId.get(meterId);
+  return m && Number.isFinite(m.sourceIndex) ? m.sourceIndex : Number.MAX_SAFE_INTEGER;
 }
 
 function pickForm(meter, index) {
@@ -2574,40 +2751,32 @@ const clamp01 = (x) => Math.max(0, Math.min(1, x));
   Object.assign(__M, { matchMeterPartial, rankMetersPartial });
 }
 
-// ── engine/js/rhyme/rhymeAnalyzer.js ──
+// ── engine/js/prosody/prosodicLetters.js ──
 {
 /**
- * تحليل القافية.
+ * الكتابة العروضية حرفًا حرفًا.
  *
- * لا قاعدة واحدة مكتوبة في هذا الملف: الحدود والأنواع وحروف الردف
- * والتأسيس كلها تُقرأ من `data/rhyme.json`، وهذا الملف يُجري الحساب
- * وحده. تعديل قاعدة قافية تعديلُ ذلك الملف لا هذا.
+ * العروض يزن المنطوق لا المرسوم، والفرق بينهما كبير: اللام الشمسية لا
+ * تُنطق، والمشدَّد حرفان، والتنوين نون، وحركة آخر الشطر تُشبَع فتصير
+ * مدًّا يُكتب ولا يُرسم. فالحرف العروضي غير الحرف الإملائي.
  *
- * يعمل على **المقاطع التي اختارها الوزن** لا على الرسم، لأن القافية
- * حكم صوتي: الحرف المشدَّد وحدتان، والتنوين نون ساكنة، واللام الشمسية
- * لا تُنطق، وحركة آخر الشطر تُشبَع فتصير مدًّا. كل ذلك محسوم في طبقة
- * المقاطع قبل أن تصل إلى هنا، فلا يُعاد هنا ولا يُخالَف.
+ * وكل حرف هنا إمّا متحرك وإمّا ساكن، فيقابله رمز واحد — ولذلك يصطفّ
+ * النصّ مع رمزه حرفًا برمز: «ياماذكر» تحت `/0/0//0` تمامًا.
  *
- * وما لا يُحسم من شطر واحد يبقى مُعلنًا: الرويّ إنما يثبت بالتزام
- * الشاعر إياه في كل بيت، والشطر الواحد يُرجَّح فيه ولا يُقطَع.
+ * الاشتقاق من صورة المقطع لا من نواته: المقطع المُشبَع آخر الشطر يبقى
+ * مرسومًا `CV` وحركته قصيرة، ومع ذلك يتولّد عنه مدٌّ ساكن. والاعتماد
+ * على النواة وحدها يُسقطه.
  */
 
 /** حرف المدّ المقابل لكل حركة. */
 const MADD = { a: 'ا', i: 'ي', u: 'و' };
 
-const TEH_MARBUTA = 'ة';
-
 /**
- * يفرد المقاطع حروفًا متحركة وساكنة.
- *
- * الاشتقاق من صورة المقطع لا من نواته: المقطع المُشبَع آخر الشطر يبقى
- * مرسومًا CV وحركته قصيرة، ومع ذلك يتولّد عنه مدٌّ ساكن هو الذي تُقفَل
- * به القافية. والاعتماد على النواة وحدها يُسقطه فتختلّ الحدود والنوع.
- *
- * وهو الاشتقاق نفسه الذي يعتمده الترميز الحرفي (متحرك واحد للقصير،
- * ومتحرك فساكن للطويل، ومتحرك فساكنين للمفرط)، فلا يفترقان.
+ * @param {object[]} syllables مقاطع كما يخرجها `edgeToSyllable`
+ * @param {object[]} [units] الوحدات الصوتية — منها يُعرف رسم الحرف الأصلي
+ * @returns {Array<{ch:string, moving:boolean, role:string, syllable:number}>}
  */
-function lettersOf(syllables, units) {
+function prosodicLetters(syllables, units) {
   const out = [];
   const unitAt = (i) => (units && i !== undefined ? units[i] : undefined);
 
@@ -2636,6 +2805,57 @@ function lettersOf(syllables, units) {
   });
   return out;
 }
+
+/**
+ * يقسم حروف الشطر على تفعيلاته.
+ *
+ * التفعيلة لا تقف عند حدّ الكلمة — «ياماذكر» أولُها كلمتان وآخرها بعضُ
+ * ثالثة. فعرضُ كلماتِ التفعيلة يُكرّر الكلمة الواحدة في تفعيلتين
+ * ويُوهم أنها فيهما معًا. أمّا حروفها فتقع في واحدة لا غير، وتصطفّ مع
+ * رمزها.
+ *
+ * @param {Array} letters ناتج `prosodicLetters`
+ * @param {number[]} counts عدد مقاطع كل تفعيلة بالترتيب
+ * @returns {string[]} نصّ كل تفعيلة
+ */
+function splitLettersByFeet(letters, counts) {
+  const out = [];
+  let syllable = 0;
+  for (const count of counts) {
+    const from = syllable;
+    const to = syllable + count;
+    out.push(
+      letters.filter((l) => l.syllable >= from && l.syllable < to).map((l) => l.ch).join('')
+    );
+    syllable = to;
+  }
+  return out;
+}
+
+  Object.assign(__M, { MADD, prosodicLetters, splitLettersByFeet });
+}
+
+// ── engine/js/rhyme/rhymeAnalyzer.js ──
+{
+/**
+ * تحليل القافية.
+ *
+ * لا قاعدة واحدة مكتوبة في هذا الملف: الحدود والأنواع وحروف الردف
+ * والتأسيس كلها تُقرأ من `data/rhyme.json`، وهذا الملف يُجري الحساب
+ * وحده. تعديل قاعدة قافية تعديلُ ذلك الملف لا هذا.
+ *
+ * يعمل على **المقاطع التي اختارها الوزن** لا على الرسم، لأن القافية
+ * حكم صوتي: الحرف المشدَّد وحدتان، والتنوين نون ساكنة، واللام الشمسية
+ * لا تُنطق، وحركة آخر الشطر تُشبَع فتصير مدًّا. كل ذلك محسوم في طبقة
+ * المقاطع قبل أن تصل إلى هنا، فلا يُعاد هنا ولا يُخالَف.
+ *
+ * وما لا يُحسم من شطر واحد يبقى مُعلنًا: الرويّ إنما يثبت بالتزام
+ * الشاعر إياه في كل بيت، والشطر الواحد يُرجَّح فيه ولا يُقطَع.
+ */
+
+const { prosodicLetters } = __M;
+
+const TEH_MARBUTA = 'ة';
 
 /**
  * يستبعد حرف الوصل من آخر الشطر ليظهر الرويّ تحته.
@@ -2686,7 +2906,7 @@ function stripWasl(letters) {
  */
 function analyzeRhyme(syllables, rules, units) {
   if (!syllables || syllables.length === 0) return null;
-  const all = lettersOf(syllables, units);
+  const all = prosodicLetters(syllables, units);
   if (!all.length) return null;
 
   const { letters, wasl } = stripWasl(all);
@@ -2755,8 +2975,16 @@ function analyzeRhyme(syllables, rules, units) {
 
   const span = letters.slice(start);
 
+  // وصف القافية: إطلاقها، ثم ردفها أو تأسيسها إن وُجد.
+  const classification = [
+    release.name,
+    ridf ? rules.ridf.qualifier : null,
+    tasees ? rules.tasees.qualifier : null,
+  ].filter(Boolean).join(' ');
+
   return {
     text: span.map((l) => l.ch).join('') + (wasl ? wasl.letter : ''),
+    classification,
     letters: span.map((l) => ({ ch: l.ch, moving: l.moving, role: l.role })),
     rawi: {
       letter: rawi.ch,
@@ -2772,7 +3000,10 @@ function analyzeRhyme(syllables, rules, units) {
     wasl,
     release: { id: release.id, name: release.name, definition: release.definition },
     type: type
-      ? { id: type.id, name: type.name, definition: type.definition || type.note, movingBetween }
+      ? {
+          id: type.id, name: type.name, feminine: type.feminine || type.name,
+          definition: type.definition || type.note, movingBetween,
+        }
       : null,
     bounds: {
       rule: rules.bounds.rule,
@@ -2823,10 +3054,11 @@ function lastIndexWhere(arr, pred, from = arr.length - 1) {
 
 const { normalize } = __M;
 const { phonemize } = __M;
-const { buildSyllableDag, freeSyllabify, edgeToSyllable } = __M;
+const { buildReadableDag, freeSyllabify, edgeToSyllable } = __M;
 const { rankMetersPartial } = __M;
 const { partialTafilaName } = __M;
 const { analyzeRhyme } = __M;
+const { prosodicLetters, splitLettersByFeet } = __M;
 const { analyzeLine } = __M;
 
 /** حالة كل تفعيلة كما تُعرض على بطاقتها. */
@@ -2841,23 +3073,29 @@ const STATE = {
  * @param {string} text
  * @param {object} engine
  */
-function analyzeHemistich(text, engine) {
+function analyzeHemistich(text, engine, options = {}) {
   const clean = String(text || '').trim();
   if (!clean) return null;
 
   const norm = normalize(clean);
   if (!norm.words.length) return null;
 
-  const { units } = phonemize(norm.words, engine.lexicon, { pausalEnd: true });
-  if (!units.length) return null;
+  const { units: raw } = phonemize(norm.words, engine.lexicon, { pausalEnd: true });
+  if (!raw.length) return null;
 
-  const dag = buildSyllableDag(units);
+  // الشاعر يكتب السكون علامةَ سرعةٍ في النطق، فيجتمع ساكنان لا يقبلان
+  // تقطيعًا. تركُ ذلك يُخرج الشاشة بيضاء عند كل حرف — فيُرخى ويُعلَن.
+  const readable = buildReadableDag(raw);
+  const units = readable.units;
+  const dag = readable.dag;
   const free = freeSyllabify(dag);
-  const partialRanking = rankMetersPartial(dag, engine.registry, engine.scorer);
+  const partialRanking = rankMetersPartial(dag, engine.registry, engine.scorer, {
+    preferRole: options.preferRole,
+  });
   const partialBest = partialRanking[0] || null;
 
   // التحليل التامّ: صوابه إن كان المكتوب شطرًا منتهيًا.
-  const full = analyzeLine(clean, engine, { repeats: [1] });
+  const full = analyzeLine(clean, engine, { repeats: [1], preferRole: options.preferRole });
   const fullIsSound = full.verdict === 'sound' || full.verdict === 'acceptable';
 
   // متى يُعرض الجزئي؟ حين يكون المكتوب **بادئة نظيفة** لبحر، أي يوافقه
@@ -2880,13 +3118,21 @@ function analyzeHemistich(text, engine) {
   const fallbackToPartial = !writing && !full.bestMeter && !!partialBest;
   const source = writing || fallbackToPartial ? 'partial' : 'full';
 
-  const cards = source === 'partial'
-    ? cardsFromPartial(partialBest, engine, units, norm.words)
-    : cardsFromFull(full, engine);
-
+  // المقاطع المعروضة هي التي اختارها التطابق المعروض نفسه، لا قراءةٌ
+  // حرّة أخرى — وإلا لم تصطفّ الحروف مع التفعيلات.
   const syllables = source === 'full'
     ? full.syllables
-    : free.syllables.map((s) => (s.weight ? s : edgeToSyllable(s)));
+    : (partialBest && partialBest.syllables.length
+        ? partialBest.syllables
+        : free.syllables.map((s) => (s.weight ? s : edgeToSyllable(s))));
+
+  // نصّ كل تفعيلة حروفُها العروضية لا كلماتُها: التفعيلة لا تقف عند
+  // حدّ الكلمة، فعرضُ الكلمات يُكرّر الواحدة في تفعيلتين. أمّا الحروف
+  // فتقع في واحدة لا غير، وتصطفّ مع الرمز حرفًا برمز.
+  const letters = prosodicLetters(syllables, units);
+  const cards = source === 'partial'
+    ? cardsFromPartial(partialBest, engine, letters)
+    : cardsFromFull(full, engine, letters);
 
   // البحور التي تساوت مع الأول في موافقة ما كُتب. أول الكتابة يوافقه
   // كثير منها، وإخفاء ذلك ادّعاء حسمٍ لم يبلغه النصّ.
@@ -2916,11 +3162,20 @@ function analyzeHemistich(text, engine) {
         },
     tied,
     cards,
+    // الكتابة العروضية حرفًا حرفًا مع رمز كل حرف — يصطفّان معًا.
+    letters: letters.map((l) => ({
+      ch: l.ch,
+      symbol: l.moving ? '/' : '0',
+      role: l.role,
+    })),
     typedSyllables: partialBest ? partialBest.typedSyllables : syllables.length,
     meterSyllables: partialBest ? partialBest.meterSyllables : null,
     brokenFeet: source === 'full' ? full.brokenFeet : [],
     rhyme: analyzeRhyme(syllables, engine.data.rhyme, units),
     assumedVocalization: dag.assumedVocalization,
+    // تشكيلٌ مكتوب لم يقبل تقطيعًا فأُرخيت سكوناته — يُقال ولا يُخفى.
+    relaxedSukun: readable.relaxed,
+    readable: readable.readable,
     verdict: full.verdict,
   };
 }
@@ -2937,7 +3192,9 @@ function analyzeLive({ sadr, ajz }, engine) {
 
   const hemistichs = parts.map((p) => ({
     ...p,
-    result: analyzeHemistich(p.text, engine),
+    // الحقل نفسه خبرٌ: ما كُتب في حقل العجز فصورة العجز أولى به
+    // عند تساوي الدرجات.
+    result: analyzeHemistich(p.text, engine, { preferRole: p.role }),
   }));
 
   const written = hemistichs.filter((h) => h.result);
@@ -2966,7 +3223,61 @@ function analyzeLive({ sadr, ajz }, engine) {
 
 /* ─────────────── بطاقات التفعيلات ─────────────── */
 
-function card(engine, { name, syllables, state, kind, variation, text, broken, dim }) {
+/** تعريف الصورة من البيانات — لا نصّ منها مكتوب في الكود. */
+function licenceOf(engine, variantId, baseName, resultName, variantName) {
+  const def = engine.data.variations.definitions?.[variantId];
+  if (!def) return null;
+  return {
+    id: variantId,
+    name: variantName,
+    category: def.category,
+    definition: def.definition,
+    from: baseName,
+    to: resultName,
+  };
+}
+
+/**
+ * التفعيلة المزيدة زيادتُها علّة وإن كانت في القاعدة تفعيلةً مستقلّة.
+ *
+ * «فاعلاتان» في هذه القاعدة تفعيلةٌ قائمة بنفسها لا صورةٌ من صور
+ * «فاعلاتن»، لأن العجز يُبنى عليها. لكنها في العروض زيادةُ ساكنٍ على
+ * فاعلاتن، وإخفاء ذلك يجعل عجز البيت يبدو بلا علّة وهو معلول.
+ *
+ * والاسم يُشتقّ ولا يُكتب: الزيادة على آخره وتد مجموع (مقطعان S ثم L)
+ * تذييلٌ، وعلى سبب خفيف تسبيغٌ.
+ */
+function addedSakinLicence(engine, tafilaId) {
+  const t = engine.registry.tafilaById.get(tafilaId);
+  if (!t || t.family !== 'mudhayyal' || !t.baseOf) return null;
+  const base = engine.registry.tafilaById.get(t.baseOf);
+  if (!base) return null;
+  const last2 = base.syllables.slice(-2).join('');
+  const id = last2 === 'SL' ? 'tadhyil' : 'tasbeegh';
+  const def = engine.data.variations.definitions?.[id];
+  if (!def) return null;
+  return {
+    id,
+    name: id === 'tadhyil' ? 'التذييل' : 'التسبيغ',
+    category: def.category,
+    definition: def.definition,
+    from: base.plain,
+    to: t.plain,
+  };
+}
+
+function cardState(engine, tafilaId, isSalim, variationName) {
+  if (!isSalim) return variationName;
+  const added = addedSakinLicence(engine, tafilaId);
+  return added ? added.name : STATE.salim;
+}
+
+function cardKind(engine, tafilaId, isSalim) {
+  if (!isSalim) return 'licensed';
+  return addedSakinLicence(engine, tafilaId) ? 'licensed' : 'salim';
+}
+
+function card(engine, { name, syllables, state, kind, variation, text, broken, dim, licence }) {
   return {
     name,
     // الرمز العروضي يُشتقّ من المقاطع بالترميز نفسه الذي يستعمله المحرك،
@@ -2976,50 +3287,61 @@ function card(engine, { name, syllables, state, kind, variation, text, broken, d
     state,
     kind: kind || null,
     variation: variation || null,
+    licence: licence || null,
     broken: !!broken,
     dim: !!dim,
   };
 }
 
-function cardsFromFull(full, engine) {
-  const threshold = engine.scorer.brokenFootThreshold;
-  return full.tafaeel.map((f) => {
+/** اسم الصورة مجرَّدًا من التشكيل — للعرض في سطر العلّة. */
+function plainName(vocalized) {
+  return [...String(vocalized)].filter((c) => !/[\u064B-\u0652\u0670]/.test(c)).join('');
+}
+
+function cardsFromFull(full, engine, letters) {
+  const texts = splitLettersByFeet(
+    letters,
+    full.tafaeel.map((f) => (f.actual === '—' ? 0 : [...f.actual].length))
+  );
+  return full.tafaeel.map((f, i) => {
     const broken = f.sound === false;
     const isSalim = !f.variation || f.variation === 'سالم';
     return card(engine, {
       name: f.tafila,
       syllables: [...f.expected],
-      state: broken ? 'مكسورة' : isSalim ? STATE.salim : f.variation,
-      kind: broken ? 'broken' : isSalim ? 'salim' : 'licensed',
+      state: broken ? 'مكسورة' : cardState(engine, f.tafilaId, isSalim, f.variation),
+      kind: broken ? 'broken' : cardKind(engine, f.tafilaId, isSalim),
       variation: isSalim ? null : f.variation,
-      text: (f.words || []).join(' ') || f.text || '',
+      licence: isSalim
+        ? addedSakinLicence(engine, f.tafilaId)
+        : licenceOf(engine, f.variationId, f.tafila, plainName(f.realized), f.variation),
+      text: texts[i] || '',
       broken,
     });
   });
 }
 
-/** الكلمات التي وقعت في مدى وحدات تفعيلة — نظير `linkFeetToWords`. */
-function wordsIn(unitSpan, units, words) {
-  if (!units || !words || !unitSpan) return '';
-  const [a, b] = unitSpan;
-  const idx = [...new Set(units.slice(a, b).map((u) => u.word))];
-  return idx.map((i) => words[i]?.text).filter(Boolean).join(' ');
-}
-
-function cardsFromPartial(best, engine, units, words) {
+function cardsFromPartial(best, engine, letters) {
   if (!best) return [];
+  const counts = best.feet.map((f) => f.actual.length);
+  if (best.partialFoot) counts.push(best.partialFoot.actual.length);
+  const texts = splitLettersByFeet(letters, counts);
   const out = [];
 
+  let i = 0;
   for (const f of best.feet) {
     const isSalim = f.variant.kind === 'salim';
     const broken = f.alignCost >= engine.scorer.brokenFootThreshold;
     out.push(card(engine, {
       name: partialTafilaName(f.variant.result, f.expected, f.expected.length),
       syllables: f.expected,
-      state: broken ? 'مكسورة' : isSalim ? STATE.salim : f.variant.name,
-      kind: broken ? 'broken' : isSalim ? 'salim' : 'licensed',
+      state: broken ? 'مكسورة' : cardState(engine, f.tafilaId, isSalim, f.variant.name),
+      kind: broken ? 'broken' : cardKind(engine, f.tafilaId, isSalim),
       variation: isSalim ? null : f.variant.name,
-      text: wordsIn(f.unitSpan, units, words),
+      licence: isSalim
+        ? addedSakinLicence(engine, f.tafilaId)
+        : licenceOf(engine, f.variant.id, f.tafila, plainName(f.variant.result), f.variant.name),
+      text: texts[i++] || '',
       broken,
     }));
   }
@@ -3032,7 +3354,7 @@ function cardsFromPartial(best, engine, units, words) {
       syllables: p.expected.slice(0, p.filled),
       state: STATE.partial,
       kind: 'partial',
-      text: wordsIn(p.unitSpan, units, words),
+      text: texts[i++] || '',
     }));
   }
 
@@ -3787,8 +4109,8 @@ const DATA = {
           "severity": 1
         },
         {
-          "id": "tadhyil",
-          "name": "التذييل",
+          "id": "tasbeegh",
+          "name": "التسبيغ",
           "result": "فَعُولَانْ",
           "syllables": [
             "S",
@@ -3910,8 +4232,8 @@ const DATA = {
           "severity": 1
         },
         {
-          "id": "tadhyil",
-          "name": "التذييل",
+          "id": "tasbeegh",
+          "name": "التسبيغ",
           "result": "مَفَاعِيلَانْ",
           "syllables": [
             "S",
@@ -4093,8 +4415,8 @@ const DATA = {
           "severity": 1
         },
         {
-          "id": "tadhyil",
-          "name": "التذييل",
+          "id": "tasbeegh",
+          "name": "التسبيغ",
           "result": "فَاعِلَاتَانْ",
           "syllables": [
             "L",
@@ -4122,8 +4444,8 @@ const DATA = {
           "severity": 1
         },
         {
-          "id": "tadhyil",
-          "name": "التذييل",
+          "id": "tasbeegh",
+          "name": "التسبيغ",
           "result": "مَفْعُولَانْ",
           "syllables": [
             "L",
@@ -4370,6 +4692,65 @@ const DATA = {
           "severity": 1
         }
       ]
+    },
+    "definitions": {
+      "_note": "تعريف كل زحاف وعلّة، مصدرها كتب العروض. مفصولة عن `variations` لأنها خاصّة بالصورة لا بالتفعيلة، فلا تُكرَّر مع كل واحدة. تُعرض في سطر العلّة تحت التفعيلات.",
+      "salim": {
+        "category": "سالمة",
+        "definition": "التفعيلة على أصلها، لم يدخلها زحاف ولا علّة"
+      },
+      "khabn": {
+        "category": "الزحاف",
+        "definition": "حذف الثاني الساكن"
+      },
+      "tayy": {
+        "category": "الزحاف",
+        "definition": "حذف الرابع الساكن"
+      },
+      "khabl": {
+        "category": "الزحاف",
+        "definition": "الخبن والطيّ معًا — حذف الثاني والرابع الساكنين"
+      },
+      "qabd": {
+        "category": "الزحاف",
+        "definition": "حذف الخامس الساكن"
+      },
+      "kaff": {
+        "category": "الزحاف",
+        "definition": "حذف السابع الساكن"
+      },
+      "shakl": {
+        "category": "الزحاف",
+        "definition": "الخبن والكفّ معًا — حذف الثاني والسابع الساكنين"
+      },
+      "qat": {
+        "category": "علل النقص",
+        "definition": "حذف ساكن الوتد المجموع وتسكين ما قبله"
+      },
+      "hadhf": {
+        "category": "علل النقص",
+        "definition": "حذف السبب الخفيف من آخر التفعيلة"
+      },
+      "batr": {
+        "category": "علل النقص",
+        "definition": "الحذف والقطع معًا"
+      },
+      "tashith": {
+        "category": "علل النقص",
+        "definition": "حذف أوّل الوتد المجموع"
+      },
+      "tadhyil": {
+        "category": "علل الزيادة",
+        "definition": "زيادة حرف ساكن على ما آخره وتد مجموع"
+      },
+      "tasbeegh": {
+        "category": "علل الزيادة",
+        "definition": "زيادة حرف ساكن على سبب خفيف"
+      },
+      "faalun_reading": {
+        "category": "قراءة",
+        "definition": "صورة تحتملها الكلمة نفسها بتشكيلين، لا زحاف فيها ولا علّة"
+      }
     }
   },
   "meters": {
@@ -5657,37 +6038,43 @@ const DATA = {
           "count": 0,
           "id": "mutaradif",
           "name": "المترادف",
-          "definition": "ساكنان متجاوران لا متحرك بينهما."
+          "definition": "ساكنان متجاوران لا متحرك بينهما.",
+          "feminine": "مترادفة"
         },
         {
           "count": 1,
           "id": "mutawatir",
           "name": "المتواتر",
-          "definition": "متحرك واحد بين الساكنين."
+          "definition": "متحرك واحد بين الساكنين.",
+          "feminine": "متواترة"
         },
         {
           "count": 2,
           "id": "mutadarik",
           "name": "المتدارك",
-          "definition": "متحركان بين الساكنين."
+          "definition": "متحركان بين الساكنين.",
+          "feminine": "متداركة"
         },
         {
           "count": 3,
           "id": "mutarakib",
           "name": "المتراكب",
-          "definition": "ثلاثة متحركات بين الساكنين."
+          "definition": "ثلاثة متحركات بين الساكنين.",
+          "feminine": "متراكبة"
         },
         {
           "count": 4,
           "id": "mutakawis",
           "name": "المتكاوس",
-          "definition": "أربعة متحركات بين الساكنين، وهو أقصى ما يقع."
+          "definition": "أربعة متحركات بين الساكنين، وهو أقصى ما يقع.",
+          "feminine": "متكاوسة"
         }
       ],
       "beyondMax": {
         "id": "unknown",
         "name": "خارج الأنواع الخمسة",
-        "note": "أكثر من أربعة متحركات بين الساكنين لا يقع في القافية العربية. وقوعه هنا يعني غالبًا أن الشطر ناقص أو أن التشكيل غير كافٍ، فلا يُسمّى نوعًا مخترعًا."
+        "note": "أكثر من أربعة متحركات بين الساكنين لا يقع في القافية العربية. وقوعه هنا يعني غالبًا أن الشطر ناقص أو أن التشكيل غير كافٍ، فلا يُسمّى نوعًا مخترعًا.",
+        "feminine": "خارج الأنواع الخمسة"
       }
     },
     "release": {
@@ -5725,11 +6112,13 @@ const DATA = {
         "و",
         "ي"
       ],
-      "note": "لا ردف إلا بمدّ أو لين ملاصق للرويّ؛ فإن فصل بينهما حرف فليس بردف."
+      "note": "لا ردف إلا بمدّ أو لين ملاصق للرويّ؛ فإن فصل بينهما حرف فليس بردف.",
+      "qualifier": "مردوفة"
     },
     "tasees": {
       "rule": "التأسيس ألف بينها وبين الرويّ حرف واحد متحرك يسمّى الدخيل.",
-      "letter": "ا"
+      "letter": "ا",
+      "qualifier": "مؤسَّسة"
     },
     "nabatiSpecific": {
       "status": "NEEDS_VALIDATION",
@@ -5743,6 +6132,10 @@ const DATA = {
         "قصيدة نبطية كاملة (٦ أبيات فأكثر) مع بيان رويّها",
         "أمثلة على قافية مقيَّدة وأخرى مطلقة من الشعر النبطي"
       ]
+    },
+    "classification": {
+      "rule": "توصف القافية بإطلاقها أوّلًا، ثم بردفها أو تأسيسها إن وُجد: «مقيَّدة مردوفة»، «مطلقة مؤسَّسة».",
+      "note": "هذا وصفها لا حدُّها. وحدُّها عدد المتحركات بين ساكنيها — انظر types."
     }
   },
   "goldenCases": {
@@ -5984,6 +6377,48 @@ $('#samples').addEventListener('click', (e) => {
   render();
 });
 
+/* ---------------- شريط التشكيل ---------------- */
+
+/**
+ * دقّة الوزن مقيَّدة بتشكيل ما يُكتب — هذا مذكور في كل توثيق المشروع.
+ * ولوحة مفاتيح الهاتف تُخفي الحركات خلف ضغطة مطوّلة، فتُترك الكتابة
+ * مجرّدة ويُترك المحرك يخمّن. فالشريط ليس زينة: هو ما يجعل التشكيل
+ * ممكنًا أصلًا على الجهاز الذي يُكتب عليه.
+ */
+const MARKS = [
+  ['َ', 'فتحة'], ['ُ', 'ضمة'], ['ِ', 'كسرة'],
+  ['ْ', 'سكون'], ['ّ', 'شدة'],
+  ['ً', 'تنوين فتح'], ['ٌ', 'تنوين ضم'], ['ٍ', 'تنوين كسر'],
+  ['آ', 'آ'], ['أ', 'أ'], ['إ', 'إ'], ['ة', 'ة'], ['ى', 'ى'],
+];
+
+$('#marks').innerHTML = MARKS.map(
+  ([ch, label]) =>
+    `<button type="button" data-ch="${ch}" title="${esc(label)}" aria-label="${esc(label)}">` +
+    `<span class="mark-glyph">ـ${ch}</span></button>`
+).join('');
+
+/** آخر حقل لمسه المستخدم — الشريط يكتب فيه. */
+let activeField = null;
+for (const id of ['#sadr', '#ajz']) {
+  $(id).addEventListener('focus', () => { activeField = $(id); });
+}
+
+$('#marks').addEventListener('mousedown', (e) => e.preventDefault());
+$('#marks').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  const field = activeField || $('#sadr');
+  const ch = b.dataset.ch;
+  const start = field.selectionStart ?? field.value.length;
+  const end = field.selectionEnd ?? field.value.length;
+  field.value = field.value.slice(0, start) + ch + field.value.slice(end);
+  const caret = start + ch.length;
+  field.focus();
+  field.setSelectionRange(caret, caret);
+  render();
+});
+
 /* ---------------- التحليل اللحظي ---------------- */
 
 const VERDICT_LABEL = {
@@ -6067,7 +6502,7 @@ function renderLive(r) {
 
 function renderHemistich(h) {
   const x = h.result;
-  const licensed = x.cards.filter((c) => c.kind === 'licensed');
+  const licences = x.cards.map((c) => c.licence).filter(Boolean);
   const broken = x.cards.filter((c) => c.kind === 'broken');
 
   return `<div class="panel">
@@ -6078,15 +6513,23 @@ function renderHemistich(h) {
       ${x.complete ? '' : '<span class="badge writing">قيد الكتابة</span>'}
     </div>
 
+    ${x.letters && x.letters.length ? `<div class="glyphs">${x.letters.map(
+      (l) => `<span class="glyph"><b>${esc(l.ch)}</b><i>${l.symbol}</i></span>`
+    ).join('')}</div>` : ''}
+
     <div class="feet">${x.cards.map(footCard).join('')}</div>
 
-    ${licensed.length ? `<div class="licence">
-      <span class="licence-key">الزحافات والعلل</span>
-      ${licensed.map((c) => `<span class="licence-item">${esc(c.name)}: ${esc(c.variation)}</span>`).join('')}
-    </div>` : ''}
+    ${licences.map((L) => `<div class="licence">
+      ${[L.name, L.category, L.definition, `${L.from} : ${L.to}`].map(esc).join(' - ')}
+    </div>`).join('')}
 
     ${broken.length ? `<div class="note warn">
       موضع الكسر: ${broken.map((c) => esc(c.name)).join('، ')}
+    </div>` : ''}
+
+    ${x.relaxedSukun ? `<div class="note warn">
+      التشكيل المكتوب لا يقبل تقطيعًا (التقاء ساكنين)، فأُرخيت
+      ${x.relaxedSukun} من سكوناته لتُقرأ. النتيجة على القراءة المُرخاة.
     </div>` : ''}
 
     ${x.rhyme ? renderRhyme(x.rhyme) : ''}
@@ -6107,23 +6550,19 @@ function footCard(c) {
 }
 
 function renderRhyme(q) {
-  const rows = [
-    ['الرويّ', q.rawi ? q.rawi.letter : null],
-    ['الوصل', q.wasl ? q.wasl.letter : null],
-    ['الردف', q.ridf ? q.ridf.letter : null],
-    ['التأسيس', q.tasees ? `${q.tasees.letter} — الدخيل ${q.tasees.dakheel}` : null],
-    ['النوع', q.type ? q.type.name : null],
-    ['الإطلاق', q.release ? q.release.name : null],
-    ['حدودها', q.text || null],
-  ];
+  // أسماء الحقول كما هي في عُرف الوزّانين: «نوع القافية» وصفُها
+  // بإطلاقها وردفها، و«حدودها» عددُ المتحركات بين ساكنيها.
+  const parts = [`الرويّ - ${q.rawi ? q.rawi.letter : '—'}`];
+  if (q.ridf) parts.push(`الردف - ${q.ridf.letter}`);
+  if (q.tasees) parts.push(`التأسيس - ${q.tasees.letter}، الدخيل - ${q.tasees.dakheel}`);
+  if (q.wasl) parts.push(`الوصل - ${q.wasl.letter}`);
+
   return `<div class="rhyme">
-    <div class="rhyme-title">القافية</div>
-    <div class="rhyme-grid">
-      ${rows.map(([k, v]) => `<div class="rhyme-cell">
-        <span class="rhyme-key">${esc(k)}</span>
-        <span class="rhyme-val${v ? '' : ' none'}">${v ? esc(v) : 'لا يوجد'}</span>
-      </div>`).join('')}
-    </div>
+    <div class="rhyme-line"><span class="rhyme-key">القافية</span> ${esc(parts.join('، '))}</div>
+    <div class="rhyme-line"><span class="rhyme-key">نوع القافية</span> ${esc(q.classification || '—')}</div>
+    <div class="rhyme-line"><span class="rhyme-key">حدودها</span> ${esc(q.type ? q.type.feminine : '—')}${
+      q.text ? ` <span class="rhyme-span">${esc(q.text)}</span>` : ''
+    }</div>
     ${q.wasl ? `<p class="rhyme-note">${esc(q.wasl.letter)} حرف وصل — ${esc(q.wasl.reason)} — فلا يُحسب رويًّا.</p>` : ''}
     ${q.rawi && q.rawi.caution ? `<p class="rhyme-note">قد تكون «${esc(q.rawi.letter)}» حرف وصل لا رويًّا إن كانت ${esc(q.rawi.caution)}</p>` : ''}
     ${q.assumedVocalization ? '<p class="rhyme-note">النصّ غير مشكول بالكامل، فالقافية محسوبة على القراءة التي قبِلها الوزن.</p>' : ''}

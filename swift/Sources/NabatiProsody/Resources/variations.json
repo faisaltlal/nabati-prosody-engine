@@ -58,8 +58,8 @@
         "severity": 1
       },
       {
-        "id": "tadhyil",
-        "name": "التذييل",
+        "id": "tasbeegh",
+        "name": "التسبيغ",
         "result": "فَعُولَانْ",
         "syllables": [
           "S",
@@ -181,8 +181,8 @@
         "severity": 1
       },
       {
-        "id": "tadhyil",
-        "name": "التذييل",
+        "id": "tasbeegh",
+        "name": "التسبيغ",
         "result": "مَفَاعِيلَانْ",
         "syllables": [
           "S",
@@ -364,8 +364,8 @@
         "severity": 1
       },
       {
-        "id": "tadhyil",
-        "name": "التذييل",
+        "id": "tasbeegh",
+        "name": "التسبيغ",
         "result": "فَاعِلَاتَانْ",
         "syllables": [
           "L",
@@ -393,8 +393,8 @@
         "severity": 1
       },
       {
-        "id": "tadhyil",
-        "name": "التذييل",
+        "id": "tasbeegh",
+        "name": "التسبيغ",
         "result": "مَفْعُولَانْ",
         "syllables": [
           "L",
@@ -641,5 +641,64 @@
         "severity": 1
       }
     ]
+  },
+  "definitions": {
+    "_note": "تعريف كل زحاف وعلّة، مصدرها كتب العروض. مفصولة عن `variations` لأنها خاصّة بالصورة لا بالتفعيلة، فلا تُكرَّر مع كل واحدة. تُعرض في سطر العلّة تحت التفعيلات.",
+    "salim": {
+      "category": "سالمة",
+      "definition": "التفعيلة على أصلها، لم يدخلها زحاف ولا علّة"
+    },
+    "khabn": {
+      "category": "الزحاف",
+      "definition": "حذف الثاني الساكن"
+    },
+    "tayy": {
+      "category": "الزحاف",
+      "definition": "حذف الرابع الساكن"
+    },
+    "khabl": {
+      "category": "الزحاف",
+      "definition": "الخبن والطيّ معًا — حذف الثاني والرابع الساكنين"
+    },
+    "qabd": {
+      "category": "الزحاف",
+      "definition": "حذف الخامس الساكن"
+    },
+    "kaff": {
+      "category": "الزحاف",
+      "definition": "حذف السابع الساكن"
+    },
+    "shakl": {
+      "category": "الزحاف",
+      "definition": "الخبن والكفّ معًا — حذف الثاني والسابع الساكنين"
+    },
+    "qat": {
+      "category": "علل النقص",
+      "definition": "حذف ساكن الوتد المجموع وتسكين ما قبله"
+    },
+    "hadhf": {
+      "category": "علل النقص",
+      "definition": "حذف السبب الخفيف من آخر التفعيلة"
+    },
+    "batr": {
+      "category": "علل النقص",
+      "definition": "الحذف والقطع معًا"
+    },
+    "tashith": {
+      "category": "علل النقص",
+      "definition": "حذف أوّل الوتد المجموع"
+    },
+    "tadhyil": {
+      "category": "علل الزيادة",
+      "definition": "زيادة حرف ساكن على ما آخره وتد مجموع"
+    },
+    "tasbeegh": {
+      "category": "علل الزيادة",
+      "definition": "زيادة حرف ساكن على سبب خفيف"
+    },
+    "faalun_reading": {
+      "category": "قراءة",
+      "definition": "صورة تحتملها الكلمة نفسها بتشكيلين، لا زحاف فيها ولا علّة"
+    }
   }
 }

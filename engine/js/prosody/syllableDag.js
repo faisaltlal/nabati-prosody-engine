@@ -59,6 +59,8 @@ function codaAllowed(onset, coda, isWordInitial) {
   return isWordInitial && coda.vowel.known && coda.vowel.length === 'none';
 }
 
+import { relaxWrittenSukun } from '../phonology/phonemizer.js';
+
 /**
  * @param {object[]} units
  * @param {{ ishbaa?: boolean }} [options]
@@ -148,6 +150,49 @@ export function buildSyllableDag(units, options = {}) {
   }
 
   return { edges, size: n, assumedVocalization: assumed };
+}
+
+/**
+ * هل في المخطّط مسار كامل من أوله إلى آخره؟
+ *
+ * قد لا يكون: تشكيلٌ يجمع ساكنَين لا يقبل تقطيعًا أصلًا («ذكْرْتك»)،
+ * لأن المقطع لا يبدأ بساكن. والمخطّط حينها فارغ من المسارات، فتخرج
+ * الشاشة بيضاء بلا خبر — وهذا أسوأ ما يقع في واجهةٍ تُحلّل عند كل
+ * ضغطة مفتاح.
+ */
+export function hasCompletePath(dag) {
+  const n = dag.size;
+  if (n === 0) return false;
+  const reach = new Array(n + 1).fill(false);
+  reach[n] = true;
+  for (let u = n - 1; u >= 0; u--) {
+    for (const e of dag.edges[u] || []) {
+      if (reach[e.to]) { reach[u] = true; break; }
+    }
+  }
+  return reach[0];
+}
+
+/**
+ * يبني مخطّطًا **قابلًا للقراءة** دائمًا.
+ *
+ * إن كان التشكيل المكتوب لا يقبل تقطيعًا البتّة، أُرخيت سكوناتُ
+ * الكاتب وأُعيد البناء، وأُعلن ذلك في `relaxed`. فلا تخرج الشاشة
+ * بيضاء، ولا يُدَّعى في الوقت نفسه أن النصّ قُرئ كما كُتب.
+ *
+ * @returns {{dag:object, units:object[], relaxed:number, readable:boolean}}
+ */
+export function buildReadableDag(units, options = {}) {
+  const dag = buildSyllableDag(units, options);
+  if (hasCompletePath(dag)) return { dag, units, relaxed: 0, readable: true };
+
+  const { units: relaxedUnits, relaxed } = relaxWrittenSukun(units);
+  const retry = buildSyllableDag(relaxedUnits, options);
+  if (hasCompletePath(retry)) {
+    return { dag: retry, units: relaxedUnits, relaxed, readable: true };
+  }
+  // لا مسار حتى بعد الإرخاء — يُرجَع الأصل ويُعلَن أنه غير مقروء.
+  return { dag, units, relaxed: 0, readable: false };
 }
 
 /** كل المسارات الكاملة عبر المخطّط، بسقف يمنع الانفجار. */

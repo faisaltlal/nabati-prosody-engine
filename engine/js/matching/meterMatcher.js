@@ -230,13 +230,26 @@ export function rankMeters(dag, registry, scorer, options = {}) {
       for (const forms of formCombinations(formCount, repeat)) {
         const r = matchMeter(dag, meter, scorer, { repeat, forms, cache: cache || false });
         if (!r || !r.matched) continue;
-        if (!bestForMeter || r.score > bestForMeter.score) bestForMeter = r;
+        if (!bestForMeter || betterForm(r, bestForMeter, options.preferRole)) bestForMeter = r;
       }
     }
     if (bestForMeter) results.push(bestForMeter);
   }
 
-  results.sort((a, b) => b.score - a.score || a.meterId.localeCompare(b.meterId));
+  // عند تساوي الدرجة يُقدَّم الأسبق في قائمة المصدر.
+  //
+  // كان الترجيح بترتيب المعرّف أبجديًّا، وهو لا يدلّ على شيء: يُقدّم
+  // `al_baseet_1` على `al_maskhub` لأن الباء قبل الميم لا غير. وترتيب
+  // القائمة دلالةٌ حقيقية — صاحبها قدّم المسحوب على سائر البحور —
+  // فاتّباعه أولى من اتّباع الهجاء.
+  //
+  // ولا يُخفي هذا التعادلَ: البحور المتساوية تبقى معلَنة في `ambiguity`.
+  results.sort(
+    (a, b) =>
+      b.score - a.score ||
+      sourceOrder(registry, a.meterId) - sourceOrder(registry, b.meterId) ||
+      a.meterId.localeCompare(b.meterId)
+  );
   return results;
 }
 
@@ -259,4 +272,22 @@ function formCombinations(formCount, repeat) {
 
 function round(x) {
   return Math.round(x * 1e6) / 1e6;
+}
+
+/**
+ * عند تساوي الدرجتين تُرجَّح الصيغة الموافقة للحقل المكتوب فيه:
+ * ما كُتب في حقل العجز فصورة العجز أولى به. والأعلى درجةً يفوز دائمًا،
+ * فلا يُتجاوَز الوزن — الترجيح عند التساوي وحده.
+ */
+function betterForm(candidate, current, preferRole) {
+  if (candidate.score > current.score + 1e-12) return true;
+  if (candidate.score < current.score - 1e-12) return false;
+  if (!preferRole) return false;
+  return candidate.formRole === preferRole && current.formRole !== preferRole;
+}
+
+/** موضع البحر في قائمة المصدر — به يُرجَّح عند تساوي الدرجات. */
+function sourceOrder(registry, meterId) {
+  const m = registry.byId.get(meterId);
+  return m && Number.isFinite(m.sourceIndex) ? m.sourceIndex : Number.MAX_SAFE_INTEGER;
 }

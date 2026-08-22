@@ -4,7 +4,7 @@
 
 import { normalize, splitHemistichs } from '../text/normalizer.js';
 import { phonemize } from '../phonology/phonemizer.js';
-import { buildSyllableDag, freeSyllabify, edgeToSyllable } from '../prosody/syllableDag.js';
+import { buildReadableDag, freeSyllabify, edgeToSyllable } from '../prosody/syllableDag.js';
 import { rankMeters } from '../matching/meterMatcher.js';
 
 /** يبني الكتابة العروضية من الوحدات — النصّ كما يُنطق لا كما يُرسم. */
@@ -27,15 +27,20 @@ function prosodicSpelling(units) {
 
 function analyzeUnit(text, engine, options) {
   const norm = normalize(text, options.normalize);
-  const { units, trace } = phonemize(norm.words, engine.lexicon, {
+  const { units: raw, trace } = phonemize(norm.words, engine.lexicon, {
     pausalEnd: options.pausalEnd !== false,
   });
-  const dag = buildSyllableDag(units, options.dag);
+  // تشكيلٌ لا يقبل تقطيعًا (ساكنان متتاليان) يُرخى ويُعلَن، ولا يُترك
+  // فيخرج التحليل فارغًا.
+  const readable = buildReadableDag(raw, options.dag);
+  const units = readable.units;
+  const dag = readable.dag;
   const free = freeSyllabify(dag);
   const ranking = rankMeters(dag, engine.registry, engine.scorer, {
     repeats: options.repeats || [1],
+    preferRole: options.preferRole,
   });
-  return { norm, units, phonTrace: trace, dag, free, ranking };
+  return { norm, units, phonTrace: trace, dag, free, ranking, readable };
 }
 
 /** يستخرج المقاطع الفعلية التي اختارها البحر الفائز. */
@@ -57,8 +62,11 @@ function linkFeetToWords(match, units, words, brokenThreshold) {
       footIndex: f.footIndex,
       hemistich: f.hemistich,
       tafila: f.tafila,
+      tafilaId: f.tafilaId,
       realized: f.variant.result,
       variation: f.variant.name,
+      // معرّف الصورة لا اسمها: التعريف يُقرأ به من البيانات.
+      variationId: f.variant.id,
       variationKind: f.variant.kind,
       expected: f.expected.join(''),
       actual: f.actual.join('') || '—',
@@ -147,7 +155,7 @@ export function analyzeLine(input, engine, options = {}) {
       confidence: r.confidence, verdict: r.verdict, repeat: r.repeat,
     }));
 
-  const { norm, units, dag, free, phonTrace } = unitsAnalysis;
+  const { norm, units, dag, free, phonTrace, readable } = unitsAnalysis;
   const chosenSyllables = mode === 'single' && best
     ? syllablesFromMatch(best)
     : free.syllables;
@@ -165,6 +173,9 @@ export function analyzeLine(input, engine, options = {}) {
       hasDiacritics: norm.hasDiacritics,
       coverage: norm.vocalizationCoverage,
       assumed: dag.assumedVocalization,
+      // سكونات أُرخيت لأن التشكيل المكتوب لا يقبل تقطيعًا.
+      relaxedSukun: readable ? readable.relaxed : 0,
+      readable: readable ? readable.readable : true,
       note: dag.assumedVocalization
         ? 'النصّ غير مشكول بالكامل، فالتقطيع المعروض هو القراءة التي يقبلها الوزن الفائز، لا قراءة يقينية.'
         : 'النصّ مشكول بما يكفي لتقطيع قاطع.',
