@@ -3847,16 +3847,26 @@ const { matchMeter, rankMeters } = __M;
  */
 function tafilaVocalizations(data) {
   const strip = (s) => [...s].filter((c) => !/[\u064B-\u0652\u0670]/.test(c)).join('');
-  const seen = new Map();
-  const add = (vocalized) => {
-    const plain = strip(vocalized);
-    if (!seen.has(plain)) seen.set(plain, new Set());
-    seen.get(plain).add(vocalized);
-  };
-  for (const t of data.tafaeel.tafaeel) add(t.vocalized);
-  for (const list of Object.values(data.variations.variations)) {
-    for (const v of list) add(v.result);
+  // اسم التفعيلة القائمة أولى من صورةٍ لغيرها: «فعلن» تفعيلةٌ في
+  // القاعدة نطقها فَعْلُنْ، وهي أيضًا صورةُ «فاعلن» مخبونةً فَعِلُنْ.
+  // فمن كتب «فعلن» أراد التفعيلة، والصورة تُبلَغ من طريق أصلها.
+  const byTafila = new Map();
+  for (const t of data.tafaeel.tafaeel) {
+    if (!byTafila.has(t.plain)) byTafila.set(t.plain, new Set());
+    byTafila.get(t.plain).add(t.vocalized);
   }
+
+  const seen = new Map();
+  for (const list of Object.values(data.variations.variations)) {
+    for (const v of list) {
+      const plain = strip(v.result);
+      if (byTafila.has(plain)) continue; // للتفعيلة القائمة السبق
+      if (!seen.has(plain)) seen.set(plain, new Set());
+      seen.get(plain).add(v.result);
+    }
+  }
+  for (const [plain, forms] of byTafila) seen.set(plain, forms);
+
   const out = {};
   for (const [plain, forms] of seen) {
     if (forms.size === 1) out[plain] = [...forms][0]; // ما احتمل نطقين يُترك
@@ -4145,19 +4155,6 @@ const DATA = {
         "family": "base"
       },
       {
-        "id": "failun_short",
-        "plain": "فعلن",
-        "vocalized": "فَعِلُنْ",
-        "syllables": [
-          "S",
-          "S",
-          "L"
-        ],
-        "khalilLetters": "1110",
-        "family": "base",
-        "note": "الرسم «فعلن» يحتمل فَعِلُنْ وفَعْلُنْ — التمييز صورةٌ في variations لا تفعيلتان."
-      },
-      {
         "id": "faalun",
         "plain": "فعلن",
         "vocalized": "فَعْلُنْ",
@@ -4312,15 +4309,15 @@ const DATA = {
       {
         "id": "failan_short",
         "plain": "فعلان",
-        "vocalized": "فَعِلَانْ",
+        "vocalized": "فَعْلَانْ",
         "syllables": [
-          "S",
-          "S",
+          "L",
           "X"
         ],
-        "khalilLetters": "11100",
+        "khalilLetters": "10100",
         "family": "mudhayyal",
-        "baseOf": "failun_short"
+        "baseOf": "faalun",
+        "note": "تسبيغ «فعلن». ولمّا كانت «فعلن» فَعْلُنْ (/0/0) كانت مزيدتُها فَعْلَانْ (/0/00) لا فَعِلَانْ. ويشهد له عجز «الرجز - طرق 1»: صدره «… فعلن» وعجزه «… مفعول» — ومفعول تسبيغُ فَعْلُنْ."
       }
     ]
   },
@@ -4762,46 +4759,6 @@ const DATA = {
           "severity": 1
         }
       ],
-      "failun_short": [
-        {
-          "id": "salim",
-          "name": "سالم",
-          "result": "فَعِلُنْ",
-          "syllables": [
-            "S",
-            "S",
-            "L"
-          ],
-          "kind": "salim",
-          "scope": "any",
-          "severity": 1
-        },
-        {
-          "id": "faalun_reading",
-          "name": "قراءة فَعْلُنْ",
-          "result": "فَعْلُنْ",
-          "syllables": [
-            "L",
-            "L"
-          ],
-          "kind": "ambiguous_reading",
-          "scope": "any",
-          "severity": 1
-        },
-        {
-          "id": "tadhyil",
-          "name": "التذييل",
-          "result": "فَعِلَانْ",
-          "syllables": [
-            "S",
-            "S",
-            "X"
-          ],
-          "kind": "illa",
-          "scope": "arud_darb",
-          "severity": 1
-        }
-      ],
       "faalun": [
         {
           "id": "salim",
@@ -4986,10 +4943,9 @@ const DATA = {
         {
           "id": "salim",
           "name": "سالم",
-          "result": "فَعِلَانْ",
+          "result": "فَعْلَانْ",
           "syllables": [
-            "S",
-            "S",
+            "L",
             "X"
           ],
           "kind": "salim",
@@ -5438,7 +5394,7 @@ const DATA = {
             "feet": [
               "mafulun",
               "mafailun",
-              "failun_short"
+              "faalun"
             ],
             "sourceQuote": "مفعولن مفاعيلن فعلن"
           },
@@ -5447,12 +5403,12 @@ const DATA = {
             "feet": [
               "mafulun",
               "mafailun",
-              "failun_short"
+              "faalun"
             ],
             "sourceQuote": "مفعولن مفاعيلن فعلن"
           }
         ],
-        "expectedSyllableCount": 10,
+        "expectedSyllableCount": 9,
         "status": "OK",
         "note": "الصدر والعجز متطابقان في المصدر — لا تذييل."
       },
@@ -5786,7 +5742,7 @@ const DATA = {
             "feet": [
               "mustafilun",
               "mustafilun",
-              "failun_short"
+              "faalun"
             ],
             "sourceQuote": "مستفعلن مستفعلن فعلن"
           },
@@ -5800,7 +5756,7 @@ const DATA = {
             "sourceQuote": "مستفعلن مستفعلن مفعول"
           }
         ],
-        "expectedSyllableCount": 11,
+        "expectedSyllableCount": 10,
         "status": "OK"
       },
       {
@@ -5818,7 +5774,7 @@ const DATA = {
               "mustafilun",
               "failun",
               "mustafilun",
-              "failun_short"
+              "faalun"
             ],
             "sourceQuote": "مستفعلن فاعلن مستفعلن فعلن"
           },
@@ -5833,7 +5789,7 @@ const DATA = {
             "sourceQuote": "مستفعلن فاعلن مستفعلن فعلان"
           }
         ],
-        "expectedSyllableCount": 14,
+        "expectedSyllableCount": 13,
         "status": "OK",
         "note": "دُمج من مدخلين وردا في القائمة بالوزن نفسه: «البسيط» (السطر الأخير) و«غير مصنف - 4» بعد تصحيحه. أكّد المستخدم أنهما واحد وأعطى سطر العجز. وصف «طرق 2» تسمية تمييز أضفتُها لأن «البسيط» و«البسيط - طرق 1» مأخوذان؛ الاسمان المصدريان محفوظان: «البسيط» في التسمية و«غير مصنف - 4» في aliases."
       },
@@ -5929,7 +5885,7 @@ const DATA = {
               "failatun",
               "failun",
               "failatun",
-              "failun_short"
+              "faalun"
             ],
             "sourceQuote": "فاعلاتن فاعلن فاعلاتن فعلن"
           },
@@ -5939,12 +5895,12 @@ const DATA = {
               "failatun",
               "failun",
               "failatun",
-              "failun_short"
+              "faalun"
             ],
             "sourceQuote": "فاعلاتن فاعلن فاعلاتن فعلن"
           }
         ],
-        "expectedSyllableCount": 14,
+        "expectedSyllableCount": 13,
         "status": "OK",
         "note": "الصدر والعجز متطابقان في المصدر — لا تذييل."
       },

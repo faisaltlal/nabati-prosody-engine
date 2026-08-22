@@ -685,15 +685,24 @@ describe('أسماء التفعيلات نطقها مقرَّر في البيا�
     // ولا تُثبَّت قائمةُ الملتبس، فهي تتغيّر بتصحيح البيانات: «فعول»
     // كانت ملتبسة حتى صُحّح رسم حذف فعولن.
     const strip = (s) => [...s].filter((c) => !/[ً-ْٰ]/.test(c)).join('');
+
+    // اسم التفعيلة القائمة أولى من صورةٍ لغيرها: «فعلن» تفعيلةٌ نطقها
+    // فَعْلُنْ، وهي أيضًا صورةُ «فاعلن» مخبونةً فَعِلُنْ. فمن كتبها
+    // أراد التفعيلة، والصورة تُبلَغ من طريق أصلها.
     const forms = new Map();
-    const add = (v) => {
-      const p = strip(v);
+    for (const t of DATA.tafaeel.tafaeel) {
+      const p = strip(t.vocalized);
       if (!forms.has(p)) forms.set(p, new Set());
-      forms.get(p).add(v);
-    };
-    for (const t of DATA.tafaeel.tafaeel) add(t.vocalized);
+      forms.get(p).add(t.vocalized);
+    }
+    const claimed = new Set(forms.keys());
     for (const list of Object.values(DATA.variations.variations)) {
-      for (const v of list) add(v.result);
+      for (const v of list) {
+        const p = strip(v.result);
+        if (claimed.has(p)) continue;
+        if (!forms.has(p)) forms.set(p, new Set());
+        forms.get(p).add(v.result);
+      }
     }
 
     const map = engine.lexicon.tafilaVocalizations;
@@ -707,7 +716,9 @@ describe('أسماء التفعيلات نطقها مقرَّر في البيا�
     }
     equal(map['مستفعلن'], 'مُسْتَفْعِلُنْ');
     equal(map['فاعلاتن'], 'فَاعِلَاتُنْ');
-    assert(!('فعلن' in map), '«فعلن» تفعيلتان مختلفتان فلا يُفرض لها نطق');
+    // «فعلن» تفعيلةٌ قائمة نطقها فَعْلُنْ، فهي قاطعة رغم أن «فَعِلُنْ»
+    // صورةٌ لـ«فاعلن» تتجرّد إلى الرسم نفسه.
+    equal(map['فعلن'], 'فَعْلُنْ');
   });
 
   it('كل ما فيها مأخوذ من البيانات لا مكتوب في الكود', () => {

@@ -393,3 +393,54 @@ describe('ما اتّحد نمطه فهو تفعيلة واحدة مهما تع�
     }
   });
 });
+
+/* ═════════════════ العجز = الصدر + ساكن ═════════════════ */
+
+describe('بنية الصدر والعجز', () => {
+  // المبدأ الناظم لهذه القاعدة: العجز هو الصدر نفسه مع زيادة ساكن في
+  // آخر تفعيلة. وهو الذي كشف أن «فعلن» فَعْلُنْ لا فَعِلُنْ: صدر
+  // «الرجز - طرق 1» ينتهي بـ«فعلن» وعجزه بـ«مفعول» — ومفعول تسبيغُ
+  // فَعْلُنْ (LL ← LX)، ولا يكون تسبيغًا لـفَعِلُنْ (SSL).
+  //
+  // وثلاثة بحور تخالفه، وهي منقولة عن المصدر حرفيًّا فلم تُغيَّر.
+  // تُثبَّت هنا بأسمائها كي لا يزيد عليها غيرها بصمت.
+  const EXCEPTIONS = new Set([
+    'الرجز القصير - طرق 1',   // عجزه أقصر: مفعولن ← مفعول
+    'البسيط - طرق 1',          // عجزه أطول بسبب كامل: مستفعلن ← مستفعلاتن
+    'الرجز القصير - طرق 2',   // عجزه أقصر: فعل ← فع
+  ]);
+
+  it('عجز كل بحر هو صدره مع زيادة ساكن، إلا ما اسْتُثني', () => {
+    const unexpected = [];
+    let plusSakin = 0;
+    for (const m of engine.registry.enabled) {
+      if (m.forms.length < 2) continue;
+      const [sadr, ajz] = m.forms.map((f) => f.pattern.join(''));
+      if (sadr === ajz) continue; // المصدر سوّى بين شطريه
+      const grew =
+        sadr.length === ajz.length &&
+        sadr.slice(0, -1) === ajz.slice(0, -1) &&
+        ((sadr.endsWith('L') && ajz.endsWith('X')) ||
+         (sadr.endsWith('S') && ajz.endsWith('L')));
+      if (grew) { plusSakin++; continue; }
+      if (!EXCEPTIONS.has(m.name)) unexpected.push(`${m.name}: ${sadr} → ${ajz}`);
+    }
+    equal(unexpected.join(' | '), '', 'بحر يخالف بنية الصدر والعجز بلا استثناء معلَن');
+    atLeast(plusSakin, 20, 'أكثر البحور يجب أن تتبع البنية');
+  });
+
+  it('كل استثناء معلَن موجود فعلًا', () => {
+    // استثناءٌ يبقى بعد أن يُصحَّح سببه يُخفي عودة الخلل.
+    for (const name of EXCEPTIONS) {
+      const m = engine.registry.find(name);
+      assert(m, `استثناء لبحر غير موجود: ${name}`);
+      const [sadr, ajz] = m.forms.map((f) => f.pattern.join(''));
+      const grew =
+        sadr.length === ajz.length &&
+        sadr.slice(0, -1) === ajz.slice(0, -1) &&
+        ((sadr.endsWith('L') && ajz.endsWith('X')) ||
+         (sadr.endsWith('S') && ajz.endsWith('L')));
+      assert(sadr !== ajz && !grew, `${name} لم يعد مخالفًا فليُحذف من الاستثناءات`);
+    }
+  });
+});

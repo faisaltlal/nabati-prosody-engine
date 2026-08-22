@@ -93,19 +93,6 @@
       "family": "base"
     },
     {
-      "id": "failun_short",
-      "plain": "فعلن",
-      "vocalized": "فَعِلُنْ",
-      "syllables": [
-        "S",
-        "S",
-        "L"
-      ],
-      "khalilLetters": "1110",
-      "family": "base",
-      "note": "الرسم «فعلن» يحتمل فَعِلُنْ وفَعْلُنْ — التمييز صورةٌ في variations لا تفعيلتان."
-    },
-    {
       "id": "faalun",
       "plain": "فعلن",
       "vocalized": "فَعْلُنْ",
@@ -260,15 +247,15 @@
     {
       "id": "failan_short",
       "plain": "فعلان",
-      "vocalized": "فَعِلَانْ",
+      "vocalized": "فَعْلَانْ",
       "syllables": [
-        "S",
-        "S",
+        "L",
         "X"
       ],
-      "khalilLetters": "11100",
+      "khalilLetters": "10100",
       "family": "mudhayyal",
-      "baseOf": "failun_short"
+      "baseOf": "faalun",
+      "note": "تسبيغ «فعلن». ولمّا كانت «فعلن» فَعْلُنْ (/0/0) كانت مزيدتُها فَعْلَانْ (/0/00) لا فَعِلَانْ. ويشهد له عجز «الرجز - طرق 1»: صدره «… فعلن» وعجزه «… مفعول» — ومفعول تسبيغُ فَعْلُنْ."
     }
   ]
 }

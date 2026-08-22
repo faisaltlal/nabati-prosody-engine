@@ -374,7 +374,7 @@
           "feet": [
             "mafulun",
             "mafailun",
-            "failun_short"
+            "faalun"
           ],
           "sourceQuote": "مفعولن مفاعيلن فعلن"
         },
@@ -383,12 +383,12 @@
           "feet": [
             "mafulun",
             "mafailun",
-            "failun_short"
+            "faalun"
           ],
           "sourceQuote": "مفعولن مفاعيلن فعلن"
         }
       ],
-      "expectedSyllableCount": 10,
+      "expectedSyllableCount": 9,
       "status": "OK",
       "note": "الصدر والعجز متطابقان في المصدر — لا تذييل."
     },
@@ -722,7 +722,7 @@
           "feet": [
             "mustafilun",
             "mustafilun",
-            "failun_short"
+            "faalun"
           ],
           "sourceQuote": "مستفعلن مستفعلن فعلن"
         },
@@ -736,7 +736,7 @@
           "sourceQuote": "مستفعلن مستفعلن مفعول"
         }
       ],
-      "expectedSyllableCount": 11,
+      "expectedSyllableCount": 10,
       "status": "OK"
     },
     {
@@ -754,7 +754,7 @@
             "mustafilun",
             "failun",
             "mustafilun",
-            "failun_short"
+            "faalun"
           ],
           "sourceQuote": "مستفعلن فاعلن مستفعلن فعلن"
         },
@@ -769,7 +769,7 @@
           "sourceQuote": "مستفعلن فاعلن مستفعلن فعلان"
         }
       ],
-      "expectedSyllableCount": 14,
+      "expectedSyllableCount": 13,
       "status": "OK",
       "note": "دُمج من مدخلين وردا في القائمة بالوزن نفسه: «البسيط» (السطر الأخير) و«غير مصنف - 4» بعد تصحيحه. أكّد المستخدم أنهما واحد وأعطى سطر العجز. وصف «طرق 2» تسمية تمييز أضفتُها لأن «البسيط» و«البسيط - طرق 1» مأخوذان؛ الاسمان المصدريان محفوظان: «البسيط» في التسمية و«غير مصنف - 4» في aliases."
     },
@@ -865,7 +865,7 @@
             "failatun",
             "failun",
             "failatun",
-            "failun_short"
+            "faalun"
           ],
           "sourceQuote": "فاعلاتن فاعلن فاعلاتن فعلن"
         },
@@ -875,12 +875,12 @@
             "failatun",
             "failun",
             "failatun",
-            "failun_short"
+            "faalun"
           ],
           "sourceQuote": "فاعلاتن فاعلن فاعلاتن فعلن"
         }
       ],
-      "expectedSyllableCount": 14,
+      "expectedSyllableCount": 13,
       "status": "OK",
       "note": "الصدر والعجز متطابقان في المصدر — لا تذييل."
     },

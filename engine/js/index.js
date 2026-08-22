@@ -39,16 +39,26 @@ import { matchMeter, rankMeters } from './matching/meterMatcher.js';
  */
 function tafilaVocalizations(data) {
   const strip = (s) => [...s].filter((c) => !/[\u064B-\u0652\u0670]/.test(c)).join('');
-  const seen = new Map();
-  const add = (vocalized) => {
-    const plain = strip(vocalized);
-    if (!seen.has(plain)) seen.set(plain, new Set());
-    seen.get(plain).add(vocalized);
-  };
-  for (const t of data.tafaeel.tafaeel) add(t.vocalized);
-  for (const list of Object.values(data.variations.variations)) {
-    for (const v of list) add(v.result);
+  // اسم التفعيلة القائمة أولى من صورةٍ لغيرها: «فعلن» تفعيلةٌ في
+  // القاعدة نطقها فَعْلُنْ، وهي أيضًا صورةُ «فاعلن» مخبونةً فَعِلُنْ.
+  // فمن كتب «فعلن» أراد التفعيلة، والصورة تُبلَغ من طريق أصلها.
+  const byTafila = new Map();
+  for (const t of data.tafaeel.tafaeel) {
+    if (!byTafila.has(t.plain)) byTafila.set(t.plain, new Set());
+    byTafila.get(t.plain).add(t.vocalized);
   }
+
+  const seen = new Map();
+  for (const list of Object.values(data.variations.variations)) {
+    for (const v of list) {
+      const plain = strip(v.result);
+      if (byTafila.has(plain)) continue; // للتفعيلة القائمة السبق
+      if (!seen.has(plain)) seen.set(plain, new Set());
+      seen.get(plain).add(v.result);
+    }
+  }
+  for (const [plain, forms] of byTafila) seen.set(plain, forms);
+
   const out = {};
   for (const [plain, forms] of seen) {
     if (forms.size === 1) out[plain] = [...forms][0]; // ما احتمل نطقين يُترك

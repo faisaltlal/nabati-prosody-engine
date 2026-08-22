@@ -436,46 +436,6 @@
         "severity": 1
       }
     ],
-    "failun_short": [
-      {
-        "id": "salim",
-        "name": "سالم",
-        "result": "فَعِلُنْ",
-        "syllables": [
-          "S",
-          "S",
-          "L"
-        ],
-        "kind": "salim",
-        "scope": "any",
-        "severity": 1
-      },
-      {
-        "id": "faalun_reading",
-        "name": "قراءة فَعْلُنْ",
-        "result": "فَعْلُنْ",
-        "syllables": [
-          "L",
-          "L"
-        ],
-        "kind": "ambiguous_reading",
-        "scope": "any",
-        "severity": 1
-      },
-      {
-        "id": "tadhyil",
-        "name": "التذييل",
-        "result": "فَعِلَانْ",
-        "syllables": [
-          "S",
-          "S",
-          "X"
-        ],
-        "kind": "illa",
-        "scope": "arud_darb",
-        "severity": 1
-      }
-    ],
     "faalun": [
       {
         "id": "salim",
@@ -660,10 +620,9 @@
       {
         "id": "salim",
         "name": "سالم",
-        "result": "فَعِلَانْ",
+        "result": "فَعْلَانْ",
         "syllables": [
-          "S",
-          "S",
+          "L",
           "X"
         ],
         "kind": "salim",
