@@ -3,7 +3,7 @@
  * تُشتق الاختبارات من meters.json، فإضافة بحر جديد تدخل هذه الفحوص
  * تلقائيًا دون كتابة اختبار جديد.
  */
-import { describe, it, assert, equal } from './harness.js';
+import { describe, it, assert, equal, atLeast } from './harness.js';
 import { createEngine } from '../engine/js/index.js';
 import { lettersFromSyllables } from '../engine/js/meters/registry.js';
 import { DATA } from '../engine/js/data.generated.js';
@@ -239,7 +239,10 @@ describe('صور التفعيلات كما وردت في المادة المرج
     faulun: [['qabd', 'فَعُولُ']],
     mafailun: [['qabd', 'مَفَاعِلُنْ'], ['kaff', 'مَفَاعِيلُ'], ['hadhf', 'فَعُولُنْ']],
     failatun: [['kaff', 'فَاعِلَاتُ'], ['khabn', 'فَعِلَاتُنْ']],
-    mustafilun: [['khabn', 'مُتَفْعِلُنْ'], ['tayy', 'مُسْتَعِلُنْ'], ['khabl', 'مُتَعِلُنْ']],
+    // الخبن: قدّم صاحب المادة «متفعلن» أوّلًا ثم قرّر اعتماد «مفاعلن»
+    // لأنها أشهر في النبطي. والصورتان واحدة وزنًا، فالمعتمدة هي
+    // الظاهرة و«متفعلن» محفوظة صورةً قبل النقل.
+    mustafilun: [['khabn', 'مَفَاعِلُنْ'], ['tayy', 'مُسْتَعِلُنْ'], ['khabl', 'مُتَعِلُنْ']],
     failun: [['khabn', 'فَعِلُنْ'], ['tadhyil', 'فَاعِلَانْ']],
   };
 
@@ -255,20 +258,40 @@ describe('صور التفعيلات كما وردت في المادة المرج
     }
   });
 
-  it('القطع يحفظ صورته قبل النقل', () => {
-    // كتب العروض: «مستفعلن مقطوعةً ← مُسْتَفْعِلْ، ويُنقل إلى مَفْعُولُنْ».
-    // الصورتان واحدة وزنًا، والأولى أدلّ على العلّة — فحُفظتا معًا.
-    for (const [tafilaId, before, after] of [
-      ['mustafilun', 'مُسْتَفْعِلْ', 'مَفْعُولُنْ'],
-      ['failun', 'فَاعِلْ', 'فَعْلُنْ'],
+  it('الصورة قبل النقل محفوظة، ولا تفارق المنقولة وزنًا', () => {
+    // بعض الصور لها اسمان: صورةٌ تنتج عن التغيير مباشرةً، وتفعيلةٌ
+    // معروفة تُنقل إليها. «مستفعلن» مخبونةً «مُتَفْعِلُنْ» وتُنقل إلى
+    // «مَفَاعِلُنْ»، ومقطوعةً «مُسْتَفْعِلْ» وتُنقل إلى «مَفْعُولُنْ».
+    // فالمنقولة هي المعتمدة، والأولى أدلّ على التغيير فحُفظت.
+    for (const [tafilaId, id, before, after] of [
+      ['mustafilun', 'khabn', 'مُتَفْعِلُنْ', 'مَفَاعِلُنْ'],
+      ['mustafilun', 'qat', 'مُسْتَفْعِلْ', 'مَفْعُولُنْ'],
+      ['failun', 'qat', 'فَاعِلْ', 'فَعْلُنْ'],
     ]) {
-      const v = DATA.variations.variations[tafilaId].find((x) => x.id === 'qat');
-      equal(v.beforeTransfer, before, `${tafilaId}: الصورة قبل النقل`);
-      equal(v.result, after, `${tafilaId}: الصورة بعد النقل`);
-      // ولا يجوز أن تختلفا وزنًا.
-      const letters = (s) => [...s].filter((c) => !/[ً-ْٰ]/.test(c)).length;
-      equal(letters(before), letters(after), `${tafilaId}: الصورتان تختلفان في عدد الحروف`);
+      const v = DATA.variations.variations[tafilaId].find((x) => x.id === id);
+      equal(v.beforeTransfer, before, `${tafilaId}/${id}: الصورة قبل النقل`);
+      equal(v.result, after, `${tafilaId}/${id}: الصورة بعد النقل`);
     }
+  });
+
+  it('كل صورة لها اسمان لا تفارق إحداهما الأخرى وزنًا', () => {
+    // مشتقّ من البيانات: النقل تسميةٌ لا تغييرُ وزن. فلو نُقلت صورةٌ
+    // إلى تفعيلة تخالفها في الحروف لاختلّ العرض والوزن معًا.
+    const letters = (s) => [...s].filter((c) => !/[ً-ْٰ]/.test(c)).length;
+    let seen = 0;
+    for (const [tafilaId, list] of Object.entries(DATA.variations.variations)) {
+      for (const v of list) {
+        if (!v.beforeTransfer) continue;
+        seen++;
+        equal(letters(v.beforeTransfer), letters(v.result),
+          `${tafilaId}/${v.id}: ${v.beforeTransfer} و${v.result} تختلفان في عدد الحروف`);
+        // وعددُ حروفهما يوافق مقاطعَهما بالاشتقاق نفسه الذي يعتمده
+        // الترميز الحرفي: قصير حرف، وطويل حرفان، ومفرط ثلاثة.
+        equal(letters(v.result), lettersFromSyllables(v.syllables).length,
+          `${tafilaId}/${v.id}: عدد حروف ${v.result} لا يوافق مقاطعها`);
+      }
+    }
+    atLeast(seen, 3, 'يجب أن تُفحص كل صورة لها اسمان');
   });
 
   it('الصورة المعطَّلة لا تدخل المطابقة وتبقى مُعلَنة', () => {

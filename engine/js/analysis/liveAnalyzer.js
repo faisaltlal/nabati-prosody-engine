@@ -262,8 +262,10 @@ function collectWarnings(written, disagreement, engine) {
 function licenceOf(engine, variantId, baseName, resultName, variantName, tafilaId) {
   const def = engine.data.variations.definitions?.[variantId];
   if (!def) return null;
-  // بعض العلل لها صورة قبل النقل: «مستفعلن» مقطوعةً «مُسْتَفْعِلْ»
-  // ثم يُنقل إلى «مفعولن». والصورتان واحدة وزنًا، والأولى أدلّ عليها.
+  // بعض الصور لها اسمان: تفعيلةٌ معروفة تُنقل إليها وهي المعتمدة،
+  // وصورةٌ نتجت عن التغيير مباشرةً وهي أدلّ عليه. «مستفعلن» مخبونةً
+  // تُنقل إلى «مفاعلن» وأصلها «متفعلن»، ومقطوعةً إلى «مفعولن» وأصلها
+  // «مستفعلْ». والصورتان واحدة وزنًا دائمًا — اختبارٌ يشترط ذلك.
   const raw = (engine.data.variations.variations[tafilaId] || [])
     .find((v) => v.id === variantId);
   return {
