@@ -88,6 +88,8 @@ export function buildSyllableDag(units, options = {}) {
 
   for (let i = 0; i < n; i++) {
     const onset = units[i];
+    const before = i > 0 ? units[i - 1] : null;
+    const maddAsConsonant = !!(before && before.suppressNextIfLong && before.word === onset.word);
     for (const nuc of nucleusOptions(onset)) {
       if (nuc.assumed) assumed = true;
       // الواو/الياء التي احتُسبت حرف مدّ لا تعود وحدةً مستقلة.
@@ -103,6 +105,11 @@ export function buildSyllableDag(units, options = {}) {
       const base = {
         onsetIndex: i,
         onset: onset.c,
+        // حرفُ مدٍّ مرسوم قُرئ صامتًا بحركةٍ مفترضة: «طيب» تُقرأ
+        // طِ‑يِبْ بدل طِيبْ. قراءةٌ مشروعة، وفيها إعراضٌ عن ظاهر
+        // الرسم — فتُكلَّف كلفةَ رخصة. ولا يدخل فيها اللين، لأن
+        // الياء فيه قفلٌ للمقطع لا فاتحةٌ له.
+        maddAsConsonant,
         nucleus: nuc.kind,
         quality: nuc.quality,
         assumed: !!nuc.assumed,

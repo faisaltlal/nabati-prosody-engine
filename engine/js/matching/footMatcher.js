@@ -98,6 +98,34 @@ export function matchFootBoth(dag, from, pattern, scorer, at, cache) {
   return out;
 }
 
+/**
+ * كلفة الرخصة الكامنة في الحافة نفسها — لا في مطابقتها للنمط.
+ *
+ * المخطّط يفترض حركاتٍ لم تُكتب، وذلك أصل عمله. لكن أن يُفترض السكون
+ * ثم **يُحذف لأجله حرف مدٍّ رسمه الشاعر بيده** أمرٌ آخر: الحرف
+ * المكتوب أولى بالبقاء من حركةٍ لم تُكتب. فقراءة «جحّاد طيب»
+ * `جِحْ‑حَدْ‑طِ‑يِبْ` تُسقط ألف «جحّاد»، وقراءتها `جِحْ‑حَا‑دِ‑طِيبْ`
+ * تُبقيها — وكلتاهما مشروعة، والثانية أولى.
+ *
+ * وهي **كلفة لا منع**، كسائر الرخص: القراءة القاصرة تبقى مطروحة
+ * وتفوز إن لم يوافق البحرَ غيرُها.
+ *
+ * ولا تُحتسب حين يكون القصر **مُلجَأً إليه**:
+ *   - ساكنٌ معلوم بعده (لام «أل»، سكون كتبه الشاعر) — «في البيت»
+ *     تُنطق فِلْ‑بَيْت ولا وجه غيره.
+ *   - همزة وصل ساقطة — الساكن بعدها لازم، وهو معنى الوصل نفسه.
+ */
+function licenceCost(edge, w) {
+  const m = edge.meta;
+  const cost = w.writtenMaddIgnored || 0;
+  // (أ) قُصر المدّ لسكونٍ مفترض. ولا يُحتسب حين يكون القصر مُلجَأً
+  //     إليه: ساكنٌ معلوم بعده، أو همزةُ وصلٍ ساقطة.
+  if (m.shortenedLongVowel && m.codaAssumed && !m.elidedHamza) return cost;
+  // (ب) قُرئ حرف المدّ صامتًا فاتحةً لمقطع بحركةٍ مفترضة.
+  if (m.maddAsConsonant && m.assumed) return cost;
+  return 0;
+}
+
 function runAlignment(dag, from, pattern, scorer) {
   const n = dag.size;
   const P = pattern.length;
@@ -132,14 +160,17 @@ function runAlignment(dag, from, pattern, scorer) {
 
       const edges = dag.edges[u] || [];
       for (const e of edges) {
+        // كلفة الحافة نفسها تدخل الحساب هنا لا بعده، فتختار المحاذاة
+        // القراءة الأقلّ رخصةً من تلقاء نفسها.
+        const lic = licenceCost(e, w);
         if (p < P) {
           const sc = scorer.substitutionCost(e.weight, pattern[p]);
-          relax(e.to, p + 1, c + sc, {
+          relax(e.to, p + 1, c + sc + lic, {
             op: sc === 0 ? 'match' : 'substitute',
-            prev: [u, p], edge: e, expected: pattern[p], cost: sc,
+            prev: [u, p], edge: e, expected: pattern[p], cost: sc, licence: lic,
           });
         }
-        relax(e.to, p, c + w.insertion, { op: 'insert', prev: [u, p], edge: e });
+        relax(e.to, p, c + w.insertion + lic, { op: 'insert', prev: [u, p], edge: e, licence: lic });
       }
     }
   }

@@ -50,6 +50,7 @@ export function createScorer(config) {
     unconsumedSyllable: w.unconsumedSyllable,
     unfilledFoot: w.unfilledFoot,
     inconsistentWordReading: w.inconsistentWordReading ?? 0,
+    writtenMaddIgnored: w.writtenMaddIgnored ?? 0,
   };
 
   /** يحوّل التكلفة الخام إلى درجة في [0,1]. */

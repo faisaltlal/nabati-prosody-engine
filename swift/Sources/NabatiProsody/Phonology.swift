@@ -256,6 +256,8 @@ public struct PhonUnit: Sendable {
     public var absorbsNextIfShort: Bool = false
     /// سكونٌ أُرخي لأن المكتوب لا يقبل تقطيعًا.
     public var relaxedSukun: Bool = false
+    /// آخر حرف في كلمته — يلزم لترجيح تسكين الأواخر.
+    public var wordFinal: Bool = false
 }
 
 /// يُرخي السكونات التي كتبها الشاعر بيده حين يستحيل التقطيع معها.
@@ -332,6 +334,9 @@ public struct Phonemizer: Sendable {
         let unwritten = lexicon.unwrittenLongVowels?.words ?? [:]
         let knownVoc = lexicon.knownVocalizations?.words ?? [:]
         let waslWords = Set(lexicon.hamzatWasl?.words ?? [])
+        // حروف تُرسم موصولةً بأوّل الكلمة قبل «أل»، وحركةُ كلٍّ مقرَّرة.
+        let proclitics = lexicon.article?.proclitics ?? [:]
+        let notArticle = Set(lexicon.article?.exceptions ?? [])
         let sunLetters = Set(lexicon.sunLetters.compactMap { $0.unicodeScalars.first })
         let silentWawWords = Set(
             (lexicon.silentLetters?.rules ?? [])
@@ -361,14 +366,51 @@ public struct Phonemizer: Sendable {
             var geminationEmitted = false
             let atLineStart = units.isEmpty
 
-            // أل التعريف
-            let isArticle = letters.count >= 3 && letters[0].ch == Ar.alef
-                && !letters[0].marks.contains(Ar.shadda)
-                && letters[1].ch == Ar.lam && !hasOwnVowel(letters[1])
+            // ---- أل التعريف، ولو سبقتها حروف موصولة ----
+            //
+            // «بالطيب» = بِ + أل + طيب. والحروف (و ف ب ك ل) تُرسم
+            // موصولةً فتُخفي «أل» عن كل كشفٍ يشترط أن تكون الألف أوّل
+            // الرسم — وكانت تُقرأ حينئذ ألفَ مدٍّ: بَالطيب. وهمزة
+            // الوصل بعدها ساقطة قطعًا ولو كانت الكلمة أول الشطر.
+            var prefix: [(ch: Unicode.Scalar, quality: String)] = []
+            var a = 0
+            func isFree(_ k: Int) -> Bool {
+                k < letters.count && !hasOwnVowel(letters[k]) && !letters[k].marks.contains(Ar.shadda)
+            }
+            // عاطفةٌ مفتوحة ثم جارّةٌ مكسورة، بهذا الترتيب لا غير.
+            if isFree(a), proclitics[String(letters[a].ch)] == "a" {
+                prefix.append((letters[a].ch, "a")); a += 1
+            }
+            if isFree(a), proclitics[String(letters[a].ch)] == "i" {
+                prefix.append((letters[a].ch, "i")); a += 1
+            }
+            // «لل» رسمٌ خاصّ: لام الجرّ ثم لام التعريف، وألفُ الوصل
+            // ساقطة من الرسم. ولا يُقاس عليها غيرها.
+            let doubleLam = !prefix.isEmpty && prefix[prefix.count - 1].ch == Ar.lam
+                && a < letters.count && letters[a].ch == Ar.lam && isFree(a)
+            let alefLam = !doubleLam && a + 1 < letters.count
+                && letters[a].ch == Ar.alef && !letters[a].marks.contains(Ar.shadda)
+                && letters[a + 1].ch == Ar.lam && !hasOwnVowel(letters[a + 1])
 
-            if isArticle {
-                let target = letters[2]
-                if atLineStart {
+            let lamAt = doubleLam ? a : a + 1
+            let target: Letter? = lamAt + 1 < letters.count ? letters[lamAt + 1] : nil
+            let targetIsConsonant = target.map { $0.ch != Ar.alef && $0.ch != Ar.alefMaqsura } ?? false
+            let isArticle = (alefLam || (doubleLam && targetIsConsonant))
+                && target != nil
+                && !notArticle.contains(bare)
+                // مجرّدةً تكفيها ثلاثة أحرف، ومسبوقةً بحرف موصول يلزمها
+                // حرفان بعد اللام — وهو ما يُخرج «والد» و«بالغ».
+                && letters.count >= lamAt + (prefix.isEmpty ? 2 : 3)
+
+            if isArticle, let target {
+                for p in prefix {
+                    units.append(PhonUnit(consonant: Ar.hamzaBase(p.ch),
+                                          vowel: .known(length: .short, quality: p.quality),
+                                          word: w, source: "proclitic", wordInitial: true))
+                }
+                if !prefix.isEmpty {
+                    trace.append("hamzatWasl: أل بعد حرف موصول — الهمزة ساقطة")
+                } else if atLineStart {
                     units.append(PhonUnit(consonant: Ar.hamza, vowel: .known(length: .short, quality: "a"), word: w, source: "hamzat_wasl"))
                     trace.append("hamzatWasl: أل في أول الشطر — الهمزة منطوقة")
                 } else {
@@ -382,7 +424,7 @@ public struct Phonemizer: Sendable {
                     units.append(PhonUnit(consonant: Ar.lam, vowel: .known(length: .none, quality: nil), word: w, source: "lam_qamariyya"))
                     trace.append("lamQamariyya: اللام منطوقة")
                 }
-                i = 2
+                i = lamAt + 1
             } else if letters[0].ch == Ar.alef && !atLineStart && waslWords.contains(bare) {
                 trace.append("hamzatWasl: \(bare) موصولة — الهمزة ساقطة")
                 i = 1
@@ -498,7 +540,9 @@ public struct Phonemizer: Sendable {
                     }
                 }
 
-                units.append(PhonUnit(consonant: consonant, vowel: vowel, word: w, suppressNextIfLong: suppressNext))
+                units.append(PhonUnit(consonant: consonant, vowel: vowel, word: w,
+                                      suppressNextIfLong: suppressNext,
+                                      wordFinal: i == letters.count - 1))
 
                 if v.kind == .tanween {
                     units.append(PhonUnit(consonant: Ar.noon, vowel: .known(length: .none, quality: nil), word: w, source: "tanween"))

@@ -87,6 +87,8 @@ public struct ScoringConfig: Codable, Sendable {
         public let position: Position
         public let unconsumedSyllable: Double
         public let unfilledFoot: Double
+        /// رخصة الإعراض عن حرف مدٍّ مرسوم — قصرًا أو قراءةً له صامتًا.
+        public let writtenMaddIgnored: Double?
     }
     public struct Normalizer: Codable, Sendable {
         public let perSyllableCost: Double
@@ -107,6 +109,9 @@ public struct ScoringConfig: Codable, Sendable {
     public struct Ranking: Codable, Sendable {
         public let maxAlternatives: Int
         public let minScoreToList: Double
+        /// ترجيح تسكين الأواخر عند التساوي التامّ. مفتاحٌ في البيانات
+        /// لأن مستنده تقطيعٌ مرجعيّ واحد — انظر finalSukun في جافاسكربت.
+        public let preferFinalSukun: Bool?
     }
 
     public let weights: Weights
@@ -157,9 +162,16 @@ public struct Lexicon: Codable, Sendable {
         public let knownGaps: [String]?
     }
 
+    /// «أل» التعريف قد تسبقها حروف تُرسم موصولةً بها فتُخفيها.
+    public struct Article: Codable, Sendable {
+        public let proclitics: [String: String]?
+        public let exceptions: [String]?
+    }
+
     public let unwrittenLongVowels: WordMap?
     public let knownVocalizations: WordMap?
     public let hamzatWasl: WordList?
+    public let article: Article?
     public let silentLetters: SilentLetters?
     public let sunLetters: [String]
     public let taMarbuta: TaMarbuta?

@@ -718,6 +718,7 @@ function createScorer(config) {
     unconsumedSyllable: w.unconsumedSyllable,
     unfilledFoot: w.unfilledFoot,
     inconsistentWordReading: w.inconsistentWordReading ?? 0,
+    writtenMaddIgnored: w.writtenMaddIgnored ?? 0,
   };
 
   /** يحوّل التكلفة الخام إلى درجة في [0,1]. */
@@ -1095,6 +1096,9 @@ function phonemize(words, lexicon, options = {}) {
   // أسماء التفعيلات — مشتقّة من البيانات لا مكتوبة في المعجم.
   const tafilaNames = lexicon.tafilaVocalizations || {};
   const waslWords = new Set(lexicon.hamzatWasl?.words || []);
+  // حروف تُرسم موصولةً بأوّل الكلمة قبل «أل»، وحركةُ كلٍّ منها مقرَّرة.
+  const proclitics = lexicon.article?.proclitics || {};
+  const notArticle = new Set(lexicon.article?.exceptions || []);
   const silentWaw = new Set(
     (lexicon.silentLetters?.rules || [])
       .filter((r) => r.action === 'drop_final_waw')
@@ -1128,21 +1132,64 @@ function phonemize(words, lexicon, options = {}) {
     let geminationEmitted = false;
     const atLineStart = units.length === 0;
 
-    // ---- أل التعريف ----
-    // الشرط: ألف مجرّدة + لام + حرف ثالث على الأقل.
+    // ---- أل التعريف، ولو سبقتها حروف موصولة ----
+    //
+    // «بالطيب» = بِ + أل + طيب، و«والليل» = وَ + أل + ليل. والحروف
+    // (و ف ب ك ل) تُرسم موصولةً فتُخفي «أل» عن كل كشفٍ يشترط أن تكون
+    // الألف أوّل الرسم — وكانت تُقرأ حينئذ ألفَ مدٍّ: «بالطيب» ←
+    // بَالطيب، فتضيع اللام الشمسية وتُقصر ألفٌ لا موجب لقصرها.
+    //
+    // وهمزة الوصل هنا ساقطة قطعًا ولو كانت الكلمة أول الشطر، لأنها
+    // في الدرج بما قبلها من حرف موصول.
+    //
     // ملاحظة موثّقة: الخلط بين «ال» التعريف وهمزة وصل الفعل (التقى)
     // محايد عروضيًا — القراءتان تعطيان الكمّيات نفسها — فالخطأ هنا
     // لا يُفسد الوزن. انظر docs/PROSODY.md
+    const prefix = [];
+    let a = 0;
+    const isFree = (L) => L && !hasOwnVowel(L) && !L.marks.includes(SHADDA);
+    // عاطفةٌ مفتوحة (و/ف) ثم جارّةٌ مكسورة (ب/ك/ل)، بهذا الترتيب لا غير.
+    if (isFree(letters[a]) && proclitics[letters[a].ch] === 'a') {
+      prefix.push({ ch: letters[a].ch, quality: 'a' }); a++;
+    }
+    if (isFree(letters[a]) && proclitics[letters[a].ch] === 'i') {
+      prefix.push({ ch: letters[a].ch, quality: 'i' }); a++;
+    }
+    // «لل» رسمٌ خاصّ: لام الجرّ ثم لام التعريف، والألف بينهما ساقطة
+    // من الرسم. ولا يُقاس عليها غيرها — «كلمة» ليست كافًا ثم لامَ
+    // تعريف — فتُشترط اللام مرّتين نصًّا.
+    const doubleLam =
+      prefix.length && prefix[prefix.length - 1].ch === LAM &&
+      a < letters.length && letters[a].ch === LAM && isFree(letters[a]);
+    const alefLam =
+      !doubleLam &&
+      letters[a] && letters[a].ch === ALEF && !letters[a].marks.includes(SHADDA) &&
+      letters[a + 1] && letters[a + 1].ch === LAM && !hasOwnVowel(letters[a + 1]);
+
+    const lamAt = doubleLam ? a : a + 1;
+    const target = letters[lamAt + 1];
     const isArticle =
-      letters.length >= 3 &&
-      letters[0].ch === ALEF &&
-      !letters[0].marks.includes(SHADDA) &&
-      letters[1].ch === LAM &&
-      !hasOwnVowel(letters[1]);
+      // ورسمُ «لل» وحده يُشترط فيه أن يكون بعد اللامين صامتٌ حقيقي،
+      // كي لا تُتوهَّم «بلاد» باءَ جرٍّ ثم لامَ تعريف. أمّا «أل» بألفها
+      // فبعدها ألفٌ كثيرًا («الاطلال»، «الارض») وهي همزة لا مدّ.
+      (alefLam || (doubleLam && !!target && target.ch !== ALEF && target.ch !== ALEF_MAQSURA)) &&
+      !!target &&
+      !notArticle.has(bare) &&
+      // مجرّدةً تكفيها ثلاثة أحرف («الف»)، ومسبوقةً بحرف موصول يلزمها
+      // حرفان بعد اللام: لا اسم في العربية على حرف واحد، والاشتراط
+      // يُخرج «والد» و«بالغ» و«فالح» من التوهّم بلا كلفة.
+      letters.length >= lamAt + (prefix.length ? 3 : 2);
 
     if (isArticle) {
-      const target = letters[2];
-      if (atLineStart) {
+      for (const p of prefix) {
+        push({
+          c: hamzaBase(p.ch), vowel: KNOWN('short', p.quality),
+          word: w, wordInitial: true, source: 'proclitic',
+        });
+      }
+      if (prefix.length) {
+        log('hamzatWasl', `أل بعد ${prefix.map((p) => p.ch).join('')} — الهمزة ساقطة`);
+      } else if (atLineStart) {
         // همزة وصل مبتدأ بها: تُنطق همزةً مفتوحة.
         push({ c: HAMZA, vowel: KNOWN('short', 'a'), word: w, wordInitial: true, source: 'hamzat_wasl' });
         log('hamzatWasl', 'أل في أول الشطر — الهمزة منطوقة');
@@ -1158,7 +1205,7 @@ function phonemize(words, lexicon, options = {}) {
         push({ c: LAM, vowel: KNOWN('none', null), word: w, source: 'lam_qamariyya' });
         log('lamQamariyya', `اللام منطوقة قبل ${target.ch}`);
       }
-      i = 2;
+      i = lamAt + 1;
     } else if (
       letters[0].ch === ALEF && !atLineStart && waslWords.has(bare)
     ) {
@@ -1464,6 +1511,8 @@ function buildSyllableDag(units, options = {}) {
 
   for (let i = 0; i < n; i++) {
     const onset = units[i];
+    const before = i > 0 ? units[i - 1] : null;
+    const maddAsConsonant = !!(before && before.suppressNextIfLong && before.word === onset.word);
     for (const nuc of nucleusOptions(onset)) {
       if (nuc.assumed) assumed = true;
       // الواو/الياء التي احتُسبت حرف مدّ لا تعود وحدةً مستقلة.
@@ -1479,6 +1528,11 @@ function buildSyllableDag(units, options = {}) {
       const base = {
         onsetIndex: i,
         onset: onset.c,
+        // حرفُ مدٍّ مرسوم قُرئ صامتًا بحركةٍ مفترضة: «طيب» تُقرأ
+        // طِ‑يِبْ بدل طِيبْ. قراءةٌ مشروعة، وفيها إعراضٌ عن ظاهر
+        // الرسم — فتُكلَّف كلفةَ رخصة. ولا يدخل فيها اللين، لأن
+        // الياء فيه قفلٌ للمقطع لا فاتحةٌ له.
+        maddAsConsonant,
         nucleus: nuc.kind,
         quality: nuc.quality,
         assumed: !!nuc.assumed,
@@ -1778,6 +1832,34 @@ function matchFootBoth(dag, from, pattern, scorer, at, cache) {
   return out;
 }
 
+/**
+ * كلفة الرخصة الكامنة في الحافة نفسها — لا في مطابقتها للنمط.
+ *
+ * المخطّط يفترض حركاتٍ لم تُكتب، وذلك أصل عمله. لكن أن يُفترض السكون
+ * ثم **يُحذف لأجله حرف مدٍّ رسمه الشاعر بيده** أمرٌ آخر: الحرف
+ * المكتوب أولى بالبقاء من حركةٍ لم تُكتب. فقراءة «جحّاد طيب»
+ * `جِحْ‑حَدْ‑طِ‑يِبْ` تُسقط ألف «جحّاد»، وقراءتها `جِحْ‑حَا‑دِ‑طِيبْ`
+ * تُبقيها — وكلتاهما مشروعة، والثانية أولى.
+ *
+ * وهي **كلفة لا منع**، كسائر الرخص: القراءة القاصرة تبقى مطروحة
+ * وتفوز إن لم يوافق البحرَ غيرُها.
+ *
+ * ولا تُحتسب حين يكون القصر **مُلجَأً إليه**:
+ *   - ساكنٌ معلوم بعده (لام «أل»، سكون كتبه الشاعر) — «في البيت»
+ *     تُنطق فِلْ‑بَيْت ولا وجه غيره.
+ *   - همزة وصل ساقطة — الساكن بعدها لازم، وهو معنى الوصل نفسه.
+ */
+function licenceCost(edge, w) {
+  const m = edge.meta;
+  const cost = w.writtenMaddIgnored || 0;
+  // (أ) قُصر المدّ لسكونٍ مفترض. ولا يُحتسب حين يكون القصر مُلجَأً
+  //     إليه: ساكنٌ معلوم بعده، أو همزةُ وصلٍ ساقطة.
+  if (m.shortenedLongVowel && m.codaAssumed && !m.elidedHamza) return cost;
+  // (ب) قُرئ حرف المدّ صامتًا فاتحةً لمقطع بحركةٍ مفترضة.
+  if (m.maddAsConsonant && m.assumed) return cost;
+  return 0;
+}
+
 function runAlignment(dag, from, pattern, scorer) {
   const n = dag.size;
   const P = pattern.length;
@@ -1812,14 +1894,17 @@ function runAlignment(dag, from, pattern, scorer) {
 
       const edges = dag.edges[u] || [];
       for (const e of edges) {
+        // كلفة الحافة نفسها تدخل الحساب هنا لا بعده، فتختار المحاذاة
+        // القراءة الأقلّ رخصةً من تلقاء نفسها.
+        const lic = licenceCost(e, w);
         if (p < P) {
           const sc = scorer.substitutionCost(e.weight, pattern[p]);
-          relax(e.to, p + 1, c + sc, {
+          relax(e.to, p + 1, c + sc + lic, {
             op: sc === 0 ? 'match' : 'substitute',
-            prev: [u, p], edge: e, expected: pattern[p], cost: sc,
+            prev: [u, p], edge: e, expected: pattern[p], cost: sc, licence: lic,
           });
         }
-        relax(e.to, p, c + w.insertion, { op: 'insert', prev: [u, p], edge: e });
+        relax(e.to, p, c + w.insertion + lic, { op: 'insert', prev: [u, p], edge: e, licence: lic });
       }
     }
   }
@@ -1959,6 +2044,60 @@ function inconsistentWordReadings(feet, units, words) {
   Object.assign(__M, { inconsistentWordReadings });
 }
 
+// ── engine/js/matching/finalSukun.js ──
+{
+/**
+ * تسكين الأواخر — ترجيحٌ عند التساوي التامّ، لا كلفة.
+ *
+ * النصّ غير المشكول يوافق بحورًا كثيرة موافقةً تامّة، فتتساوى درجاتها
+ * ولا يبقى ما يرجّح إلا ترتيبُ القائمة — وهو ترجيحٌ لا يدلّ على شيء.
+ *
+ * وثمّ ما يدلّ: النبطي يُسكّن أواخر الكلمات ولا إعراب فيه. فإذا استوت
+ * قراءتان واحتاجت إحداهما إلى حركةٍ مفترضة على آخر كلمة ولم تحتج
+ * الأخرى، فالثانية أولى:
+ *
+ *     بسّ الدهر جحّاد   →   دَ‑هَرْ‑جِحْ   أولى من   دَهْ‑رِ‑جِحْ
+ *
+ * وهو **ترجيح لا منع**: لا يمسّ درجةً ولا يُسقط قراءة. والحركة
+ * المضطرّ إليها لا تُعدّ عيبًا فيها، لأن القراءة التي تتجنّبها تدفع
+ * ثمنها في مكان آخر فتنزل بالدرجة لا بالترجيح.
+ *
+ * مسنَده تقطيعٌ مرجعيّ واحد، وهو مسجَّل NEEDS_VALIDATION في
+ * `lexicon.nabatiDialect`، ومفتاحه في البيانات `ranking.preferFinalSukun`.
+ */
+
+/**
+ * كم حركةً مفترضة وقعت على آخر كلمة في هذه القراءة؟
+ *
+ * الشرط أربعة: المقطع مفتوح (لا قفل له)، وفاتحتُه آخرُ حرف في كلمتها،
+ * وحركتُها مفترضة لا مكتوبة، وليست آخر الشطر — فآخر الشطر له الإشباع
+ * وأحكام الوقف، لا الإعراب.
+ *
+ * @param {object[]} feet التفعيلات المختارة، لكل واحدة `ops`
+ * @param {object[]} units الوحدات الصوتية
+ * @returns {number}
+ */
+function assumedFinalVowels(feet, units) {
+  if (!units || !units.length || !feet || !feet.length) return 0;
+  const last = units.length - 1;
+  let n = 0;
+  for (const foot of feet) {
+    for (const op of foot.ops || []) {
+      const e = op.edge;
+      if (!e || e.meta.coda) continue;
+      if (!e.meta.assumed) continue;
+      const i = e.meta.onsetIndex;
+      const u = units[i];
+      if (!u || !u.wordFinal || i === last) continue;
+      n += 1;
+    }
+  }
+  return n;
+}
+
+  Object.assign(__M, { assumedFinalVowels });
+}
+
 // ── engine/js/matching/meterMatcher.js ──
 {
 /**
@@ -1977,6 +2116,7 @@ function inconsistentWordReadings(feet, units, words) {
 
 const { matchFoot, minSyllablesToEnd, createAlignmentCache } = __M;
 const { inconsistentWordReadings } = __M;
+const { assumedFinalVowels } = __M;
 
 /**
  * @param {object} dag مخطّط مقاطع الشطر
@@ -2123,6 +2263,8 @@ function matchMeter(dag, meter, scorer, options = {}) {
     leftoverSyllables: best.leftoverSyllables,
     // كلمات قُرئت خلافًا لمثيلاتها — تُعلَن ولا تُطوى.
     inconsistentWordReadings: oddReadings,
+    // حركاتٌ مفترضة على أواخر الكلمات — ترجيحٌ عند التساوي لا كلفة.
+    assumedFinalVowels: assumedFinalVowels(chosen, options.units),
     assumedVocalization: dag.assumedVocalization,
   };
 }
@@ -2209,17 +2351,21 @@ function rankMeters(dag, registry, scorer, options = {}) {
     if (bestForMeter) results.push(bestForMeter);
   }
 
-  // عند تساوي الدرجة يُقدَّم الأسبق في قائمة المصدر.
+  // عند تساوي الدرجة: أوّلًا القراءة الأقلّ افتراضًا لحركةٍ على آخر
+  // الكلمة — فالنبطي يُسكّن الأواخر ولا إعراب فيه (انظر finalSukun.js) —
+  // ثم الأسبق في قائمة المصدر.
   //
-  // كان الترجيح بترتيب المعرّف أبجديًّا، وهو لا يدلّ على شيء: يُقدّم
-  // `al_baseet_1` على `al_maskhub` لأن الباء قبل الميم لا غير. وترتيب
-  // القائمة دلالةٌ حقيقية — صاحبها قدّم المسحوب على سائر البحور —
-  // فاتّباعه أولى من اتّباع الهجاء.
+  // وكان الترجيح قبلُ بترتيب المعرّف أبجديًّا، وهو لا يدلّ على شيء:
+  // يُقدّم `al_baseet_1` على `al_maskhub` لأن الباء قبل الميم لا غير.
+  // وترتيب القائمة دلالةٌ حقيقية — صاحبها قدّم المسحوب على سائر
+  // البحور — فاتّباعه أولى من اتّباع الهجاء.
   //
   // ولا يُخفي هذا التعادلَ: البحور المتساوية تبقى معلَنة في `ambiguity`.
+  const finalSukun = scorer.ranking.preferFinalSukun !== false;
   results.sort(
     (a, b) =>
       b.score - a.score ||
+      (finalSukun ? (a.assumedFinalVowels || 0) - (b.assumedFinalVowels || 0) : 0) ||
       sourceOrder(registry, a.meterId) - sourceOrder(registry, b.meterId) ||
       a.meterId.localeCompare(b.meterId)
   );
@@ -3316,12 +3462,17 @@ function analyzeHemistich(text, engine, options = {}) {
 
   // البحور التي تساوت مع الأول في موافقة ما كُتب. أول الكتابة يوافقه
   // كثير منها، وإخفاء ذلك ادّعاء حسمٍ لم يبلغه النصّ.
-  const tied = partialBest
-    ? partialRanking
-        .slice(1)
-        .filter((r) => partialBest.progressScore - r.progressScore <= engine.scorer.config.uncertainty.tieDelta)
-        .map((r) => ({ id: r.meterId, name: r.name, score: r.progressScore }))
-    : [];
+  // ويؤخذ التعادل من الترتيب الذي خرج منه الحكم نفسه: أخذُه من ترتيب
+  // آخر يُظهر البحرَ الفائز في قائمة منافسيه.
+  const tied = source === 'full'
+    ? ((full.ambiguity && full.ambiguity.tiedWith) || [])
+        .map((t) => ({ id: t.id, name: t.name, score: t.score }))
+    : partialBest
+      ? partialRanking
+          .slice(1)
+          .filter((r) => partialBest.progressScore - r.progressScore <= engine.scorer.config.uncertainty.tieDelta)
+          .map((r) => ({ id: r.meterId, name: r.name, score: r.progressScore }))
+      : [];
 
   return {
     text: clean,
@@ -6064,7 +6215,8 @@ const DATA = {
       },
       "unconsumedSyllable": 1.2,
       "unfilledFoot": 1.5,
-      "inconsistentWordReading": 0.25
+      "inconsistentWordReading": 0.25,
+      "writtenMaddIgnored": 0.12
     },
     "normalizer": {
       "mode": "meterSyllables",
@@ -6088,7 +6240,8 @@ const DATA = {
     },
     "ranking": {
       "maxAlternatives": 5,
-      "minScoreToList": 0.35
+      "minScoreToList": 0.35,
+      "preferFinalSukun": true
     },
     "rationale": {
       "insertion_gt_substitution": "زيادة مقطع أو نقصه يغيّر بنية الشطر أكثر مما يغيّره تبدّل كمّية مقطع واحد، فكلفته أعلى.",
@@ -6099,7 +6252,9 @@ const DATA = {
       "ambiguity_penalty": "نصّ غير مشكول يقبل قراءات كثيرة، فقد يتساوى بحران في القمة. الدرجة تبقى كما هي — لأنها تصف المطابقة فعلًا — لكن الثقة تنخفض، لأن الثقة تصف يقيننا بالإجابة لا جودة المطابقة. الفرق بين الرقمين مقصود.",
       "tie_delta": "الفارق الذي يُعدّ دونه البحران متساويين. مشتق من كلفة زحاف واحد تقريبًا لا من التجربة — يُعاير حين تتوفر أمثلة مرجعية.",
       "max_broken_foot_ratio": "الدرجة وحدها لا تكفي للحكم. بيت اختلّت فيه كل تفعيلاته قد ينال درجة متوسطة لأن كل تفعيلة اختلّت بمقطع واحد فقط، فيبدو «قريبًا من البحر» وهو ليس كذلك: القرب من وزن معناه أن أكثره صحيح. فإذا تجاوزت نسبة التفعيلات المختلّة هذا الحدّ رُدَّ الحكم إلى «لا وزن مقنع» مهما كانت الدرجة. الدرجة تصف المسافة، والحكم يصف ما يصحّ أن يُقال للمستخدم.",
-      "inconsistentWordReading": "كلفة كل كلمة تُقرأ خلافًا لمثيلتها في الشطر نفسه. الكلمة الواحدة لا تُنطق نطقين، فمن كتب «مستفعلن» ثلاثًا فقراءتها واحدة. وقيمتها ربعُ كلفة الإبدال: ترجّح عند التعادل — وهو كثير في النصّ غير المشكول — ولا تقلب بحرًا فاق نظيره بفارق حقيقي. والكلمة الأخيرة تُقاس بما قبل مقطعها الأخير وحده، لأن الإشباع وأحكام الوقف تخصّ آخر الشطر."
+      "inconsistentWordReading": "كلفة كل كلمة تُقرأ خلافًا لمثيلتها في الشطر نفسه. الكلمة الواحدة لا تُنطق نطقين، فمن كتب «مستفعلن» ثلاثًا فقراءتها واحدة. وقيمتها ربعُ كلفة الإبدال: ترجّح عند التعادل — وهو كثير في النصّ غير المشكول — ولا تقلب بحرًا فاق نظيره بفارق حقيقي. والكلمة الأخيرة تُقاس بما قبل مقطعها الأخير وحده، لأن الإشباع وأحكام الوقف تخصّ آخر الشطر.",
+      "written_madd_ignored": "الحرف المرسوم أولى بأن يُقرأ على أصله. والمخطّط يفترض حركاتٍ لم تُكتب وذاك أصل عمله، أمّا أن يُعرَض عن حرف مدٍّ رسمه الشاعر بيده — بقصره لسكونٍ مفترض («جحّاد» ← جِحْ‑حَدْ) أو بقراءته صامتًا بحركةٍ مفترضة («طيب» ← طِ‑يِبْ) — فرخصةٌ تُكلَّف. وقيمتها قيمةُ الزحاف: ترجّح القراءة المُبقية عند التساوي ولا تُسقط الأخرى. ولا تُحتسب حين يكون القصر مُلجَأً إليه — ساكنٌ معلوم بعده أو همزةُ وصلٍ ساقطة — فذاك حكمٌ لا اختيار. ولا يدخل فيها اللين («بَيْت»)، لأن الياء فيه قفلٌ للمقطع لا فاتحةٌ له.",
+      "prefer_final_sukun": "عند التساوي التامّ في الدرجة تُرجَّح القراءة الأقلّ افتراضًا لحركةٍ على آخر الكلمة. وهذا ترجيحٌ لا كلفة: لا يمسّ درجةً ولا يُسقط قراءة، وإنما يحلّ محلّ ترتيب القائمة — وهو ترتيبٌ لا يدلّ على شيء. ومستنده أن النبطي يُسكّن الأواخر ولا إعراب فيه، فقراءة «الدهر جحّاد» دَ‑هَرْ‑جِحْ أولى من دَهْ‑رِ‑جِحْ. وهو مسجَّل NEEDS_VALIDATION في lexicon.nabatiDialect: مستنده تقطيعٌ مرجعيّ واحد، ويُثبته أو يُبطله عشرةُ أشطر مقطَّعة فيها كلمةٌ آخرها ساكنان."
     }
   },
   "encodings": {
@@ -6254,6 +6409,35 @@ const DATA = {
         "why": "التمييز بين همزة الوصل وهمزة القطع في فعل غير مشكول يحتاج تحليلًا صرفيًا. المحرك حاليًا يعامل الألف الابتدائية غير المهموزة في غير الكلمات المذكورة أعلاه على أنها همزة قطع، ويسجّل ذلك في التتبّع."
       }
     },
+    "article": {
+      "note": "«أل» التعريف قد تسبقها حروفٌ تُرسم موصولةً بها، فتُخفيها عن كل كشفٍ يشترط أن تكون الألف أوّل الرسم. وحركة كل حرف منها مقرَّرة: العاطفة مفتوحة والجارّة مكسورة. وهمزة الوصل بعدها ساقطة قطعًا — «بالطيب» بِطْطِيب لا بَالطيب — لأنها في الدرج ولو كانت الكلمة أول الشطر.",
+      "proclitics": {
+        "و": "a",
+        "ف": "a",
+        "ب": "i",
+        "ك": "i",
+        "ل": "i"
+      },
+      "doubleLamNote": "«لل» رسمٌ خاصّ: لام الجرّ ثم لام التعريف، وألفُ الوصل ساقطة من الرسم — «للناس» لِلْنَاس. ولا يُقاس عليها غيرها، فتُشترط اللام مرّتين نصًّا كي لا تُتوهَّم «كلمة» كافًا ثم لامَ تعريف.",
+      "exceptionsNote": "كلماتٌ رسمُها رسمُ «حرف + أل» وليست منه. الاشتراطُ البنيوي — حرفان على الأقل بعد اللام — يُخرج «والد» و«بالغ» و«فالح» بلا حاجة إلى ذكرها؛ وهذه ما بقي مما يفوته الشرط. أضِف إليها ما يظهر، فهي بيانات لا كود.",
+      "exceptions": [
+        "والدي",
+        "والدين",
+        "والدة",
+        "والدتي",
+        "والديه",
+        "والدها",
+        "بالغين",
+        "بالغه",
+        "بالغة",
+        "فالحين",
+        "والية",
+        "بالية",
+        "كالحين",
+        "والين"
+      ],
+      "status": "OK"
+    },
     "knownVocalizations": {
       "note": "كلمات وظيفية نطقها مستقرّ لا خلاف فيه. الفائدة عملية: النصّ النبطي يُكتب غير مشكول غالبًا، وكل حرف غير مشكول يضاعف احتمالات التقطيع. تثبيت هذه الكلمات وحدها يقلّص الاحتمالات تقليصًا كبيرًا دون أي تخمين — فهذه أنطاق مقرَّرة لا اجتهاد.",
       "scope": "أدوات وحروف معانٍ فقط. لا تُضَف هنا أسماء ولا أفعال: نطقها يتغيّر بالإعراب والسياق.",
@@ -6323,9 +6507,10 @@ const DATA = {
       "status": "NEEDS_VALIDATION",
       "knownGaps": [
         "إمالة الألف في بعض اللهجات — هل تغيّر كمّية المقطع؟ الأرجح لا، لكنها غير مؤكدة",
-        "تسكين أواخر الكلمات في النبطي أكثر منه في الفصيح — يؤثر مباشرة في المقاطع، ويحتاج أمثلة مقطَّعة",
+        "تسكين أواخر الكلمات في النبطي أكثر منه في الفصيح — **مأخوذٌ به ترجيحًا لا حكمًا**: عند تساوي بحرين تساويًا تامًّا تُقدَّم القراءة الأقلّ افتراضًا لحركةٍ على آخر الكلمة (`scoring.ranking.preferFinalSukun`)، فتُقرأ «بسّ الدهر جحّاد» دَ‑هَرْ‑جِحْ لا دَهْ‑رِ‑جِحْ. ولا يمسّ درجةً ولا يُسقط قراءة، وإنما يحلّ محلّ ترتيب القائمة. ومستنده تقطيعٌ مرجعيّ واحد (golden: article_after_proclitic) — NEEDS_VALIDATION. يحسمه: عشرة أشطر مقطَّعة فيها كلمةٌ آخرها ساكنان (دَهْر، بَحْر، شَمْس) في وسط الشطر.",
         "الكشكشة والكسكسة — لا أثر وزني متوقَّع لكنها غير محسومة",
-        "حذف همزة القطع في أول الكلمة في النطق العامي — **مُعالَج** في موضعين: (أ) الألف داخل الكلمة بعد ساكن همزةٌ لا مدّ، وقد تسقط في الوصل فيأخذ الساكنُ قبلها حركتَها؛ أثبته «البارحه يوم الدجا غطّ الاطلال» — المسحوب بالإسقاط والرجز بغيره. (ب) الألف المجرّدة في أول الكلمة رسمُ همزة الوصل، فقد تسقط في الدرج فيلحق ما بعدها بالمقطع قبله قفلًا له ويقصر المدّ لالتقاء الساكنين؛ أثبته «لا إله الّا انت يا قضّاي حاجات البريّه» — فاعلاتن أربعًا بالوصل، ومكسور بغيره (golden: wasl_hamza_ramal). وفي الموضعين تُعرض القراءتان على الوزن وهو الذي يحسم، فلم تُفرض إحداهما."
+        "حذف همزة القطع في أول الكلمة في النطق العامي — **مُعالَج** في موضعين: (أ) الألف داخل الكلمة بعد ساكن همزةٌ لا مدّ، وقد تسقط في الوصل فيأخذ الساكنُ قبلها حركتَها؛ أثبته «البارحه يوم الدجا غطّ الاطلال» — المسحوب بالإسقاط والرجز بغيره. (ب) الألف المجرّدة في أول الكلمة رسمُ همزة الوصل، فقد تسقط في الدرج فيلحق ما بعدها بالمقطع قبله قفلًا له ويقصر المدّ لالتقاء الساكنين؛ أثبته «لا إله الّا انت يا قضّاي حاجات البريّه» — فاعلاتن أربعًا بالوصل، ومكسور بغيره (golden: wasl_hamza_ramal). وفي الموضعين تُعرض القراءتان على الوزن وهو الذي يحسم، فلم تُفرض إحداهما.",
+        "الفرق بين «حرف موصول + أل» وبين كلمةٍ رسمُها كرسمها («بالطيب» و«والدي») لا يُحسم من الرسم وحده. والمحرك يقدّم قراءة «أل» — وهي الغالبة — بشرطٍ بنيويّ (حرفان على الأقل بعد اللام) يُخرج أكثر الملتبس، وبقائمة استثناءات في lexicon.article.exceptions. وما يفوت القائمة يُقرأ «أل» خطأً. يحسمه: قائمة أوفى، أو تحليل صرفي — وكلاهما بيانات لا كود."
       ]
     }
   },
@@ -6613,6 +6798,24 @@ const DATA = {
         ],
         "why": "تقطيع التطبيق المرجعي حرفًا حرفًا: لا|إلا|هل ، لن|تيا|قض ، ضا|يحا|جا ، تل|بري|يه. ولا تُبلَغ هذه القراءة إلا بسقوط همزتي «الّا» و«انت» في الدرج، وقصر المدّ قبلهما لالتقاء الساكنين. وقبل إثبات الوصل كان المحرك يقرأ التفعيلة الثالثة LLLL فيكسر البيت.",
         "meterNote": "اسم البحر متروك عمدًا: أسماء البحور تختلف بين أطياف المجتمع، والمقيس هنا التفعيلات لا الاسم.",
+        "source": "app"
+      },
+      {
+        "id": "article_after_proclitic",
+        "title": "«أل» بعد حرف موصول، والحرف المرسوم أولى بأن يُقرأ على أصله",
+        "input": "ودّنا بالطيب بسّ الدهر جحّاد طيب",
+        "expectedTafaeel": [
+          "فاعلاتن",
+          "فاعلن",
+          "فاعلاتن",
+          "فاعلات"
+        ],
+        "expectedConfidenceRange": [
+          1,
+          1
+        ],
+        "why": "تقطيع التطبيق المرجعي حرفًا حرفًا: ود|دنا|بط ، طي|ببس ، سد|دهر|جح ، حا|دطي|ب. ويجتمع فيه ثلاثة: «بالطيب» بِطْطِيب لا بَالطيب، وألف «جحّاد» باقية لا مقصورة، وياء «طيب» مدٌّ لا صامت. وكان المحرك قبلها يقرأ فاعلاتن فاعلاتن فاعلن فاعلن على «حدطيب».",
+        "meterNote": "اسم البحر متروك عمدًا — والمصدر يسمّي التفعيلة الأخيرة «فاعلان» وهي في هذه القاعدة «فاعلات»، والوزن واحد (/0//0 0).",
         "source": "app"
       }
     ],

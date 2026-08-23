@@ -214,6 +214,19 @@ enum FootMatcher {
         var slot: Int32 = -1
     }
 
+    /// كلفة الرخصة الكامنة في الحافة نفسها — لا في مطابقتها للنمط.
+    ///
+    /// الحرف المرسوم أولى بأن يُقرأ على أصله: الإعراض عن حرف مدٍّ رسمه
+    /// الشاعر — بقصره لسكونٍ مفترض أو بقراءته صامتًا — رخصةٌ تُكلَّف،
+    /// لا أصلٌ يُساوي غيره. وهي كلفة لا منع.
+    @inline(__always)
+    static func licenceCost(_ e: SyllableEdge, _ w: ScoringConfig.Weights) -> Double {
+        let cost = w.writtenMaddIgnored ?? 0
+        if e.shortenedForAssumedSukun { return cost }
+        if e.maddAsConsonant && e.nucleusAssumed { return cost }
+        return 0
+    }
+
     /// محاذاة بأقل كلفة بين مسارات المخطّط ونمط صورة واحدة.
     static func match(dag: SyllableDag, from: Int, pattern: [SyllableWeight], scorer: Scorer) -> [Int: FootMatch] {
         let n = dag.size
@@ -247,10 +260,13 @@ enum FootMatcher {
                 }
 
                 for (slot, e) in edges.enumerated() {
+                    // كلفة الحافة نفسها تدخل الحساب هنا لا بعده، فتختار
+                    // المحاذاة القراءة الأقلّ رخصةً من تلقاء نفسها.
+                    let lic = licenceCost(e, w)
                     if p < P {
                         let sc = scorer.substitutionCost(e.weight, pattern[p])
                         let nk = key(e.to, p + 1)
-                        let nc = c + sc
+                        let nc = c + sc + lic
                         if nc < dist[nk] - 1e-12 {
                             dist[nk] = nc
                             back[nk] = Back(prev: Int32(k), op: sc == 0 ? 1 : 2,
@@ -258,7 +274,7 @@ enum FootMatcher {
                         }
                     }
                     let nk = key(e.to, p)
-                    let nc = c + w.insertion
+                    let nc = c + w.insertion + lic
                     if nc < dist[nk] - 1e-12 {
                         dist[nk] = nc
                         back[nk] = Back(prev: Int32(k), op: 3, node: Int32(u), slot: Int32(slot))
@@ -484,7 +500,7 @@ public enum MeterMatcher {
 
     /// ترتيب لا إجابة واحدة.
     public static func rank(dag: SyllableDag, registry: MeterRegistry, scorer: Scorer,
-                            repeats: [Int] = [1]) -> [MeterMatch] {
+                            repeats: [Int] = [1], units: [PhonUnit] = []) -> [MeterMatch] {
         var out: [MeterMatch] = []
         for meter in registry.enabled {
             var bestForMeter: MeterMatch?
@@ -498,8 +514,43 @@ public enum MeterMatcher {
             }
             if let b = bestForMeter { out.append(b) }
         }
-        out.sort { $0.score != $1.score ? $0.score > $1.score : $0.meterId < $1.meterId }
+
+        // ترتيب المصدر: صاحب القائمة قدّم المسحوب على سائر البحور،
+        // واتّباعه أولى من اتّباع الهجاء.
+        var order: [String: Int] = [:]
+        for (k, m) in registry.meters.enumerated() { order[m.id] = k }
+
+        let preferSukun = scorer.config.ranking.preferFinalSukun ?? true
+        let finals = Dictionary(uniqueKeysWithValues: out.map {
+            ($0.meterId, preferSukun ? assumedFinalVowels($0.feet, units) : 0)
+        })
+
+        out.sort { a, b in
+            if a.score != b.score { return a.score > b.score }
+            let fa = finals[a.meterId] ?? 0, fb = finals[b.meterId] ?? 0
+            if fa != fb { return fa < fb }
+            let oa = order[a.meterId] ?? Int.max, ob = order[b.meterId] ?? Int.max
+            if oa != ob { return oa < ob }
+            return a.meterId < b.meterId
+        }
         return out
+    }
+
+    /// كم حركةً مفترضة وقعت على آخر كلمة؟ ترجيحٌ عند التساوي التامّ،
+    /// مستنده أن النبطي يُسكّن الأواخر ولا إعراب فيه. لا كلفة ولا منع.
+    static func assumedFinalVowels(_ feet: [ChosenFoot], _ units: [PhonUnit]) -> Int {
+        guard !units.isEmpty, !feet.isEmpty else { return 0 }
+        let last = units.count - 1
+        var n = 0
+        for foot in feet {
+            for op in foot.ops {
+                guard let e = op.edge, e.coda == nil, e.nucleusAssumed else { continue }
+                let i = e.onsetIndex
+                guard i >= 0, i < units.count, units[i].wordFinal, i != last else { continue }
+                n += 1
+            }
+        }
+        return n
     }
 
     /// كل توليفات الصيغ الممكنة لعدد أشطر معلوم.

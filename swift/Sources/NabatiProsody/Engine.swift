@@ -164,7 +164,8 @@ public struct ProsodyEngine: Sendable {
         let readable = SyllableParser.buildReadableDag(ph.units)
         let dag = readable.dag
         let free = SyllableParser.freeSyllabify(dag)
-        let ranking = MeterMatcher.rank(dag: dag, registry: registry, scorer: scorer, repeats: repeats)
+        let ranking = MeterMatcher.rank(dag: dag, registry: registry, scorer: scorer,
+                                        repeats: repeats, units: readable.units)
 
         let best = ranking.first
         let tie = scorer.config.uncertainty.tieDelta

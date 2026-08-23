@@ -14,6 +14,7 @@
 
 import { matchFoot, minSyllablesToEnd, createAlignmentCache } from './footMatcher.js';
 import { inconsistentWordReadings } from './wordConsistency.js';
+import { assumedFinalVowels } from './finalSukun.js';
 
 /**
  * @param {object} dag مخطّط مقاطع الشطر
@@ -160,6 +161,8 @@ export function matchMeter(dag, meter, scorer, options = {}) {
     leftoverSyllables: best.leftoverSyllables,
     // كلمات قُرئت خلافًا لمثيلاتها — تُعلَن ولا تُطوى.
     inconsistentWordReadings: oddReadings,
+    // حركاتٌ مفترضة على أواخر الكلمات — ترجيحٌ عند التساوي لا كلفة.
+    assumedFinalVowels: assumedFinalVowels(chosen, options.units),
     assumedVocalization: dag.assumedVocalization,
   };
 }
@@ -246,17 +249,21 @@ export function rankMeters(dag, registry, scorer, options = {}) {
     if (bestForMeter) results.push(bestForMeter);
   }
 
-  // عند تساوي الدرجة يُقدَّم الأسبق في قائمة المصدر.
+  // عند تساوي الدرجة: أوّلًا القراءة الأقلّ افتراضًا لحركةٍ على آخر
+  // الكلمة — فالنبطي يُسكّن الأواخر ولا إعراب فيه (انظر finalSukun.js) —
+  // ثم الأسبق في قائمة المصدر.
   //
-  // كان الترجيح بترتيب المعرّف أبجديًّا، وهو لا يدلّ على شيء: يُقدّم
-  // `al_baseet_1` على `al_maskhub` لأن الباء قبل الميم لا غير. وترتيب
-  // القائمة دلالةٌ حقيقية — صاحبها قدّم المسحوب على سائر البحور —
-  // فاتّباعه أولى من اتّباع الهجاء.
+  // وكان الترجيح قبلُ بترتيب المعرّف أبجديًّا، وهو لا يدلّ على شيء:
+  // يُقدّم `al_baseet_1` على `al_maskhub` لأن الباء قبل الميم لا غير.
+  // وترتيب القائمة دلالةٌ حقيقية — صاحبها قدّم المسحوب على سائر
+  // البحور — فاتّباعه أولى من اتّباع الهجاء.
   //
   // ولا يُخفي هذا التعادلَ: البحور المتساوية تبقى معلَنة في `ambiguity`.
+  const finalSukun = scorer.ranking.preferFinalSukun !== false;
   results.sort(
     (a, b) =>
       b.score - a.score ||
+      (finalSukun ? (a.assumedFinalVowels || 0) - (b.assumedFinalVowels || 0) : 0) ||
       sourceOrder(registry, a.meterId) - sourceOrder(registry, b.meterId) ||
       a.meterId.localeCompare(b.meterId)
   );

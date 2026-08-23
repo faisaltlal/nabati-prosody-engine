@@ -104,12 +104,17 @@ export function analyzeHemistich(text, engine, options = {}) {
 
   // البحور التي تساوت مع الأول في موافقة ما كُتب. أول الكتابة يوافقه
   // كثير منها، وإخفاء ذلك ادّعاء حسمٍ لم يبلغه النصّ.
-  const tied = partialBest
-    ? partialRanking
-        .slice(1)
-        .filter((r) => partialBest.progressScore - r.progressScore <= engine.scorer.config.uncertainty.tieDelta)
-        .map((r) => ({ id: r.meterId, name: r.name, score: r.progressScore }))
-    : [];
+  // ويؤخذ التعادل من الترتيب الذي خرج منه الحكم نفسه: أخذُه من ترتيب
+  // آخر يُظهر البحرَ الفائز في قائمة منافسيه.
+  const tied = source === 'full'
+    ? ((full.ambiguity && full.ambiguity.tiedWith) || [])
+        .map((t) => ({ id: t.id, name: t.name, score: t.score }))
+    : partialBest
+      ? partialRanking
+          .slice(1)
+          .filter((r) => partialBest.progressScore - r.progressScore <= engine.scorer.config.uncertainty.tieDelta)
+          .map((r) => ({ id: r.meterId, name: r.name, score: r.progressScore }))
+      : [];
 
   return {
     text: clean,

@@ -97,6 +97,9 @@ export function phonemize(words, lexicon, options = {}) {
   // أسماء التفعيلات — مشتقّة من البيانات لا مكتوبة في المعجم.
   const tafilaNames = lexicon.tafilaVocalizations || {};
   const waslWords = new Set(lexicon.hamzatWasl?.words || []);
+  // حروف تُرسم موصولةً بأوّل الكلمة قبل «أل»، وحركةُ كلٍّ منها مقرَّرة.
+  const proclitics = lexicon.article?.proclitics || {};
+  const notArticle = new Set(lexicon.article?.exceptions || []);
   const silentWaw = new Set(
     (lexicon.silentLetters?.rules || [])
       .filter((r) => r.action === 'drop_final_waw')
@@ -130,21 +133,64 @@ export function phonemize(words, lexicon, options = {}) {
     let geminationEmitted = false;
     const atLineStart = units.length === 0;
 
-    // ---- أل التعريف ----
-    // الشرط: ألف مجرّدة + لام + حرف ثالث على الأقل.
+    // ---- أل التعريف، ولو سبقتها حروف موصولة ----
+    //
+    // «بالطيب» = بِ + أل + طيب، و«والليل» = وَ + أل + ليل. والحروف
+    // (و ف ب ك ل) تُرسم موصولةً فتُخفي «أل» عن كل كشفٍ يشترط أن تكون
+    // الألف أوّل الرسم — وكانت تُقرأ حينئذ ألفَ مدٍّ: «بالطيب» ←
+    // بَالطيب، فتضيع اللام الشمسية وتُقصر ألفٌ لا موجب لقصرها.
+    //
+    // وهمزة الوصل هنا ساقطة قطعًا ولو كانت الكلمة أول الشطر، لأنها
+    // في الدرج بما قبلها من حرف موصول.
+    //
     // ملاحظة موثّقة: الخلط بين «ال» التعريف وهمزة وصل الفعل (التقى)
     // محايد عروضيًا — القراءتان تعطيان الكمّيات نفسها — فالخطأ هنا
     // لا يُفسد الوزن. انظر docs/PROSODY.md
+    const prefix = [];
+    let a = 0;
+    const isFree = (L) => L && !hasOwnVowel(L) && !L.marks.includes(SHADDA);
+    // عاطفةٌ مفتوحة (و/ف) ثم جارّةٌ مكسورة (ب/ك/ل)، بهذا الترتيب لا غير.
+    if (isFree(letters[a]) && proclitics[letters[a].ch] === 'a') {
+      prefix.push({ ch: letters[a].ch, quality: 'a' }); a++;
+    }
+    if (isFree(letters[a]) && proclitics[letters[a].ch] === 'i') {
+      prefix.push({ ch: letters[a].ch, quality: 'i' }); a++;
+    }
+    // «لل» رسمٌ خاصّ: لام الجرّ ثم لام التعريف، والألف بينهما ساقطة
+    // من الرسم. ولا يُقاس عليها غيرها — «كلمة» ليست كافًا ثم لامَ
+    // تعريف — فتُشترط اللام مرّتين نصًّا.
+    const doubleLam =
+      prefix.length && prefix[prefix.length - 1].ch === LAM &&
+      a < letters.length && letters[a].ch === LAM && isFree(letters[a]);
+    const alefLam =
+      !doubleLam &&
+      letters[a] && letters[a].ch === ALEF && !letters[a].marks.includes(SHADDA) &&
+      letters[a + 1] && letters[a + 1].ch === LAM && !hasOwnVowel(letters[a + 1]);
+
+    const lamAt = doubleLam ? a : a + 1;
+    const target = letters[lamAt + 1];
     const isArticle =
-      letters.length >= 3 &&
-      letters[0].ch === ALEF &&
-      !letters[0].marks.includes(SHADDA) &&
-      letters[1].ch === LAM &&
-      !hasOwnVowel(letters[1]);
+      // ورسمُ «لل» وحده يُشترط فيه أن يكون بعد اللامين صامتٌ حقيقي،
+      // كي لا تُتوهَّم «بلاد» باءَ جرٍّ ثم لامَ تعريف. أمّا «أل» بألفها
+      // فبعدها ألفٌ كثيرًا («الاطلال»، «الارض») وهي همزة لا مدّ.
+      (alefLam || (doubleLam && !!target && target.ch !== ALEF && target.ch !== ALEF_MAQSURA)) &&
+      !!target &&
+      !notArticle.has(bare) &&
+      // مجرّدةً تكفيها ثلاثة أحرف («الف»)، ومسبوقةً بحرف موصول يلزمها
+      // حرفان بعد اللام: لا اسم في العربية على حرف واحد، والاشتراط
+      // يُخرج «والد» و«بالغ» و«فالح» من التوهّم بلا كلفة.
+      letters.length >= lamAt + (prefix.length ? 3 : 2);
 
     if (isArticle) {
-      const target = letters[2];
-      if (atLineStart) {
+      for (const p of prefix) {
+        push({
+          c: hamzaBase(p.ch), vowel: KNOWN('short', p.quality),
+          word: w, wordInitial: true, source: 'proclitic',
+        });
+      }
+      if (prefix.length) {
+        log('hamzatWasl', `أل بعد ${prefix.map((p) => p.ch).join('')} — الهمزة ساقطة`);
+      } else if (atLineStart) {
         // همزة وصل مبتدأ بها: تُنطق همزةً مفتوحة.
         push({ c: HAMZA, vowel: KNOWN('short', 'a'), word: w, wordInitial: true, source: 'hamzat_wasl' });
         log('hamzatWasl', 'أل في أول الشطر — الهمزة منطوقة');
@@ -160,7 +206,7 @@ export function phonemize(words, lexicon, options = {}) {
         push({ c: LAM, vowel: KNOWN('none', null), word: w, source: 'lam_qamariyya' });
         log('lamQamariyya', `اللام منطوقة قبل ${target.ch}`);
       }
-      i = 2;
+      i = lamAt + 1;
     } else if (
       letters[0].ch === ALEF && !atLineStart && waslWords.has(bare)
     ) {

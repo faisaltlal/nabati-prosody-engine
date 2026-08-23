@@ -136,3 +136,49 @@ describe('الدرجة', () => {
     equal(engine.scorer.thresholds, DATA.scoring.thresholds);
   });
 });
+
+/** محرك بمعامل واحد مغيَّر — لإثبات أن المعامل هو الفاعل لا الصدفة. */
+function engineWith(path, value) {
+  const scoring = { ...DATA.scoring };
+  const [group, key] = path;
+  scoring[group] = { ...scoring[group], [key]: value };
+  return createEngine({ ...DATA, scoring });
+}
+
+const LINE = 'ودّنا بالطيب بسّ الدهر جحّاد طيب';
+const lettersOf = (e, line) =>
+  e.analyzeLive({ single: line }).hemistichs[0].result.letters.map((l) => l.ch).join('');
+
+describe('ترجيح القراءة — رخصةٌ وترجيح لا منع', () => {
+  it('الحرف المرسوم أولى بأن يُقرأ على أصله', () => {
+    // النصّ نفسه يحتمل قراءتين: واحدة تُبقي ألف «جحّاد» وياءَ «طيب»
+    // مدًّا، وأخرى تقصر الألف وتقرأ الياء صامتًا. كلتاهما في المخطّط،
+    // والكلفة ترجّح المُبقية.
+    const letters = lettersOf(engine, LINE);
+    assert(letters.includes('حاد'), `ألف «جحّاد» باقية — ${letters}`);
+    assert(letters.endsWith('طيب'), `ياء «طيب» مدّ لا صامت — ${letters}`);
+
+    // والمعامل هو الفاعل: بإسقاطه تعود القراءة المُعرِضة عن الرسم.
+    const free = engineWith(['weights', 'writtenMaddIgnored'], 0);
+    assert(!lettersOf(free, LINE).includes('حاد'), 'بلا كلفة تُقصَر الألف');
+  });
+
+  it('الرخصة كلفة لا منع: القراءة القاصرة تبقى مطروحة', () => {
+    const r = engine.analyze(LINE);
+    const licensed = r.alternatives.filter((a) => a.score < r.bestMeter.score);
+    assert(licensed.length > 0, 'البحور التي تلزمها رخصة تبقى في القائمة');
+    assert(licensed[0].score > 0.9, `ونزولها يسير: ${licensed[0].score}`);
+  });
+
+  it('تسكين الأواخر يرجّح عند التساوي التامّ ولا يمسّ درجة', () => {
+    const r = engine.analyze(LINE);
+    const off = engineWith(['ranking', 'preferFinalSukun'], false).analyze(LINE);
+
+    // الدرجة واحدة في الحالين — الترجيح ترتيبٌ لا كلفة.
+    equal(r.bestMeter.score, off.bestMeter.score, 'الترجيح لا يغيّر درجة');
+    assert(r.bestMeter.id !== off.bestMeter.id, 'وهو الذي يحسم بينهما');
+
+    // والتعادل يبقى معلَنًا لا مطويًّا.
+    assert(r.ambiguity && r.ambiguity.tiedWith.length > 0, 'التعادل معلَن');
+  });
+});

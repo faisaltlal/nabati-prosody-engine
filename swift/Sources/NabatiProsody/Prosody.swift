@@ -29,6 +29,16 @@ public struct SyllableEdge: Sendable {
     public let assumed: Bool
     public let rule: String?
     public let ishbaa: Bool
+    /// موضع فاتحة المقطع في الوحدات — به يُعرف أهي آخر كلمتها.
+    public var onsetIndex: Int = -1
+    /// حركةُ الفاتحة مفترضة لا مكتوبة.
+    public var nucleusAssumed: Bool = false
+    /// قُصر حرف مدٍّ مرسوم لأجل سكونٍ **مفترض**.
+    public var shortenedForAssumedSukun: Bool = false
+    /// همزةُ وصلٍ ساقطة — والساكن بعدها لازم، فالقصر حكمٌ لا اختيار.
+    public var elidedHamza: Bool = false
+    /// حرف مدٍّ مرسوم قُرئ صامتًا فاتحةً لمقطع.
+    public var maddAsConsonant: Bool = false
 }
 
 public struct SyllableDag: Sendable {
@@ -101,6 +111,10 @@ public enum SyllableParser {
 
         for i in 0..<n {
             let onset = units[i]
+            // حرفُ مدٍّ مرسوم يُقرأ صامتًا فاتحةً لمقطع: «طيب» ← طِ‑يِبْ.
+            // ولا يدخل فيه اللين، لأن الياء فيه قفلٌ لا فاتحة.
+            let before: PhonUnit? = i > 0 ? units[i - 1] : nil
+            let maddAsConsonant = before.map { $0.suppressNextIfLong && $0.word == onset.word } ?? false
             for nuc in nucleusOptions(onset) {
                 if nuc.assumed { assumed = true }
                 // الواو/الياء المحتسَبة حرف مدّ لا تعود وحدة، وكذلك
@@ -113,7 +127,9 @@ public enum SyllableParser {
                 edges[i].append(SyllableEdge(
                     from: i, to: afterNucleus, weight: nuc.long ? .L : .S,
                     shape: nuc.long ? "CVV" : "CV", onset: onset.consonant, coda: nil,
-                    assumed: nuc.assumed, rule: nil, ishbaa: false
+                    assumed: nuc.assumed, rule: nil, ishbaa: false,
+                    onsetIndex: i, nucleusAssumed: nuc.assumed,
+                    elidedHamza: nuc.absorbsNext, maddAsConsonant: maddAsConsonant
                 ))
 
                 guard afterNucleus < n else { continue }
@@ -124,12 +140,19 @@ public enum SyllableParser {
                     let to = codaIndex + 1
                     let codaAssumed = nuc.assumed || !coda.vowel.isKnown
                     if !coda.vowel.isKnown { assumed = true }
+                    let elided = baseRule != nil || nuc.absorbsNext
+                    // قصرُ المدّ لسكونٍ مفترض رخصة؛ ولسكونٍ معلوم أو
+                    // همزةِ وصلٍ ساقطة حكمٌ لا اختيار.
+                    let licensed = nuc.long && to != n && !coda.vowel.isKnown && !elided
 
                     if !nuc.long {
                         edges[i].append(SyllableEdge(
                             from: i, to: to, weight: .L, shape: "CVC",
                             onset: onset.consonant, coda: coda.consonant,
-                            assumed: codaAssumed, rule: baseRule, ishbaa: false
+                            assumed: codaAssumed, rule: baseRule, ishbaa: false,
+                            onsetIndex: i, nucleusAssumed: nuc.assumed,
+                            shortenedForAssumedSukun: false, elidedHamza: elided,
+                            maddAsConsonant: maddAsConsonant
                         ))
                     } else if to == n {
                         // آخر الشطر: التقاء الساكنين جائز، فيثبت المدّ
@@ -139,7 +162,10 @@ public enum SyllableParser {
                         edges[i].append(SyllableEdge(
                             from: i, to: to, weight: .X, shape: "CVVC",
                             onset: onset.consonant, coda: coda.consonant,
-                            assumed: codaAssumed, rule: baseRule, ishbaa: false
+                            assumed: codaAssumed, rule: baseRule, ishbaa: false,
+                            onsetIndex: i, nucleusAssumed: nuc.assumed,
+                            shortenedForAssumedSukun: false, elidedHamza: elided,
+                            maddAsConsonant: maddAsConsonant
                         ))
                     } else {
                         // وسط الشطر: التقاء الساكنين ممنوع فيسقط حرف المدّ.
@@ -147,7 +173,10 @@ public enum SyllableParser {
                         edges[i].append(SyllableEdge(
                             from: i, to: to, weight: .L, shape: "CVC",
                             onset: onset.consonant, coda: coda.consonant,
-                            assumed: codaAssumed, rule: r, ishbaa: false
+                            assumed: codaAssumed, rule: r, ishbaa: false,
+                            onsetIndex: i, nucleusAssumed: nuc.assumed,
+                            shortenedForAssumedSukun: licensed, elidedHamza: elided,
+                            maddAsConsonant: maddAsConsonant
                         ))
                     }
                 }
@@ -183,7 +212,10 @@ public enum SyllableParser {
                     extra.append((e.from, SyllableEdge(
                         from: e.from, to: n, weight: .L, shape: e.shape,
                         onset: e.onset, coda: e.coda, assumed: e.assumed,
-                        rule: "إشباع حركة الروي", ishbaa: true
+                        rule: "إشباع حركة الروي", ishbaa: true,
+                        onsetIndex: e.onsetIndex, nucleusAssumed: e.nucleusAssumed,
+                        shortenedForAssumedSukun: e.shortenedForAssumedSukun,
+                        elidedHamza: e.elidedHamza, maddAsConsonant: e.maddAsConsonant
                     )))
                 }
             }
