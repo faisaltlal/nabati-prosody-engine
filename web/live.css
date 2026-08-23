@@ -72,9 +72,15 @@
   padding: 9px 10px; background: var(--bg);
 }
 .foot-name { font-size: 1rem; font-weight: 700; line-height: 1.5; }
+/* الرمز يبدأ من اليمين كالتفعيلة والنصّ تحته.
+   وكان يُكتب نصًّا بـ direction: ltr فيبدأ من اليسار — والاسم والحروف
+   يبدآن من اليمين، فيقرأ القارئ رمزًا معكوسًا عمّا فوقه وتحته.
+   وكلُّ رمزٍ عنصرٌ مستقلّ لا حرفٌ في نصّ: ترتيبُ العناصر في صفٍّ
+   مرنٍ لا يتقلّب بخوارزمية الاتجاهين، بخلاف «/» و«0» في نصّ واحد. */
 .foot-symbol {
-  font-family: var(--mono); direction: ltr; font-size: .82rem;
-  letter-spacing: .1em; color: var(--brand); margin-top: 2px;
+  display: flex; justify-content: center; gap: .12em;
+  font-family: var(--mono); font-size: .82rem;
+  color: var(--brand); margin-top: 2px;
   min-height: 1.2em;
 }
 .foot-text {

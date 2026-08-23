@@ -976,6 +976,36 @@
       ],
       "expectedSyllableCount": 16,
       "status": "OK"
+    },
+    {
+      "id": "hajini",
+      "name": "هجيني",
+      "aliases": [],
+      "enabled": true,
+      "sourceIndex": 34,
+      "forms": [
+        {
+          "role": "sadr",
+          "feet": [
+            "mustafilun",
+            "failun",
+            "faalun"
+          ],
+          "sourceQuote": "مستفعلن فاعلن فعلن"
+        },
+        {
+          "role": "ajz",
+          "feet": [
+            "mustafilun",
+            "failun",
+            "maful"
+          ],
+          "sourceQuote": "مستفعلن فاعلن مفعول"
+        }
+      ],
+      "expectedSyllableCount": 9,
+      "status": "OK",
+      "note": "أقرّه صاحب القائمة بعد القائمة الأصلية، وسمّاه «هجيني». وشاهده شطر «صعيب مهما تساهلته»: يقطّعه التطبيق المرجعي مفاعلن فاعلن فاعل — وهي مستفعلن مخبونة، وفاعلن، وفعلن (قطع فاعلن). والعجز مستنبَط على قاعدة القائمة نفسها: العجز هو الصدر مع زيادة ساكن (فعلن ← مفعول)، ولم يَرِد نصًّا."
     }
   ],
   "notInSource": []
