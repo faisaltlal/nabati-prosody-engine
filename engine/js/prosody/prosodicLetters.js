@@ -17,6 +17,17 @@
 export const MADD = { a: 'ا', i: 'ي', u: 'و' };
 
 /**
+ * علامةُ مدٍّ محايدة، تُوضع مكان حرف المدّ حين تُجهل الحركة.
+ *
+ * إشباع آخر الشطر يُولّد مدًّا: ألفًا من الفتحة، وياءً من الكسرة،
+ * وواوًا من الضمة. فإن كان الرويّ غير مشكول فالحركة مجهولة — ولا يجوز
+ * أن يُخترع لها حرف. «تساهلته» كانت تخرج «تساهلتها» بألفٍ لا يعلمها
+ * أحد، و«ومنزل» تخرج «ومنزلا» وصوابها «ومنزلي». فالمجهول تُوضع له
+ * علامةُ الإطالة ويُعلَن أنه مزيد.
+ */
+export const NEUTRAL_MADD = '\u0640';
+
+/**
  * @param {object[]} syllables مقاطع كما يخرجها `edgeToSyllable`
  * @param {object[]} [units] الوحدات الصوتية — منها يُعرف رسم الحرف الأصلي
  * @returns {Array<{ch:string, moving:boolean, role:string, syllable:number}>}
@@ -36,9 +47,14 @@ export function prosodicLetters(syllables, units) {
       assumed: !!s.assumed, unit: unitAt(consumed[0]),
     });
     if (hasMadd) {
+      const known = MADD[s.quality];
       out.push({
-        ch: MADD[s.quality] || 'ا', moving: false, syllable: si, role: 'madd',
-        quality: s.quality, ishbaa: !!s.ishbaa, assumed: !!s.assumed,
+        ch: known || NEUTRAL_MADD, moving: false, syllable: si, role: 'madd',
+        quality: s.quality, ishbaa: !!s.ishbaa,
+        // حرفٌ في النطق لا في الرسم: مدُّ الإشباع. يُعلَن مزيدًا كي لا
+        // يُحسَب على الشاعر حرفًا كتبه.
+        added: !!s.ishbaa,
+        assumed: !!s.assumed || !known,
       });
     }
     if (hasCoda) {
@@ -64,14 +80,22 @@ export function prosodicLetters(syllables, units) {
  * @returns {string[]} نصّ كل تفعيلة
  */
 export function splitLettersByFeet(letters, counts) {
+  return groupLettersByFeet(letters, counts).map((g) => g.map((l) => l.ch).join(''));
+}
+
+/**
+ * كسابقتها، غير أنها تُرجع الحروف أنفسها لا نصًّا.
+ *
+ * تلزم طبقةَ العرض لتميّز الحرف المزيد للإشباع مما كتبه الشاعر —
+ * والنصّ وحده لا يميّزهما.
+ */
+export function groupLettersByFeet(letters, counts) {
   const out = [];
   let syllable = 0;
   for (const count of counts) {
     const from = syllable;
     const to = syllable + count;
-    out.push(
-      letters.filter((l) => l.syllable >= from && l.syllable < to).map((l) => l.ch).join('')
-    );
+    out.push(letters.filter((l) => l.syllable >= from && l.syllable < to));
     syllable = to;
   }
   return out;

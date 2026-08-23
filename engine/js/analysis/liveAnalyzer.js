@@ -26,7 +26,7 @@ import { buildReadableDag, freeSyllabify, edgeToSyllable } from '../prosody/syll
 import { rankMetersPartial } from '../matching/partialMatcher.js';
 import { partialTafilaName } from '../meters/registry.js';
 import { analyzeRhyme } from '../rhyme/rhymeAnalyzer.js';
-import { prosodicLetters, splitLettersByFeet } from '../prosody/prosodicLetters.js';
+import { prosodicLetters, groupLettersByFeet } from '../prosody/prosodicLetters.js';
 import { analyzeLine } from './lineAnalyzer.js';
 
 /** حالة كل تفعيلة كما تُعرض على بطاقتها. */
@@ -140,7 +140,14 @@ export function analyzeHemistich(text, engine, options = {}) {
       ch: l.ch,
       symbol: l.moving ? '/' : '0',
       role: l.role,
+      // حرفٌ في النطق لا في الرسم: مدُّ الإشباع آخر الشطر.
+      added: !!l.added,
     })),
+    // ملاحظاتٌ على العرض نفسه. المحرك يُخرجها نصًّا ولا يطبعها: الطباعة
+    // سلوك مضيف لا سلوك محرك.
+    notes: letters.some((l) => l.added)
+      ? ['آخر حرف في التقطيع مدُّ إشباعٍ لحركة الرويّ: يُنطق ولا يُرسم، وليس حرفًا في الكلمة.']
+      : [],
     typedSyllables: partialBest ? partialBest.typedSyllables : syllables.length,
     meterSyllables: partialBest ? partialBest.meterSyllables : null,
     brokenFeet: source === 'full' ? full.brokenFeet : [],
@@ -338,13 +345,17 @@ function cardKind(engine, tafilaId, isSalim) {
   return addedSakinLicence(engine, tafilaId) ? 'licensed' : 'salim';
 }
 
-function card(engine, { name, syllables, state, kind, variation, text, broken, dim, licence }) {
+function card(engine, { name, syllables, state, kind, variation, letters, broken, dim, licence }) {
+  const group = letters || [];
   return {
     name,
     // الرمز العروضي يُشتقّ من المقاطع بالترميز نفسه الذي يستعمله المحرك،
     // لا بجدول مكتوب في الواجهة.
     symbol: engine.encoder.encode(syllables, 'arudi_slash_zero').value,
-    text: text || '',
+    text: group.map((l) => l.ch).join(''),
+    // الحروف مفصَّلة: منها تعرف طبقةُ العرض ما زِيد للإشباع مما كتبه
+    // الشاعر — والنصّ وحده لا يميّزهما.
+    textParts: group.map((l) => ({ ch: l.ch, added: !!l.added })),
     state,
     kind: kind || null,
     variation: variation || null,
@@ -360,7 +371,7 @@ function plainName(vocalized) {
 }
 
 function cardsFromFull(full, engine, letters) {
-  const texts = splitLettersByFeet(
+  const texts = groupLettersByFeet(
     letters,
     full.tafaeel.map((f) => (f.actual === '—' ? 0 : [...f.actual].length))
   );
@@ -376,7 +387,7 @@ function cardsFromFull(full, engine, letters) {
       licence: isSalim
         ? addedSakinLicence(engine, f.tafilaId)
         : licenceOf(engine, f.variationId, f.tafila, plainName(f.realized), f.variation, f.tafilaId),
-      text: texts[i] || '',
+      letters: texts[i] || [],
       broken,
     });
   });
@@ -386,7 +397,7 @@ function cardsFromPartial(best, engine, letters) {
   if (!best) return [];
   const counts = best.feet.map((f) => f.actual.length);
   if (best.partialFoot) counts.push(best.partialFoot.actual.length);
-  const texts = splitLettersByFeet(letters, counts);
+  const texts = groupLettersByFeet(letters, counts);
   const out = [];
 
   let i = 0;
@@ -402,7 +413,7 @@ function cardsFromPartial(best, engine, letters) {
       licence: isSalim
         ? addedSakinLicence(engine, f.tafilaId)
         : licenceOf(engine, f.variant.id, f.tafila, plainName(f.variant.result), f.variant.name, f.tafilaId),
-      text: texts[i++] || '',
+      letters: texts[i++] || [],
       broken,
     }));
   }
@@ -415,7 +426,7 @@ function cardsFromPartial(best, engine, letters) {
       syllables: p.expected.slice(0, p.filled),
       state: STATE.partial,
       kind: 'partial',
-      text: texts[i++] || '',
+      letters: texts[i++] || [],
     }));
   }
 

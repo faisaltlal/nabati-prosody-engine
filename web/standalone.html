@@ -298,6 +298,15 @@ footer code { font-family: var(--mono); font-size: .95em; }
   color: var(--brand); line-height: 1.2;
 }
 
+/* ما زِيد في النطق ولم يُرسم — مدُّ الإشباع. يُرى ويُعرف أنه مزيد. */
+.glyph.added { border-style: dashed; opacity: .6; }
+.foot-text .added { opacity: .5; }
+
+.note.dim {
+  margin-top: 8px; font-size: .72rem; line-height: 1.7;
+  color: var(--muted);
+}
+
 /* ── سطر العلّة ───────────────────────────────────────────── */
 .licence {
   display: block; margin-top: 10px; font-size: .8rem; line-height: 1.9;
@@ -3098,6 +3107,17 @@ const clamp01 = (x) => Math.max(0, Math.min(1, x));
 const MADD = { a: 'ا', i: 'ي', u: 'و' };
 
 /**
+ * علامةُ مدٍّ محايدة، تُوضع مكان حرف المدّ حين تُجهل الحركة.
+ *
+ * إشباع آخر الشطر يُولّد مدًّا: ألفًا من الفتحة، وياءً من الكسرة،
+ * وواوًا من الضمة. فإن كان الرويّ غير مشكول فالحركة مجهولة — ولا يجوز
+ * أن يُخترع لها حرف. «تساهلته» كانت تخرج «تساهلتها» بألفٍ لا يعلمها
+ * أحد، و«ومنزل» تخرج «ومنزلا» وصوابها «ومنزلي». فالمجهول تُوضع له
+ * علامةُ الإطالة ويُعلَن أنه مزيد.
+ */
+const NEUTRAL_MADD = '\u0640';
+
+/**
  * @param {object[]} syllables مقاطع كما يخرجها `edgeToSyllable`
  * @param {object[]} [units] الوحدات الصوتية — منها يُعرف رسم الحرف الأصلي
  * @returns {Array<{ch:string, moving:boolean, role:string, syllable:number}>}
@@ -3117,9 +3137,14 @@ function prosodicLetters(syllables, units) {
       assumed: !!s.assumed, unit: unitAt(consumed[0]),
     });
     if (hasMadd) {
+      const known = MADD[s.quality];
       out.push({
-        ch: MADD[s.quality] || 'ا', moving: false, syllable: si, role: 'madd',
-        quality: s.quality, ishbaa: !!s.ishbaa, assumed: !!s.assumed,
+        ch: known || NEUTRAL_MADD, moving: false, syllable: si, role: 'madd',
+        quality: s.quality, ishbaa: !!s.ishbaa,
+        // حرفٌ في النطق لا في الرسم: مدُّ الإشباع. يُعلَن مزيدًا كي لا
+        // يُحسَب على الشاعر حرفًا كتبه.
+        added: !!s.ishbaa,
+        assumed: !!s.assumed || !known,
       });
     }
     if (hasCoda) {
@@ -3145,20 +3170,28 @@ function prosodicLetters(syllables, units) {
  * @returns {string[]} نصّ كل تفعيلة
  */
 function splitLettersByFeet(letters, counts) {
+  return groupLettersByFeet(letters, counts).map((g) => g.map((l) => l.ch).join(''));
+}
+
+/**
+ * كسابقتها، غير أنها تُرجع الحروف أنفسها لا نصًّا.
+ *
+ * تلزم طبقةَ العرض لتميّز الحرف المزيد للإشباع مما كتبه الشاعر —
+ * والنصّ وحده لا يميّزهما.
+ */
+function groupLettersByFeet(letters, counts) {
   const out = [];
   let syllable = 0;
   for (const count of counts) {
     const from = syllable;
     const to = syllable + count;
-    out.push(
-      letters.filter((l) => l.syllable >= from && l.syllable < to).map((l) => l.ch).join('')
-    );
+    out.push(letters.filter((l) => l.syllable >= from && l.syllable < to));
     syllable = to;
   }
   return out;
 }
 
-  Object.assign(__M, { MADD, prosodicLetters, splitLettersByFeet });
+  Object.assign(__M, { MADD, NEUTRAL_MADD, prosodicLetters, splitLettersByFeet, groupLettersByFeet });
 }
 
 // ── engine/js/rhyme/rhymeAnalyzer.js ──
@@ -3384,7 +3417,7 @@ const { buildReadableDag, freeSyllabify, edgeToSyllable } = __M;
 const { rankMetersPartial } = __M;
 const { partialTafilaName } = __M;
 const { analyzeRhyme } = __M;
-const { prosodicLetters, splitLettersByFeet } = __M;
+const { prosodicLetters, groupLettersByFeet } = __M;
 const { analyzeLine } = __M;
 
 /** حالة كل تفعيلة كما تُعرض على بطاقتها. */
@@ -3498,7 +3531,14 @@ function analyzeHemistich(text, engine, options = {}) {
       ch: l.ch,
       symbol: l.moving ? '/' : '0',
       role: l.role,
+      // حرفٌ في النطق لا في الرسم: مدُّ الإشباع آخر الشطر.
+      added: !!l.added,
     })),
+    // ملاحظاتٌ على العرض نفسه. المحرك يُخرجها نصًّا ولا يطبعها: الطباعة
+    // سلوك مضيف لا سلوك محرك.
+    notes: letters.some((l) => l.added)
+      ? ['آخر حرف في التقطيع مدُّ إشباعٍ لحركة الرويّ: يُنطق ولا يُرسم، وليس حرفًا في الكلمة.']
+      : [],
     typedSyllables: partialBest ? partialBest.typedSyllables : syllables.length,
     meterSyllables: partialBest ? partialBest.meterSyllables : null,
     brokenFeet: source === 'full' ? full.brokenFeet : [],
@@ -3696,13 +3736,17 @@ function cardKind(engine, tafilaId, isSalim) {
   return addedSakinLicence(engine, tafilaId) ? 'licensed' : 'salim';
 }
 
-function card(engine, { name, syllables, state, kind, variation, text, broken, dim, licence }) {
+function card(engine, { name, syllables, state, kind, variation, letters, broken, dim, licence }) {
+  const group = letters || [];
   return {
     name,
     // الرمز العروضي يُشتقّ من المقاطع بالترميز نفسه الذي يستعمله المحرك،
     // لا بجدول مكتوب في الواجهة.
     symbol: engine.encoder.encode(syllables, 'arudi_slash_zero').value,
-    text: text || '',
+    text: group.map((l) => l.ch).join(''),
+    // الحروف مفصَّلة: منها تعرف طبقةُ العرض ما زِيد للإشباع مما كتبه
+    // الشاعر — والنصّ وحده لا يميّزهما.
+    textParts: group.map((l) => ({ ch: l.ch, added: !!l.added })),
     state,
     kind: kind || null,
     variation: variation || null,
@@ -3718,7 +3762,7 @@ function plainName(vocalized) {
 }
 
 function cardsFromFull(full, engine, letters) {
-  const texts = splitLettersByFeet(
+  const texts = groupLettersByFeet(
     letters,
     full.tafaeel.map((f) => (f.actual === '—' ? 0 : [...f.actual].length))
   );
@@ -3734,7 +3778,7 @@ function cardsFromFull(full, engine, letters) {
       licence: isSalim
         ? addedSakinLicence(engine, f.tafilaId)
         : licenceOf(engine, f.variationId, f.tafila, plainName(f.realized), f.variation, f.tafilaId),
-      text: texts[i] || '',
+      letters: texts[i] || [],
       broken,
     });
   });
@@ -3744,7 +3788,7 @@ function cardsFromPartial(best, engine, letters) {
   if (!best) return [];
   const counts = best.feet.map((f) => f.actual.length);
   if (best.partialFoot) counts.push(best.partialFoot.actual.length);
-  const texts = splitLettersByFeet(letters, counts);
+  const texts = groupLettersByFeet(letters, counts);
   const out = [];
 
   let i = 0;
@@ -3760,7 +3804,7 @@ function cardsFromPartial(best, engine, letters) {
       licence: isSalim
         ? addedSakinLicence(engine, f.tafilaId)
         : licenceOf(engine, f.variant.id, f.tafila, plainName(f.variant.result), f.variant.name, f.tafilaId),
-      text: texts[i++] || '',
+      letters: texts[i++] || [],
       broken,
     }));
   }
@@ -3773,7 +3817,7 @@ function cardsFromPartial(best, engine, letters) {
       syllables: p.expected.slice(0, p.filled),
       state: STATE.partial,
       kind: 'partial',
-      text: texts[i++] || '',
+      letters: texts[i++] || [],
     }));
   }
 
@@ -6845,6 +6889,12 @@ const DATA = {
         {
           "need": "أبيات نبطية عامية فيها تسكين أواخر الكلمات",
           "unblocks": "قواعد اللهجة في lexicon.nabatiDialect — فارغة عمدًا"
+        },
+        {
+          "need": "إقرارُ بحرٍ من ثلاث تفعيلات: «مستفعلن فاعلن فعلن» (LLSL LSL LL) — يسمّيه التطبيق المرجعي «الهجيني»، وتفعيلاته عنده مفاعلن (خبن مستفعلن) فاعلن فاعل",
+          "evidence": "شطر «صعيب مهما تساهلته» — المرجع يقطّعه صعي|بمه ، ما|تسا ، هل|ته بدرجة تامّة. والقائمة المعتمدة (٣٣ بحرًا) ليس فيها هذا الشكل ولا شكلٌ من تسعة مقاطع يقاربه، فأقرب ما وجده المحرك «البسيط - طرق 1» بقراءةٍ تقرأ «تساهلته» تَسَاهَلَتَهَا وتلزمها الخبل — ٩٦٪.",
+          "unblocks": "قراءة الأشطر الثلاثية على وزن مستفعلن فاعلن + ضرب مقطوع. والإضافة تعديلُ بياناتٍ وحدها (البند ٣٠): صيغتان، صدرٌ [mustafilun, failun, faalun] وعجزٌ [mustafilun, failun, maful].",
+          "whyNotAdded": "البند ٢٦: البحر لا يُخترع. والقائمة المعتمدة قرارُ صاحبها، وقد نصّ على أنها تُلغي ما قبلها — فزيادةُ بحرٍ عليها إقرارٌ منه لا استنتاجٌ منّي."
         }
       ]
     }
@@ -7046,7 +7096,7 @@ function renderHemistich(h) {
     </div>
 
     ${x.letters && x.letters.length ? `<div class="glyphs">${x.letters.map(
-      (l) => `<span class="glyph"><b>${esc(l.ch)}</b><i>${l.symbol}</i></span>`
+      (l) => `<span class="glyph${l.added ? ' added' : ''}"${l.added ? ' title="مدُّ إشباعٍ — يُنطق ولا يُرسم"' : ''}><b>${esc(l.ch)}</b><i>${l.symbol}</i></span>`
     ).join('')}</div>` : ''}
 
     <div class="feet">${x.cards.map(footCard).join('')}</div>
@@ -7064,6 +7114,8 @@ function renderHemistich(h) {
       موضع الكسر: ${broken.map((c) => esc(c.name)).join('، ')}
     </div>` : ''}
 
+    ${(x.notes || []).map((n) => `<div class="note dim">${esc(n)}</div>`).join('')}
+
     ${x.rhyme ? renderRhyme(x.rhyme) : ''}
   </div>`;
 }
@@ -7076,7 +7128,9 @@ function footCard(c) {
   return `<div class="foot ${c.kind}">
     <div class="foot-name">${esc(c.name) || '—'}</div>
     <div class="foot-symbol">${esc(c.symbol)}</div>
-    ${c.text ? `<div class="foot-text">${esc(c.text)}</div>` : ''}
+    ${c.text ? `<div class="foot-text">${(c.textParts || [...c.text].map((ch) => ({ ch }))).map(
+      (t) => (t.added ? `<span class="added">${esc(t.ch)}</span>` : esc(t.ch))
+    ).join('')}</div>` : ''}
     <div class="foot-state">${esc(c.state)}</div>
   </div>`;
 }

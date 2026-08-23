@@ -130,6 +130,15 @@
   color: var(--brand); line-height: 1.2;
 }
 
+/* ما زِيد في النطق ولم يُرسم — مدُّ الإشباع. يُرى ويُعرف أنه مزيد. */
+.glyph.added { border-style: dashed; opacity: .6; }
+.foot-text .added { opacity: .5; }
+
+.note.dim {
+  margin-top: 8px; font-size: .72rem; line-height: 1.7;
+  color: var(--muted);
+}
+
 /* ── سطر العلّة ───────────────────────────────────────────── */
 .licence {
   display: block; margin-top: 10px; font-size: .8rem; line-height: 1.9;
