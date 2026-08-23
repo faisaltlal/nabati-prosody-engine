@@ -54,20 +54,30 @@ public enum SyllableParser {
         let long: Bool
         let quality: String?
         let assumed: Bool
+        var suppressesNext: Bool = false
+        /// الساكن ابتلع همزةً بعده فأخذ حركتها — فالهمزة مستهلَكة معه.
+        var absorbsNext: Bool = false
     }
 
     private static func nucleusOptions(_ u: PhonUnit) -> [Nucleus] {
+        // ساكنٌ يليه همزةٌ تسقط في الوصل: له قراءتان — يبقى ساكنًا
+        // فتُنطق الهمزة، أو يبتلعها فيأخذ حركتها. تُعرضان والوزن يحسم.
+        let absorbing: [Nucleus] = u.absorbsNextIfShort
+            ? [Nucleus(long: false, quality: nil, assumed: true, absorbsNext: true)]
+            : []
         switch u.vowel {
         case .known(let len, let q):
             switch len {
-            case .none: return []
-            case .long: return [Nucleus(long: true, quality: q, assumed: false)]
-            case .short: return [Nucleus(long: false, quality: q, assumed: false)]
+            case .none: return absorbing
+            case .long: return [Nucleus(long: true, quality: q, assumed: false)] + absorbing
+            case .short: return [Nucleus(long: false, quality: q, assumed: false)] + absorbing
             }
         case .unknown(let opts, let longQ):
-            var out: [Nucleus] = []
+            var out: [Nucleus] = absorbing
             if opts.contains(.short) { out.append(Nucleus(long: false, quality: nil, assumed: true)) }
-            if opts.contains(.long) { out.append(Nucleus(long: true, quality: longQ, assumed: true)) }
+            if opts.contains(.long) {
+                out.append(Nucleus(long: true, quality: longQ, assumed: true, suppressesNext: true))
+            }
             return out
         }
     }
@@ -93,7 +103,11 @@ public enum SyllableParser {
             let onset = units[i]
             for nuc in nucleusOptions(onset) {
                 if nuc.assumed { assumed = true }
-                let afterNucleus = (nuc.long && onset.suppressNextIfLong) ? i + 2 : i + 1
+                // الواو/الياء المحتسَبة حرف مدّ لا تعود وحدة، وكذلك
+                // الهمزة التي ابتلعها الساكن قبلها.
+                let afterNucleus =
+                    ((nuc.long && onset.suppressNextIfLong && nuc.suppressesNext) || nuc.absorbsNext)
+                    ? i + 2 : i + 1
                 if afterNucleus > n { continue }
 
                 edges[i].append(SyllableEdge(
@@ -103,36 +117,61 @@ public enum SyllableParser {
                 ))
 
                 guard afterNucleus < n else { continue }
+
+                // مقطع مغلق: ساكنٌ يغلقه — التالي مباشرة، أو التالي
+                // لهمزةٍ سقطت في الدرج (انظر «وصل الهمزة» أدناه).
+                func addClosed(_ codaIndex: Int, _ coda: PhonUnit, _ baseRule: String?) {
+                    let to = codaIndex + 1
+                    let codaAssumed = nuc.assumed || !coda.vowel.isKnown
+                    if !coda.vowel.isKnown { assumed = true }
+
+                    if !nuc.long {
+                        edges[i].append(SyllableEdge(
+                            from: i, to: to, weight: .L, shape: "CVC",
+                            onset: onset.consonant, coda: coda.consonant,
+                            assumed: codaAssumed, rule: baseRule, ishbaa: false
+                        ))
+                    } else if to == n {
+                        // آخر الشطر: التقاء الساكنين جائز، فيثبت المدّ
+                        // ويبقى المقطع مفرطًا. ولا قراءة مقصورة هنا، لأن
+                        // القصر فرارٌ من التقاء ساكنين ممنوع — وهو هنا
+                        // مأذون فيه.
+                        edges[i].append(SyllableEdge(
+                            from: i, to: to, weight: .X, shape: "CVVC",
+                            onset: onset.consonant, coda: coda.consonant,
+                            assumed: codaAssumed, rule: baseRule, ishbaa: false
+                        ))
+                    } else {
+                        // وسط الشطر: التقاء الساكنين ممنوع فيسقط حرف المدّ.
+                        let r = baseRule.map { "\($0) ثم التقاء الساكنين" } ?? "التقاء الساكنين"
+                        edges[i].append(SyllableEdge(
+                            from: i, to: to, weight: .L, shape: "CVC",
+                            onset: onset.consonant, coda: coda.consonant,
+                            assumed: codaAssumed, rule: r, ishbaa: false
+                        ))
+                    }
+                }
+
                 let coda = units[afterNucleus]
-                guard canBeCoda(coda),
-                      codaAllowed(onset: onset, coda: coda, startsWord: startsWord[afterNucleus])
-                else { continue }
+                if canBeCoda(coda),
+                   codaAllowed(onset: onset, coda: coda, startsWord: startsWord[afterNucleus]) {
+                    addClosed(afterNucleus, coda, nil)
+                }
 
-                let codaAssumed = nuc.assumed || !coda.vowel.isKnown
-                if !coda.vowel.isKnown { assumed = true }
-
-                if !nuc.long {
-                    edges[i].append(SyllableEdge(
-                        from: i, to: afterNucleus + 1, weight: .L, shape: "CVC",
-                        onset: onset.consonant, coda: coda.consonant,
-                        assumed: codaAssumed, rule: nil, ishbaa: false
-                    ))
-                } else if afterNucleus + 1 == n {
-                    // آخر الشطر: التقاء الساكنين جائز، فيثبت المدّ ويبقى
-                    // المقطع مفرطًا. ولا قراءة مقصورة هنا، لأن القصر إنما
-                    // هو فرارٌ من التقاء ساكنين ممنوع — وهو هنا مأذون فيه.
-                    edges[i].append(SyllableEdge(
-                        from: i, to: afterNucleus + 1, weight: .X, shape: "CVVC",
-                        onset: onset.consonant, coda: coda.consonant,
-                        assumed: codaAssumed, rule: nil, ishbaa: false
-                    ))
-                } else {
-                    // وسط الشطر: التقاء الساكنين ممنوع فيسقط حرف المدّ.
-                    edges[i].append(SyllableEdge(
-                        from: i, to: afterNucleus + 1, weight: .L, shape: "CVC",
-                        onset: onset.consonant, coda: coda.consonant,
-                        assumed: codaAssumed, rule: "التقاء الساكنين", ishbaa: false
-                    ))
+                // ---- وصل الهمزة ----
+                //
+                // الألف المجرّدة في أول الكلمة رسمُ همزة الوصل، وهمزة
+                // الوصل تسقط في الدرج إجماعًا. وإذا سقطت بقي ما بعدها
+                // ساكنًا لا يُبتدأ به، فيلحق بالمقطع قبله قفلًا له،
+                // ويقصر المدّ إن كان — «إلّا انت» ← إِلْـلَـنْـتَ.
+                //
+                // وهي قراءة ثانية لا بديل: الفصيحة (الهمزة منطوقة)
+                // باقية في المخطّط، والوزن هو الذي يحسم.
+                if coda.wordInitial, coda.elidable, afterNucleus + 1 < n {
+                    let after = units[afterNucleus + 1]
+                    if after.word == coda.word, canBeCoda(after) {
+                        addClosed(afterNucleus + 1, after, "وصل الهمزة")
+                    }
                 }
             }
         }
@@ -152,6 +191,40 @@ public enum SyllableParser {
         }
 
         return SyllableDag(edges: edges, size: n, assumedVocalization: assumed)
+    }
+
+    /// هل في المخطّط مسار كامل من أوله إلى آخره؟
+    ///
+    /// قد لا يكون: تشكيلٌ يجمع ساكنَين لا يقبل تقطيعًا أصلًا
+    /// («ذكْرْتك»)، لأن المقطع لا يبدأ بساكن.
+    public static func hasCompletePath(_ dag: SyllableDag) -> Bool {
+        let n = dag.size
+        if n == 0 { return false }
+        var reach = [Bool](repeating: false, count: n + 1)
+        reach[n] = true
+        for u in stride(from: n - 1, through: 0, by: -1) {
+            for e in dag.edges[u] where reach[e.to] { reach[u] = true; break }
+        }
+        return reach[0]
+    }
+
+    /// يبني مخطّطًا **قابلًا للقراءة** دائمًا.
+    ///
+    /// إن كان التشكيل المكتوب لا يقبل تقطيعًا البتّة، أُرخيت سكونات
+    /// الكاتب وأُعيد البناء، وأُعلن ذلك في `relaxed`. فلا يخرج التحليل
+    /// فارغًا، ولا يُدَّعى في الوقت نفسه أن النصّ قُرئ كما كُتب.
+    public static func buildReadableDag(_ units: [PhonUnit], ishbaa: Bool = true)
+        -> (dag: SyllableDag, units: [PhonUnit], relaxed: Int, readable: Bool) {
+        let dag = buildDag(units, ishbaa: ishbaa)
+        if hasCompletePath(dag) { return (dag, units, 0, true) }
+
+        let relaxedUnits = relaxWrittenSukun(units)
+        let retry = buildDag(relaxedUnits.units, ishbaa: ishbaa)
+        if hasCompletePath(retry) {
+            return (retry, relaxedUnits.units, relaxedUnits.relaxed, true)
+        }
+        // لا مسار حتى بعد الإرخاء — يُرجَع الأصل ويُعلَن أنه غير مقروء.
+        return (dag, units, 0, false)
     }
 
     /// التقطيع الحرّ — يصلح حين لا يحتمل النصّ إلا قراءة واحدة.

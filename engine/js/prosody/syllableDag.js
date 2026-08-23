@@ -113,32 +113,61 @@ export function buildSyllableDag(units, options = {}) {
       // مقطع مفتوح
       add(i, afterNucleus, nuc.kind === 'long' ? LONG : SHORT, { ...base, shape: nuc.kind === 'long' ? 'CVV' : 'CV' });
 
-      // مقطع مغلق: الساكن التالي يغلقه، بشرط أن يكون من الكلمة نفسها.
-      const coda = units[afterNucleus];
-      if (coda && canBeCoda(coda) && codaAllowed(onset, coda, startsWord[afterNucleus])) {
+      // مقطع مغلق: ساكنٌ يغلقه. والساكن إمّا التالي مباشرة، وإمّا
+      // التالي لهمزةٍ سقطت في الدرج (انظر «وصل الهمزة» أدناه).
+      const addClosed = (codaIndex, coda, extra) => {
         const withCoda = {
           ...base,
+          ...extra,
           coda: coda.c,
-          consumed: [i, afterNucleus],
+          consumed: [i, codaIndex],
           codaAssumed: !coda.vowel.known,
         };
         if (!coda.vowel.known) assumed = true;
+        const to = codaIndex + 1;
 
         if (nuc.kind === 'short') {
-          add(i, afterNucleus + 1, LONG, { ...withCoda, shape: 'CVC' });
-        } else if (afterNucleus + 1 === n) {
+          add(i, to, LONG, { ...withCoda, shape: 'CVC' });
+        } else if (to === n) {
           // آخر الشطر: التقاء الساكنين جائز هنا، فيثبت المدّ ويبقى
           // المقطع مفرطًا. ولا تُضاف قراءة مقصورة، لأن القصر إنما هو
           // فرارٌ من التقاء ساكنين ممنوع — وهو هنا مأذون فيه.
-          add(i, afterNucleus + 1, OVERLONG, { ...withCoda, shape: 'CVVC' });
+          add(i, to, OVERLONG, { ...withCoda, shape: 'CVVC' });
         } else {
           // وسط الشطر: التقاء الساكنين ممنوع، فيسقط حرف المدّ حتمًا
           // ويقصر المقطع (في البيت ← فِلْ‑بَيْت). قاعدة مقرَّرة لا تخمين.
-          add(i, afterNucleus + 1, LONG, {
+          add(i, to, LONG, {
             ...withCoda,
             shape: 'CVC',
             shortenedLongVowel: true,
-            rule: 'التقاء الساكنين',
+            rule: withCoda.rule ? `${withCoda.rule} ثم التقاء الساكنين` : 'التقاء الساكنين',
+          });
+        }
+      };
+
+      const coda = units[afterNucleus];
+      if (coda && canBeCoda(coda) && codaAllowed(onset, coda, startsWord[afterNucleus])) {
+        addClosed(afterNucleus, coda);
+      }
+
+      // ---- وصل الهمزة ----
+      //
+      // الألف المجرّدة في أول الكلمة رسمُ همزة الوصل، وهمزة الوصل
+      // تسقط في الدرج إجماعًا: «قال الحق» تُنطق قَـلَـلْـحَـقّ. وإذا
+      // سقطت بقي ما بعدها ساكنًا لا يبتدأ به، فيلحق بالمقطع قبله
+      // قفلًا له، ويقصر المدّ إن كان — «إلّا انت» ← إِلْـلَـنْـتَ.
+      //
+      // والرسم النبطي يُغفل رأس الهمزة كثيرًا، فلا يُقطع بأنها وصل.
+      // ولذلك تُضاف هذه قراءةً ثانية لا بديلًا: القراءة الفصيحة
+      // (الهمزة منطوقة) باقية في المخطّط، والوزن هو الذي يحسم.
+      const bridge = coda;
+      if (bridge && bridge.wordInitial && bridge.elidable) {
+        const after = units[afterNucleus + 1];
+        if (after && after.word === bridge.word && canBeCoda(after)) {
+          addClosed(afterNucleus + 1, after, {
+            elidedHamza: true,
+            elidedIndex: afterNucleus,
+            rule: 'وصل الهمزة',
           });
         }
       }

@@ -235,15 +235,24 @@ export function phonemize(words, lexicon, options = {}) {
           continue;
         }
 
-        // (٣) أول الكلمة: همزة قطع.
+        // (٣) أول الكلمة: همزة، ووصلُها ممكن.
+        //
+        // الألف المجرّدة رسمُ همزة الوصل، وهمزة القطع تُرسم بالرأس
+        // (أ/إ) فلا تصل إلى هنا. غير أن الرسم النبطي يُغفل الرأس
+        // كثيرًا، فلا يُقطع بواحدة من الوجهين. فتُنطق همزةً كما هي،
+        // ويُعلَّم أنها قد تسقط في الدرج، والمخطّط يعرض القراءتين
+        // معًا على الوزن وهو الذي يحسم — كما في الحالة (٢).
+        //
+        // ولا وصل في أول الشطر: لا شيء قبلها تُوصل به.
         push({
           c: HAMZA,
           vowel: v.kind === 'short' ? KNOWN('short', v.quality) : UNKNOWN(['none', 'short']),
           word: w,
           wordInitial: true,
           source: 'hamzat_qat',
+          elidable: !atLineStart,
         });
-        log('hamzatQat', 'ألف ابتدائية عوملت همزة قطع — انظر lexicon.hamzatWasl.verbPrefixes');
+        log('hamzatQat', 'ألف ابتدائية عوملت همزة، ووصلُها مطروح — انظر lexicon.hamzatWasl.verbPrefixes');
         continue;
       }
 

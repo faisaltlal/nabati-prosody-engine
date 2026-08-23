@@ -125,9 +125,9 @@ public struct ProsodyEngine: Sendable {
     public func syllabify(_ text: String) -> (units: [PhonUnit], dag: SyllableDag,
                                               free: (certain: Bool, syllables: [SyllableEdge], pathCount: Int)) {
         let norm = TextNormalizer.normalize(text)
-        let units = phonemizer.phonemize(words: norm.words).units
-        let dag = SyllableParser.buildDag(units)
-        return (units, dag, SyllableParser.freeSyllabify(dag))
+        let raw = phonemizer.phonemize(words: norm.words).units
+        let readable = SyllableParser.buildReadableDag(raw)
+        return (readable.units, readable.dag, SyllableParser.freeSyllabify(readable.dag))
     }
 
     /// `form` صيغة كل الأشطر، و`forms` تُفصّلها شطرًا شطرًا حين تختلف.
@@ -159,7 +159,10 @@ public struct ProsodyEngine: Sendable {
 
         let norm = TextNormalizer.normalize(input)
         let ph = phonemizer.phonemize(words: norm.words)
-        let dag = SyllableParser.buildDag(ph.units)
+        // تشكيلٌ لا يقبل تقطيعًا (ساكنان متتاليان) يُرخى ويُعلَن، ولا
+        // يُترك فيخرج التحليل فارغًا.
+        let readable = SyllableParser.buildReadableDag(ph.units)
+        let dag = readable.dag
         let free = SyllableParser.freeSyllabify(dag)
         let ranking = MeterMatcher.rank(dag: dag, registry: registry, scorer: scorer, repeats: repeats)
 
@@ -189,7 +192,7 @@ public struct ProsodyEngine: Sendable {
 
         let tafaeel: [TafilaResult] = (best?.feet ?? []).map { c in
             let words = Set(c.unitSpan.compactMap { i -> Int? in
-                i < ph.units.count ? ph.units[i].word : nil
+                i < readable.units.count ? readable.units[i].word : nil
             }).sorted().compactMap { i -> String? in
                 i < norm.words.count ? norm.words[i] : nil
             }
@@ -207,7 +210,7 @@ public struct ProsodyEngine: Sendable {
             input: input,
             normalized: norm.text,
             removed: norm.removed,
-            prosodic: prosodicSpelling(ph.units),
+            prosodic: prosodicSpelling(readable.units),
             hasDiacritics: norm.hasDiacritics,
             vocalizationCoverage: norm.vocalizationCoverage,
             assumedVocalization: dag.assumedVocalization,

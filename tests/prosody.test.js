@@ -4,6 +4,7 @@
 import { describe, it, assert, equal } from './harness.js';
 import { createEngine } from '../engine/js/index.js';
 import { DATA } from '../engine/js/data.generated.js';
+import { enumeratePaths } from '../engine/js/prosody/syllableDag.js';
 
 const engine = createEngine(DATA);
 const pattern = (text) =>
@@ -62,6 +63,23 @@ describe('الأصوات — القواعد الإلزامية', () => {
     equal(start[0].c, 'ء', 'أول الشطر: الهمزة منطوقة');
     const mid = units('فِي الْبَيْتِ');
     assert(!mid.some((x, i) => i > 0 && x.c === 'ء'), 'موصولة: الهمزة ساقطة');
+  });
+
+  it('وصل الهمزة: ألف مجرّدة في الدرج تحتمل السقوط', () => {
+    // الألف المجرّدة رسمُ همزة الوصل، وهمزة القطع تُرسم بالرأس (أ/إ).
+    // غير أن الرسم النبطي يُغفل الرأس كثيرًا، فلا يُقطع بأحد الوجهين:
+    // تُعرض القراءتان على الوزن وهو الذي يحسم.
+    const u = units('لَا انْتَ');
+    equal(u[1].c, 'ء', 'الألف الابتدائية همزة لا مدّ');
+    assert(u[1].elidable, 'همزة موسَّطة رُسمت ألفًا مجرّدة: وصلها مطروح');
+    assert(!units('انْتَ')[0].elidable, 'أول الشطر لا وصل فيه — لا شيء قبلها');
+
+    const reads = new Set(
+      enumeratePaths(engine.stages.syllabify('لَا انْتَ').dag)
+        .paths.map((p) => p.map((e) => e.weight).join(''))
+    );
+    assert(reads.has('LLL'), 'الفصيحة باقية: لَا أَنْ تَا');
+    assert(reads.has('LL'), 'والموصولة مطروحة: لَنْ تَا — المدّ يقصر لالتقاء الساكنين');
   });
 
   it('الوصل: التقاء الساكنين يقصر حرف المدّ', () => {

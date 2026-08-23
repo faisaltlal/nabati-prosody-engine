@@ -248,6 +248,30 @@ public struct PhonUnit: Sendable {
     public var word: Int
     public var suppressNextIfLong: Bool = false
     public var source: String? = nil
+    /// أوّل وحدة في كلمتها — يلزم لمعرفة همزة يجوز وصلها.
+    public var wordInitial: Bool = false
+    /// همزة يجوز أن تسقط في الدرج. تُعرض القراءتان على الوزن.
+    public var elidable: Bool = false
+    /// ساكن قد يبتلع همزةً بعده فيأخذ حركتها («غطّ الاطلال»).
+    public var absorbsNextIfShort: Bool = false
+    /// سكونٌ أُرخي لأن المكتوب لا يقبل تقطيعًا.
+    public var relaxedSukun: Bool = false
+}
+
+/// يُرخي السكونات التي كتبها الشاعر بيده حين يستحيل التقطيع معها.
+///
+/// ساكنان متتاليان («ذكْرْتك») لا يقبلان مقطعًا، لأن المقطع لا يبدأ
+/// بساكن. فبدل أن يخرج التحليل فارغًا، تُردّ هذه السكونات مجهولةً
+/// ويُعلَن ذلك. ولا يُمسّ ما أوجبته قاعدة من قواعد المحرك (`source`).
+public func relaxWrittenSukun(_ units: [PhonUnit]) -> (units: [PhonUnit], relaxed: Int) {
+    var relaxed = 0
+    var out = units
+    for k in out.indices where out[k].source == nil && out[k].vowel.isSilent {
+        relaxed += 1
+        out[k].vowel = .unknown(options: [.none, .short], longQuality: nil)
+        out[k].relaxedSukun = true
+    }
+    return (out, relaxed)
 }
 
 public struct PhonemizeResult: Sendable {
@@ -380,17 +404,47 @@ public struct Phonemizer: Sendable {
 
                 let v = markVowel(L.marks)
 
-                // ألف لم يستهلكها النظر المسبق
+                // ألف لم يستهلكها النظر المسبق. ثلاث حالات:
                 if L.ch == Ar.alef || L.ch == Ar.alefMaqsura {
-                    if i > 0, !units.isEmpty {
+                    let prev = units.last
+
+                    // (١) بعد متحرك: ألف مدّ تُطيل حركته.
+                    if i > 0, let p = prev, !p.vowel.isSilent {
                         units[units.count - 1].vowel = .known(length: .long, quality: "a")
                         trace.append("materFallback: ألف مدّ ألحقت بما قبلها")
                         i += 1; continue
                     }
+
+                    // (٢) بعد ساكن: **همزة** لا مدّ. المدّ يقتضي متحركًا
+                    // قبله، فالألف بعد الساكن همزة قطع كُتبت بلا رأسها
+                    // («الاطلال» موضعها «الأطلال»). وفي النطق المتصل —
+                    // وهو الغالب في النبطي — تسقط وتنتقل حركتها إلى
+                    // الساكن قبلها. والقراءتان تُعرضان على الوزن.
+                    if i > 0, let p = prev {
+                        let vowel: VowelSpec = v.kind == .short
+                            ? .known(length: .short, quality: v.quality)
+                            : .unknown(options: [.short], longQuality: nil)
+                        units.append(PhonUnit(consonant: Ar.hamza, vowel: vowel, word: w,
+                                              source: "hamzat_qat_bare", elidable: true))
+                        // ولا يُعلَّم ساكنٌ كتبه الشاعر بيده — إنما ما
+                        // أوجبته قاعدة من قواعد المحرك.
+                        if p.source != nil, p.vowel.isSilent {
+                            units[units.count - 2].absorbsNextIfShort = true
+                        }
+                        trace.append("hamzatQatBare: ألف بعد ساكن عوملت همزة")
+                        i += 1; continue
+                    }
+
+                    // (٣) أول الكلمة: همزة، ووصلُها ممكن. الألف المجرّدة
+                    // رسمُ همزة الوصل، والرسم النبطي يُغفل رأس همزة
+                    // القطع كثيرًا، فلا يُقطع بواحد من الوجهين — تُنطق
+                    // همزةً ويُعلَّم أنها قد تسقط، والوزن يحسم.
                     let vowel: VowelSpec = v.kind == .short
                         ? .known(length: .short, quality: v.quality)
                         : .unknown(options: [.none, .short], longQuality: nil)
-                    units.append(PhonUnit(consonant: Ar.hamza, vowel: vowel, word: w, source: "hamzat_qat"))
+                    units.append(PhonUnit(consonant: Ar.hamza, vowel: vowel, word: w,
+                                          source: "hamzat_qat", wordInitial: true,
+                                          elidable: !atLineStart))
                     i += 1; continue
                 }
 
