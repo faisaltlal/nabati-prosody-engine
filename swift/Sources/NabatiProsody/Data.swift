@@ -190,8 +190,23 @@ public struct GoldenPhonologyCase: Codable, Sendable {
     public let source: String
 }
 
+/// حالة بيت كامل. الحقول المتوقَّعة كلها اختيارية: يُقاس ما نصّ عليه
+/// المصدر ولا يُفترض ما سكت عنه — واسم البحر خاصّةً، فالأسماء تختلف
+/// بين أطياف المجتمع والمقيس التفعيلات.
+public struct GoldenVerseCase: Codable, Sendable {
+    public let id: String
+    public let title: String?
+    public let input: String
+    public let expectedMeter: String?
+    public let expectedTafaeel: [String]?
+    public let expectedConfidenceRange: [Double]?
+    public let why: String
+    public let source: String
+}
+
 struct GoldenFile: Codable {
     let phonology: [GoldenPhonologyCase]
+    let verses: [GoldenVerseCase]
 }
 
 // MARK: - التجميع
@@ -207,6 +222,7 @@ public struct EngineData: Sendable {
     public let lexicon: Lexicon
     public let rhyme: RhymeRules
     public let goldenPhonology: [GoldenPhonologyCase]
+    public let goldenVerses: [GoldenVerseCase]
 
     /// يحمّل البيانات من موارد الحزمة.
     ///
@@ -247,7 +263,8 @@ public struct EngineData: Sendable {
             defaultScheme: e.defaultScheme,
             lexicon: l,
             rhyme: q,
-            goldenPhonology: g.phonology
+            goldenPhonology: g.phonology,
+            goldenVerses: g.verses
         )
     }
 }

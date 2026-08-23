@@ -53,6 +53,28 @@ final class EngineTests: XCTestCase {
         }
     }
 
+    /// أبيات `golden_cases.json` نفسها. وهي حارس التطابق الحقيقي بين
+    /// التنفيذين: التقطيع والمطابقة والدرجة تمرّ كلها من هنا.
+    func testGoldenVerses() throws {
+        let engine = try makeEngine()
+        for c in engine.data.goldenVerses {
+            let r = engine.analyze(c.input)
+            let label = "\(c.id) — «\(c.input)» — \(c.why)"
+
+            if let expected = c.expectedMeter {
+                XCTAssertTrue(r.bestMeter?.id == expected || r.bestMeter?.name == expected, label)
+            }
+            if let expected = c.expectedTafaeel {
+                XCTAssertEqual(r.tafaeel.map(\.tafila), expected, label)
+            }
+            if let range = c.expectedConfidenceRange, range.count == 2 {
+                let score = try XCTUnwrap(r.bestMeter?.score, label)
+                XCTAssertGreaterThanOrEqual(score, range[0], label)
+                XCTAssertLessThanOrEqual(score, range[1], label)
+            }
+        }
+    }
+
     func testShaddaSplitsIntoTwoUnits() throws {
         let engine = try makeEngine()
         let units = engine.syllabify("مَدَّ").units

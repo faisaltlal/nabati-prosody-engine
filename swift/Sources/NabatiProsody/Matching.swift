@@ -65,7 +65,8 @@ public struct MeterRegistry: Sendable {
             problems.append(.init(kind: "missing_variations", detail: id))
             guard let t = tafilaById[id] else { return [] }
             return [Variation(id: "salim", name: "سالم", result: t.vocalized,
-                              syllables: t.syllables, kind: "salim", scope: "any", severity: 1)]
+                              syllables: t.syllables, kind: "salim", scope: "any", severity: 1,
+                              enabled: true)]
         }
 
         var built: [Meter] = []
