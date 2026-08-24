@@ -125,7 +125,7 @@ describe('الكتابة اللحظية', () => {
       'البارحه ما',
       'الب',
       'مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ مُسْتَ',
-      'مَفَاعِيلُنْ مَفَاعِيلُنْ مَفَا',
+      'مَفَاعِيلُنْ مَفَا',
     ]) {
       const r = engine.analyzeHemistich(t);
       equal(r.source, 'partial', `«${t}»`);
@@ -443,11 +443,10 @@ describe('اسم البطاقة', () => {
       }
     }
     // والأصل لا يضيع: سطر العلّة يذكره مع الصورة.
-    const r = engine.analyzeHemistich('حياتي كلّها صبْرو جلاده');
-    const last = r.cards[r.cards.length - 1];
-    equal(last.name, 'فعولن');
-    equal(last.licence.from, 'مفاعيلن');
-    equal(last.licence.to, 'فعولن');
+    const r = engine.analyzeHemistich('صعيب مهما تساهلته');
+    equal(r.cards[0].name, 'مفاعلن', 'الصورة لا الأصل');
+    equal(r.cards[0].licence.from, 'مستفعلن');
+    equal(r.cards[0].licence.to, 'مفاعلن');
   });
 });
 

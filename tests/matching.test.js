@@ -170,6 +170,24 @@ describe('ترجيح القراءة — رخصةٌ وترجيح لا منع', ()
     assert(licensed[0].score > 0.9, `ونزولها يسير: ${licensed[0].score}`);
   });
 
+  it('الإشباع المفترض رخصة: القراءة الساكنة أولى', () => {
+    // «ومنزل» غير مشكولة، فحركة الرويّ مجهولة. وقراءتها ومَنْزِلْ —
+    // باللام ساكنةً — لا تزيد شيئًا، وقراءتها ومَنْزِلَـ تزيد حركةً
+    // مفترضة ثم حرفَ مدٍّ لا رسم له.
+    const line = 'قفا نبك من ذكرى حبيب ومنزل';
+    const added = (e) => e.analyzeHemistich(line).letters.some((l) => l.added);
+    assert(!added(engine), 'لا يُزاد حرف والقراءة الساكنة قائمة');
+
+    const free = engineWith(['weights', 'assumedIshbaa'], 0);
+    assert(added(free), 'وبإسقاط الكلفة يعود الإشباع — فالمعامل هو الفاعل');
+
+    // ولا تُحتسب على حركةٍ شكّلها الشاعر: إشباعُ المعلوم حكمٌ لا افتراض.
+    const known = engine.analyzeHemistich('قفا نبك من ذكرى حبيبٍ ومنزلِ');
+    const tail = known.letters[known.letters.length - 1];
+    equal(tail.ch, 'ي', 'كسرةٌ مشكولة يُشبعها ياء');
+    assert(tail.added, 'ويُعلَن مزيدًا وإن لم يُكلَّف');
+  });
+
   it('تسكين الأواخر يرجّح عند التساوي التامّ ولا يمسّ درجة', () => {
     const r = engine.analyze(LINE);
     const off = engineWith(['ranking', 'preferFinalSukun'], false).analyze(LINE);
