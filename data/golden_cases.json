@@ -202,10 +202,10 @@
       "source": "app"
     },
     {
-      "id": "madeed_nabati_thulathi",
-      "title": "بحر «المديد النبطي - الثلاثي المزيد»: فاعلاتن فاعلاتن مفاعيلن",
+      "id": "madeed_turuq_akhar",
+      "title": "بحر «المديد طرق آخر»: فاعلاتن فاعلاتن مفاعيلن",
       "input": "العب المنكوس واحبّ روباعه",
-      "expectedMeter": "al_madeed_nabati",
+      "expectedMeter": "al_madeed_2",
       "expectedTafaeel": [
         "فاعلاتن",
         "فاعلاتن",
