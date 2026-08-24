@@ -16,6 +16,7 @@ import { rankMeters } from '../engine/js/matching/meterMatcher.js';
 import { rankMetersPartial } from '../engine/js/matching/partialMatcher.js';
 import { createAlignmentCache } from '../engine/js/matching/footMatcher.js';
 import { inconsistentWordReadings } from '../engine/js/matching/wordConsistency.js';
+import { prosodicLetters, NEUTRAL_MADD } from '../engine/js/prosody/prosodicLetters.js';
 
 const engine = createEngine(DATA);
 
@@ -430,6 +431,26 @@ describe('الحقل يرجّح صيغته عند التساوي', () => {
 
 /* ═════════════════ الحروف والرموز تصطفّ ═════════════════ */
 
+describe('اسم البطاقة', () => {
+  it('الاسم هو الصورة المتحقّقة، وطولُه طولُ رمزه', () => {
+    // الرمز مشتقٌّ من الصورة المتحقّقة، فلو كُتب فوقه اسمُ الأصل
+    // لخالف الاسمُ رمزَه: «مفاعيلن» (سبعة أحرف) فوق `//0/0` (خمسة).
+    for (const text of ['حياتي كلّها صبْرو جلاده', 'صعيب مهما تساهلته']) {
+      for (const c of engine.analyzeHemistich(text).cards) {
+        if (c.kind === 'pending' || !c.name) continue;
+        equal([...c.name].length, [...c.symbol].length,
+          `«${c.name}» رمزها ${c.symbol} في «${text}»`);
+      }
+    }
+    // والأصل لا يضيع: سطر العلّة يذكره مع الصورة.
+    const r = engine.analyzeHemistich('حياتي كلّها صبْرو جلاده');
+    const last = r.cards[r.cards.length - 1];
+    equal(last.name, 'فعولن');
+    equal(last.licence.from, 'مفاعيلن');
+    equal(last.licence.to, 'فعولن');
+  });
+});
+
 describe('الكتابة العروضية', () => {
   it('لكل حرف رمز واحد، وعددهما سواء', () => {
     const r = engine.analyzeHemistich('مُسْتَفْعِلُنْ مُسْتَفْعِلُنْ فَاعِلَاتُنْ');
@@ -456,18 +477,48 @@ describe('الكتابة العروضية', () => {
   });
 
   it('الإشباع لا يُخترع له حرف إذا جُهلت حركة الرويّ', () => {
-    // «ومنزل» كانت تخرج «ومنزلا» وصوابها «ومنزلي»، و«تساهلته» تخرج
-    // «تساهلتها» بألفٍ لا يعلمها أحد. والرويّ غير مشكول فحركته مجهولة.
-    const r = engine.analyzeHemistich('قفا نبك من ذكرى حبيب ومنزل');
-    const last = r.letters[r.letters.length - 1];
-    assert(last.added, 'آخر حرف مزيد للإشباع لا مرسوم');
-    assert(!'اوي'.includes(last.ch), `اختُرع حرف مدّ: ${last.ch}`);
-    assert((r.notes || []).length > 0, 'ويُقال إنه مزيد لا يُترك للقارئ يظنّه حرفًا');
+    // إشباع آخر الشطر يُولّد مدًّا يتبع الحركة: ألفًا من الفتحة وياءً
+    // من الكسرة وواوًا من الضمة. فإن كان الرويّ غير مشكول فالحركة
+    // مجهولة — و«ومنزل» كانت تخرج «ومنزلا» وصوابها «ومنزلي».
+    //
+    // والفحص مشتقّ من البيانات: كل صيغة من صيغ البحور، مشكولةً
+    // ومجرّدة، ومعها أبيات حقيقية.
+    const bare = (x) => [...x].filter((c) => !/[\u064B-\u0652\u0670]/.test(c)).join('');
+    const corpus = [];
+    for (const m of DATA.meters.meters) {
+      for (const f of m.forms) { corpus.push(f.sourceQuote); corpus.push(bare(f.sourceQuote)); }
+    }
+    corpus.push(
+      'قفا نبك من ذكرى حبيب ومنزل',
+      'حياتي كلّها صبْرو جلاده',
+      'صعيب مهما تساهلته',
+      'البارحه يحْسين ياما ذكْرْتك'
+    );
+
+    for (const text of corpus) {
+      const vocalized = text !== bare(text);
+      for (const l of engine.analyzeHemistich(text).letters) {
+        if (!l.added) continue;
+        assert(
+          vocalized || !'اوي'.includes(l.ch),
+          `اختُرع حرف مدّ «${l.ch}» على نصّ غير مشكول: «${text}»`
+        );
+      }
+    }
 
     // ومتى عُلمت الحركة كُتب حرفها — وهي الكتابة العروضية المعروفة.
     const known = engine.analyzeHemistich('قفا نبك من ذكرى حبيبٍ ومنزلِ');
     const tail = known.letters[known.letters.length - 1];
     equal(tail.ch, 'ي', 'كسرةٌ مشكولة يُشبعها ياء');
+    assert(tail.added, 'ويُعلَن مزيدًا على كل حال');
+
+    // ومجهولُ الحركة يأخذ علامة الإطالة لا حرفًا.
+    const guess = prosodicLetters([
+      { weight: 'L', shape: 'CV', onset: 'ه', nucleus: 'short', quality: null,
+        ishbaa: true, assumed: true, units: [0] },
+    ]);
+    equal(guess[1].ch, NEUTRAL_MADD, 'لا يُخترع حرف لحركة مجهولة');
+    assert(guess[1].added);
 
     // ولا يُوسم مزيدًا إلا ما زِيد: حرف المدّ المرسوم حرفُ الشاعر.
     const written = engine.analyzeHemistich('يا ما ذكرت حبيبي');

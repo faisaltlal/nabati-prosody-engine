@@ -379,7 +379,10 @@ function cardsFromFull(full, engine, letters) {
     const broken = f.sound === false;
     const isSalim = !f.variation || f.variation === 'سالم';
     return card(engine, {
-      name: f.tafila,
+      // الاسم هو **الصورة المتحقّقة** لا أصلها: الرمز تحته مشتقٌّ منها،
+      // فلو كُتب الأصل لخالف الاسمُ رمزَه — «مفاعيلن» فوق `//0/0`.
+      // والأصل لا يضيع: اسم الصورة في الحالة، وسطرُ العلّة يذكرهما معًا.
+      name: plainName(f.realized) || f.tafila,
       syllables: [...f.expected],
       state: broken ? 'مكسورة' : cardState(engine, f.tafilaId, isSalim, f.variation),
       kind: broken ? 'broken' : cardKind(engine, f.tafilaId, isSalim),

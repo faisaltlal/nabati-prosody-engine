@@ -224,6 +224,9 @@ enum FootMatcher {
         let cost = w.writtenMaddIgnored ?? 0
         if e.shortenedForAssumedSukun { return cost }
         if e.maddAsConsonant && e.nucleusAssumed { return cost }
+        // وجهُها الآخر: زيادةُ حرفٍ لا رسم له ولا حركةَ تحته معلومة.
+        // ولا تُحتسب على حركةٍ شكّلها الشاعر.
+        if e.ishbaa && e.nucleusAssumed { return w.assumedIshbaa ?? 0 }
         return 0
     }
 

@@ -51,6 +51,7 @@ export function createScorer(config) {
     unfilledFoot: w.unfilledFoot,
     inconsistentWordReading: w.inconsistentWordReading ?? 0,
     writtenMaddIgnored: w.writtenMaddIgnored ?? 0,
+    assumedIshbaa: w.assumedIshbaa ?? 0,
   };
 
   /** يحوّل التكلفة الخام إلى درجة في [0,1]. */

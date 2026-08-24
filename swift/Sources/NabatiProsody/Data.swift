@@ -89,6 +89,8 @@ public struct ScoringConfig: Codable, Sendable {
         public let unfilledFoot: Double
         /// رخصة الإعراض عن حرف مدٍّ مرسوم — قصرًا أو قراءةً له صامتًا.
         public let writtenMaddIgnored: Double?
+        /// رخصة إشباع حركةٍ مفترضة آخر الشطر — زيادةُ حرفٍ لا رسم له.
+        public let assumedIshbaa: Double?
     }
     public struct Normalizer: Codable, Sendable {
         public let perSyllableCost: Double
