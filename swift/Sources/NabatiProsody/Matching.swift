@@ -149,20 +149,39 @@ public struct Scorer: Sendable {
         return cost
     }
 
+    /// وكم من تلك الكلفة **مأذونٌ فيه شعرًا**؟
+    ///
+    /// الزحاف رخصة، والعلة في العروض والضرب أصلٌ من أصول البحر — فالبيت
+    /// الذي جاء عليهما موزونٌ تامّ الوزن. وإنما تُحسب لهما كلفةٌ صغيرة
+    /// للترجيح لا للحكم. وما وقع في غير موضعه فليس مأذونًا فيه.
+    public func variationLicence(_ v: Variation, isArudDarb: Bool) -> Double {
+        if v.scope == "arud_darb" && !isArudDarb { return 0 }
+        let base = config.weights.variationKind[v.kind] ?? config.weights.variationKind["zihaf"] ?? 0
+        let sev = config.weights.severityMultiplier[String(v.severity ?? 1)] ?? 1
+        return base * sev
+    }
+
     public func positionMultiplier(isFirst: Bool, isArudDarb: Bool) -> Double {
         if isArudDarb { return config.weights.position.arudDarb }
         if isFirst { return config.weights.position.first }
         return config.weights.position.hashw
     }
 
-    public func finalize(cost: Double, meterSyllables: Int, assumedVocalization: Bool)
-        -> (score: Double, confidence: Double, normalizer: Double) {
+    /// درجتان لا درجة: `score` ما يُعرض على الشاعر — عيوبُ بيته وحدها،
+    /// فلا تدخل فيه الرخصُ المأذون فيها ولا افتراضاتُ المحرك في القراءة.
+    /// و`rankScore` ما يُرتَّب به — تدخله الرخص، فيتقدّم السالم على
+    /// المزاحَف عند تساوي كل شيء آخر.
+    public func finalize(cost: Double, licensed: Double = 0, meterSyllables: Int,
+                         assumedVocalization: Bool)
+        -> (score: Double, rankScore: Double, confidence: Double, normalizer: Double) {
         let n = max(Double(meterSyllables), config.normalizer.floor)
         let normalizer = n * config.normalizer.perSyllableCost
-        let score = min(1, max(0, 1 - cost / normalizer))
+        let defects = max(0, cost - licensed)
+        let score = min(1, max(0, 1 - defects / normalizer))
+        let rankScore = min(1, max(0, 1 - cost / normalizer))
         var confidence = score
         if assumedVocalization { confidence *= 1 - config.uncertainty.assumedVocalizationPenalty }
-        return (round6(score), round6(confidence), round6(normalizer))
+        return (round6(score), round6(rankScore), round6(confidence), round6(normalizer))
     }
 
     /// الحالات A/B/C/D. تفعيلة لم توافق أي صورة مأذون فيها كسرٌ بالتعريف،
@@ -196,6 +215,8 @@ public struct AlignOp: Sendable {
 
 struct FootMatch {
     let cost: Double
+    /// ما في `cost` من كلفة رخصِ القراءة — تُطرح من الدرجة المعروضة.
+    let licence: Double
     let ops: [AlignOp]
     let actual: [SyllableWeight]
 }
@@ -316,7 +337,10 @@ enum FootMatcher {
             }
             ops.reverse()
             let actual = ops.compactMap { $0.actual }
-            results[u] = FootMatch(cost: c, ops: ops, actual: actual)
+            // كلفة رخصِ القراءة داخلةٌ في `c` لتوجّه المحاذاة، وتُخرَج
+            // معها مفردةً لتُطرح من الدرجة المعروضة.
+            let licence = ops.reduce(0.0) { $0 + ($1.edge.map { licenceCost($0, w) } ?? 0) }
+            results[u] = FootMatch(cost: c, licence: licence, ops: ops, actual: actual)
         }
         return results
     }
@@ -373,7 +397,10 @@ public struct MeterMatch: Sendable {
     public let formRole: String?
     /// دور صيغة كل شطر على حدة ومرتَّبًا.
     public let formRoles: [String?]
+    /// الدرجة المعروضة: عيوبُ البيت وحدها.
     public let score: Double
+    /// درجة الترتيب: تدخلها الرخصُ ليتقدّم السالم على المزاحَف.
+    public let rankScore: Double
     public let confidence: Double
     public let cost: Double
     public let normalizer: Double
@@ -385,7 +412,7 @@ public struct MeterMatch: Sendable {
 }
 
 public enum MeterMatcher {
-    private struct State { let cost: Double; let chosen: [ChosenFoot] }
+    private struct State { let cost: Double; let licensed: Double; let chosen: [ChosenFoot] }
 
     /// الصدر والعجز صورتان للبحر الواحد لا بحران، فيختار كل شطر صيغته
     /// باستقلال: `forms[i]` فهرس صيغة الشطر i.
@@ -411,7 +438,7 @@ public enum MeterMatcher {
         guard !expanded.isEmpty else { return nil }
 
         let tail = FootMatcher.minSyllablesToEnd(dag)
-        var states: [Int: State] = [0: State(cost: 0, chosen: [])]
+        var states: [Int: State] = [0: State(cost: 0, licensed: 0, chosen: [])]
 
         for (fi, ef) in expanded.enumerated() {
             var next: [Int: State] = [:]
@@ -419,11 +446,14 @@ public enum MeterMatcher {
             for (u, state) in states {
                 for variant in ef.foot.variants {
                     let vCost = scorer.variationCost(variant, isArudDarb: ef.isArudDarb)
+                    let vLicence = scorer.variationLicence(variant, isArudDarb: ef.isArudDarb)
                     let pattern = variant.syllables.compactMap { SyllableWeight(rawValue: $0) }
                     let ends = FootMatcher.match(dag: dag, from: u, pattern: pattern, scorer: scorer)
                     for (end, res) in ends {
                         var cost = state.cost + (vCost + res.cost) * posMult
                         if end == u { cost += scorer.config.weights.unfilledFoot }
+                        // المأذون فيه من الكلفة يسير مع الحالة ليُطرح في آخرها.
+                        let licensed = state.licensed + (vLicence + res.licence) * posMult
                         if let prev = next[end], prev.cost <= cost + 1e-12 { continue }
                         let chosen = ChosenFoot(
                             footIndex: fi, hemistich: ef.hemistich, tafila: ef.foot.plain,
@@ -432,7 +462,7 @@ public enum MeterMatcher {
                             expected: pattern, actual: res.actual,
                             unitSpan: u..<max(u, end), alignCost: res.cost, ops: res.ops
                         )
-                        next[end] = State(cost: cost, chosen: state.chosen + [chosen])
+                        next[end] = State(cost: cost, licensed: licensed, chosen: state.chosen + [chosen])
                     }
                 }
             }
@@ -440,19 +470,20 @@ public enum MeterMatcher {
             if states.isEmpty { return nil }
         }
 
-        var best: (total: Double, state: State, leftover: Double)?
+        var best: (total: Double, licensed: Double, state: State, leftover: Double)?
         for (u, state) in states {
             let leftover = tail[u]
             guard leftover.isFinite else { continue }
             let total = state.cost + leftover * scorer.config.weights.unconsumedSyllable
             if best == nil || total < best!.total - 1e-12 {
-                best = (total, state, leftover)
+                best = (total, state.licensed, state, leftover)
             }
         }
         guard let b = best else { return nil }
 
         let meterSyllables = expanded.reduce(0) { $0 + $1.foot.salim.count }
-        let f = scorer.finalize(cost: b.total, meterSyllables: meterSyllables,
+        let f = scorer.finalize(cost: b.total, licensed: b.licensed,
+                                meterSyllables: meterSyllables,
                                 assumedVocalization: dag.assumedVocalization)
 
         let threshold = scorer.config.brokenFoot.minCostToReport
@@ -473,8 +504,8 @@ public enum MeterMatcher {
             repeatCount: repeatCount, forms: forms,
             formRole: meter.forms[min(max(forms[0], 0), meter.forms.count - 1)].role,
             formRoles: forms.map { meter.forms[min(max($0, 0), meter.forms.count - 1)].role },
-            score: f.score, confidence: f.confidence,
-            cost: round6(b.total), normalizer: f.normalizer,
+            score: f.score, rankScore: f.rankScore, confidence: f.confidence,
+            cost: round6(max(0, b.total - b.licensed)), normalizer: f.normalizer,
             verdict: scorer.classify(score: f.score, brokenFeet: broken.count, totalFeet: b.state.chosen.count),
             feet: b.state.chosen, brokenFeet: broken,
             leftoverSyllables: b.leftover, assumedVocalization: dag.assumedVocalization
@@ -512,7 +543,14 @@ public enum MeterMatcher {
                 for combo in formCombinations(formCount: meter.forms.count, repeatCount: r) {
                     guard let m = match(dag: dag, meter: meter, scorer: scorer,
                                         forms: combo) else { continue }
-                    if bestForMeter == nil || m.score > bestForMeter!.score { bestForMeter = m }
+                    // الدرجة المعروضة لا تفرّق بين الصدر والعجز — الفرق
+                    // بينهما علّةٌ في الضرب مأذون فيها — فيفرّق بينهما
+                    // ترتيبُ الترجيح.
+                    if bestForMeter == nil || m.score > bestForMeter!.score + 1e-12
+                        || (abs(m.score - bestForMeter!.score) <= 1e-12
+                            && m.rankScore > bestForMeter!.rankScore + 1e-12) {
+                        bestForMeter = m
+                    }
                 }
             }
             if let b = bestForMeter { out.append(b) }
@@ -530,6 +568,7 @@ public enum MeterMatcher {
 
         out.sort { a, b in
             if a.score != b.score { return a.score > b.score }
+            if a.rankScore != b.rankScore { return a.rankScore > b.rankScore }
             let fa = finals[a.meterId] ?? 0, fb = finals[b.meterId] ?? 0
             if fa != fb { return fa < fb }
             let oa = order[a.meterId] ?? Int.max, ob = order[b.meterId] ?? Int.max

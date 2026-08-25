@@ -105,8 +105,9 @@ export function analyzeLine(input, engine, options = {}) {
     const merged = new Map();
     for (const run of hemistichRuns) {
       for (const r of run.ranking) {
-        const cur = merged.get(r.meterId) || { sum: 0, n: 0, sample: r };
+        const cur = merged.get(r.meterId) || { sum: 0, rankSum: 0, n: 0, sample: r };
         cur.sum += r.score;
+        cur.rankSum += r.rankScore ?? r.score;
         cur.n += 1;
         merged.set(r.meterId, cur);
       }
@@ -116,6 +117,7 @@ export function analyzeLine(input, engine, options = {}) {
         ...v.sample,
         meterId,
         score: round(v.sum / hemistichRuns.length),
+        rankScore: round(v.rankSum / hemistichRuns.length),
         confidence: round((v.sum / hemistichRuns.length) *
           (hemistichRuns.some((h) => h.dag.assumedVocalization)
             ? 1 - scorer.config.uncertainty.assumedVocalizationPenalty : 1)),
@@ -127,7 +129,8 @@ export function analyzeLine(input, engine, options = {}) {
           (h) => h.ranking.find((x) => x.meterId === meterId)?.formRole ?? null
         ),
       }))
-      .sort((a, b) => b.score - a.score || a.meterId.localeCompare(b.meterId));
+      .sort((a, b) => b.score - a.score || b.rankScore - a.rankScore ||
+        a.meterId.localeCompare(b.meterId));
     unitsAnalysis = hemistichRuns[0];
   } else {
     // بلا فاصل: نجرّب أن يكون شطرًا واحدًا وأن يكون بيتًا كاملًا،
@@ -143,8 +146,12 @@ export function analyzeLine(input, engine, options = {}) {
   // نصّ غير مشكول يقبل قراءات كثيرة، فقد يوافق أكثر من بحر بالدرجة
   // نفسها، وإخفاء ذلك خلف «الأول في الترتيب» ادّعاءُ يقين لا نملكه.
   const { tieDelta, ambiguityPenalty } = scorer.config.uncertainty;
+  // التعادل يُقاس بدرجة الترتيب لا بالمعروضة: المعروضة تجعل كل بحرٍ
+  // وافقه البيت برخصةٍ مأذون فيها ١٠٠٪، فتُعلَن بحورٌ متعادلة وبينها
+  // فرقٌ حقيقي في قربها منه.
+  const rankOf = (r) => r.rankScore ?? r.score;
   const tied = best
-    ? ranking.filter((r) => r !== best && best.score - r.score <= tieDelta)
+    ? ranking.filter((r) => r !== best && rankOf(best) - rankOf(r) <= tieDelta)
     : [];
   const ambiguous = tied.length > 0;
   if (ambiguous && best) {

@@ -37,18 +37,21 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
   const end = dag.size; // موضع آخر وحدة كُتبت
   const tailCost = minSyllablesToEnd(dag);
 
-  let states = new Map([[0, { cost: 0, chosen: [] }]]);
+  let states = new Map([[0, { cost: 0, licensed: 0, chosen: [] }]]);
   let best = null;
 
   /** ينظر في مرشَّح انتهت عنده الكتابة، ويحتفظ بأقلّه كلفةً. */
-  const considerTerminal = (cost, chosen, footsDone, pending) => {
+  const considerTerminal = (cost, licensed, chosen, footsDone, pending) => {
     const typed = countTyped(chosen, pending);
     // مقياس الترتيب: الكلفة منسوبةً إلى ما كُتب. القسمة على طول البحر
     // كاملًا تُجازي البحور الطويلة على طولها لا على موافقتها.
     const norm = Math.max(typed, scorer.config.normalizer.floor);
-    const scored = cost / (norm * scorer.config.normalizer.perSyllableCost);
+    const unit = norm * scorer.config.normalizer.perSyllableCost;
+    const scored = cost / unit;
+    // والمعروض عيوبُ ما كُتب وحدها — كما في المطابقة التامّة.
+    const defects = Math.max(0, cost - licensed) / unit;
     if (!best || scored < best.scored - 1e-12) {
-      best = { cost, chosen, footsDone, pending, typed, scored };
+      best = { cost, licensed, chosen, footsDone, pending, typed, scored, defects };
     }
   };
 
@@ -60,10 +63,11 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
 
     for (const [u, state] of states) {
       // (أ) الكتابة بلغت هذا الحدّ تمامًا: التفعيلات الباقية لم تُكتب بعد.
-      if (u === end) considerTerminal(state.cost, state.chosen, f, null);
+      if (u === end) considerTerminal(state.cost, state.licensed, state.chosen, f, null);
 
       for (const variant of foot.variants) {
         const vCost = scorer.variationCost(variant, posCtx);
+        const vLicence = scorer.variationLicence(variant, posCtx);
         // محاذاة واحدة تعطي التامّ والبادئة معًا — إجراؤها مرّتين كان
         // يضاعف كلفة أسخن حلقة في المحرك بلا فائدة.
         const { ends, prefixes } = matchFootBoth(
@@ -78,6 +82,7 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
             if (filled === 0) continue;
             considerTerminal(
               state.cost + (vCost + res.cost) * posMult,
+              state.licensed + (vLicence + (res.licence || 0)) * posMult,
               state.chosen,
               f,
               { footIndex: f, foot, variant, filled, res, unitSpan: [u, end], posMult, vCost }
@@ -89,10 +94,12 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
         for (const [to, res] of ends) {
           if (to === u) continue; // تفعيلة لم تستهلك شيئًا: لا معنى لها هنا
           const cost = state.cost + (vCost + res.cost) * posMult;
+          const licensed = state.licensed + (vLicence + (res.licence || 0)) * posMult;
           const prev = next.get(to);
           if (prev !== undefined && prev.cost <= cost + 1e-12) continue;
           next.set(to, {
             cost,
+            licensed,
             chosen: [...state.chosen, describeFoot(f, foot, variant, res, [u, to], vCost, posMult)],
           });
         }
@@ -105,7 +112,7 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
 
   // الشطر اكتمل: كل تفعيلات الصيغة كُتبت.
   for (const [u, state] of states) {
-    if (u === end) considerTerminal(state.cost, state.chosen, feet.length, null);
+    if (u === end) considerTerminal(state.cost, state.licensed, state.chosen, feet.length, null);
   }
 
   // كُتب أكثر ممّا تسع الصيغة: الزائد يُحاسَب كما يحاسبه المطابق التامّ،
@@ -116,6 +123,7 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
     if (!Number.isFinite(leftover)) continue;
     considerTerminal(
       state.cost + leftover * scorer.weights.unconsumedSyllable,
+      state.licensed,
       state.chosen, feet.length, null
     );
   }
@@ -137,7 +145,10 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
     matched: true,
     // الدرجة هنا درجة **موافقة ما كُتب**، لا درجة البيت. تُقرأ: هل ما
     // كُتب حتى الآن يسير على هذا البحر؟
-    progressScore: clamp01(round(1 - best.scored)),
+    // المعروضة: عيوبُ ما كُتب وحدها — الرخصةُ المأذون فيها ليست عيبًا.
+    progressScore: clamp01(round(1 - best.defects)),
+    // والترتيب يبقى بالكلفة كاملةً، فيتقدّم السالم على المزاحَف.
+    rankProgress: clamp01(round(1 - best.scored)),
     typedSyllables: best.typed,
     meterSyllables: feet.reduce((n, x) => n + (x.salim ? x.salim.length : 0), 0),
     complete,
@@ -177,6 +188,8 @@ export function rankMetersPartial(dag, registry, scorer, options = {}) {
   results.sort(
     (a, b) =>
       b.progressScore - a.progressScore ||
+      // ثم درجة الترتيب: هي التي تفرّق بين المتساوين في السلامة.
+      b.rankProgress - a.rankProgress ||
       // عند التساوي يُقدَّم الأقصر: من كتب ثمانية مقاطع فالحدا أقرب
       // احتمالًا من ربع الرجز، وهذا ترجيح عرضٍ لا حكمٌ على الوزن —
       // والتساوي مُعلَن في `tied` على كل حال.
@@ -201,6 +214,10 @@ export function rankMetersPartial(dag, registry, scorer, options = {}) {
 function better(candidate, current, preferRole) {
   if (candidate.progressScore > current.progressScore + 1e-12) return true;
   if (candidate.progressScore < current.progressScore - 1e-12) return false;
+  // الدرجة المعروضة لا تفرّق بين الصدر والعجز — الفرق بينهما علّةٌ في
+  // الضرب مأذون فيها — فيفرّق بينهما ترتيبُ الترجيح.
+  if (candidate.rankProgress > current.rankProgress + 1e-12) return true;
+  if (candidate.rankProgress < current.rankProgress - 1e-12) return false;
   if (!preferRole) return false;
   return candidate.formRole === preferRole && current.formRole !== preferRole;
 }

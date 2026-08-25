@@ -112,7 +112,8 @@ export function analyzeHemistich(text, engine, options = {}) {
     : partialBest
       ? partialRanking
           .slice(1)
-          .filter((r) => partialBest.progressScore - r.progressScore <= engine.scorer.config.uncertainty.tieDelta)
+          .filter((r) => (partialBest.rankProgress ?? partialBest.progressScore)
+          - (r.rankProgress ?? r.progressScore) <= engine.scorer.config.uncertainty.tieDelta)
           .map((r) => ({ id: r.meterId, name: r.name, score: r.progressScore }))
       : [];
 

@@ -33,7 +33,7 @@ export function matchMeter(dag, meter, scorer, options = {}) {
   const tailCost = minSyllablesToEnd(dag);
 
   // states: Map<unitIndex, {cost, chosen[]}>
-  let states = new Map([[0, { cost: 0, chosen: [] }]]);
+  let states = new Map([[0, { cost: 0, licensed: 0, chosen: [] }]]);
 
   for (let f = 0; f < feet.length; f++) {
     const foot = feet[f];
@@ -44,16 +44,20 @@ export function matchMeter(dag, meter, scorer, options = {}) {
     for (const [u, state] of states) {
       for (const variant of foot.variants) {
         const vCost = scorer.variationCost(variant, posCtx);
+        const vLicence = scorer.variationLicence(variant, posCtx);
         const ends = matchFoot(dag, u, variant.syllables, scorer, options.cache);
         for (const [end, res] of ends) {
           let cost = state.cost + (vCost + res.cost) * posMult;
           if (end === u) cost += scorer.weights.unfilledFoot;
+          // المأذون فيه من الكلفة يسير مع الحالة ليُطرح في آخرها.
+          const licensed = state.licensed + (vLicence + (res.licence || 0)) * posMult;
 
           const prev = next.get(end);
           if (prev !== undefined && prev.cost <= cost + 1e-12) continue;
 
           next.set(end, {
             cost,
+            licensed,
             chosen: [
               ...state.chosen,
               {
@@ -88,7 +92,7 @@ export function matchMeter(dag, meter, scorer, options = {}) {
     if (!Number.isFinite(leftover)) continue; // مسار لا يستهلك بقية البيت
     const total = state.cost + leftover * scorer.weights.unconsumedSyllable;
     if (!best || total < best.total - 1e-12) {
-      best = { total, state, endUnit: u, leftoverSyllables: leftover };
+      best = { total, licensed: state.licensed, state, endUnit: u, leftoverSyllables: leftover };
     }
   }
 
@@ -112,12 +116,16 @@ export function matchMeter(dag, meter, scorer, options = {}) {
   // يتعادل عليه بحور كثيرة تعادلًا تامًّا، فيصير اتّساق القراءة هو
   // الفارق الحقيقي بينها — لا ترتيب القائمة.
   const oddReadings = inconsistentWordReadings(best.state.chosen, options.units, options.words);
-  const total = best.total + oddReadings * scorer.weights.inconsistentWordReading;
+  // واتّساق القراءة ترجيحٌ في قراءة النصّ لا حكمٌ على البيت، فيدخل
+  // الترتيبَ ولا يدخل الدرجة المعروضة.
+  const readingCost = oddReadings * scorer.weights.inconsistentWordReading;
+  const total = best.total + readingCost;
+  const licensed = best.licensed + readingCost;
 
-  const { score, confidence, cost, normalizer } = scorer.finalize(
+  const { score, rankScore, confidence, cost, licensedCost, normalizer } = scorer.finalize(
     total,
     meterSyllables,
-    { assumedVocalization: dag.assumedVocalization }
+    { assumedVocalization: dag.assumedVocalization, licensedCost: licensed }
   );
 
   const chosen = best.state.chosen;
@@ -149,9 +157,13 @@ export function matchMeter(dag, meter, scorer, options = {}) {
       return (f && f.role) || null;
     }),
     matched: true,
+    // الدرجة المعروضة: عيوبُ البيت وحدها.
     score,
+    // درجة الترتيب: تدخلها الرخصُ ليتقدّم السالم على المزاحَف.
+    rankScore,
     confidence,
     cost,
+    licensedCost,
     normalizer,
     verdict: scorer.classify(score, { brokenFeet: brokenFeet.length, totalFeet: chosen.length }),
     feet: chosen,
@@ -262,7 +274,12 @@ export function rankMeters(dag, registry, scorer, options = {}) {
   const finalSukun = scorer.ranking.preferFinalSukun !== false;
   results.sort(
     (a, b) =>
+      // الدرجة المعروضة أوّلًا: بيتٌ سليمٌ جاء على رخصةٍ مأذون فيها
+      // أولى من بيتٍ فيه عيب حقيقي، وإن كانت رخصه أكثر.
       b.score - a.score ||
+      // ثم درجة الترتيب: هي التي تفرّق بين المتساوين في السلامة —
+      // فتتقدّم القراءة السالمة على المزاحَفة، والزحاف على العلّة.
+      b.rankScore - a.rankScore ||
       (finalSukun ? (a.assumedFinalVowels || 0) - (b.assumedFinalVowels || 0) : 0) ||
       sourceOrder(registry, a.meterId) - sourceOrder(registry, b.meterId) ||
       a.meterId.localeCompare(b.meterId)
@@ -299,6 +316,12 @@ function round(x) {
 function betterForm(candidate, current, preferRole) {
   if (candidate.score > current.score + 1e-12) return true;
   if (candidate.score < current.score - 1e-12) return false;
+  // الدرجة المعروضة لا تفرّق بين الصدر والعجز: العجز هو الصدر مع
+  // زيادة ساكن، وتلك علّةٌ في الضرب مأذون فيها فلا تُحسب عيبًا.
+  // فيفرّق بينهما ترتيبُ الترجيح — الصيغة التي تبلغه سالمةً أولى من
+  // التي تبلغه بعلّة.
+  if (candidate.rankScore > current.rankScore + 1e-12) return true;
+  if (candidate.rankScore < current.rankScore - 1e-12) return false;
   if (!preferRole) return false;
   return candidate.formRole === preferRole && current.formRole !== preferRole;
 }

@@ -36,6 +36,25 @@ export function createScorer(config) {
     return cost;
   }
 
+  /**
+   * وكم من تلك الكلفة **مأذونٌ فيه شعرًا**؟
+   *
+   * الزحاف رخصة، والعلة في العروض والضرب أصلٌ من أصول البحر — فالبيت
+   * الذي جاء عليهما موزونٌ تامّ الوزن، لا بيتٌ فيه عيب. وإنما تُحسب
+   * لهما كلفةٌ صغيرة **للترجيح**: لتتقدّم القراءة السالمة على
+   * المزاحَفة عند تساوي كل شيء آخر. فالكلفتان مفترقتان في المعنى،
+   * ولا يجوز أن تُخلطا في رقم واحد يُعرض على الشاعر.
+   *
+   * وما وقع في غير موضعه ليس مأذونًا فيه: علّةٌ في الحشو مخالفة
+   * تُحاسَب كاملةً — أصلُها وزيادتُها معًا.
+   */
+  function variationLicence(variant, { isArudDarb }) {
+    if (variant.scope === 'arud_darb' && !isArudDarb) return 0;
+    const base = w.variationKind[variant.kind] ?? w.variationKind.zihaf;
+    const sev = w.severityMultiplier[String(variant.severity ?? 1)] ?? 1;
+    return base * sev;
+  }
+
   function positionMultiplier({ isFirst, isArudDarb }) {
     if (isArudDarb) return w.position.arudDarb;
     if (isFirst) return w.position.first;
@@ -54,12 +73,28 @@ export function createScorer(config) {
     assumedIshbaa: w.assumedIshbaa ?? 0,
   };
 
-  /** يحوّل التكلفة الخام إلى درجة في [0,1]. */
-  function finalize(totalCost, meterSyllableCount, { assumedVocalization } = {}) {
+  /**
+   * يحوّل التكلفة الخام إلى درجتين لا درجة واحدة.
+   *
+   *   `score`     — ما يُعرض على الشاعر: هل في بيته عيب؟ فلا تدخل فيه
+   *                 الرخصُ المأذون فيها — زحافًا كانت أو علّةً في
+   *                 موضعها — ولا افتراضاتُ المحرك في القراءة. البيت
+   *                 الذي جاء على رخصةٍ مشروعة موزونٌ تامّ.
+   *   `rankScore` — ما يُرتَّب به: تدخل فيه الرخص كلها، فتتقدّم
+   *                 القراءة السالمة على المزاحَفة عند تساوي كل شيء
+   *                 آخر. وهذا هو موضع الفرق الصغير بينهما.
+   *
+   * وخلطهما في رقم واحد كان يُنزل بيتًا سليمًا إلى ٩٨٪ لأن في ضربه
+   * حذفًا — والحذف من البحر لا عليه.
+   */
+  function finalize(totalCost, meterSyllableCount, { assumedVocalization, licensedCost } = {}) {
     const n = Math.max(meterSyllableCount, config.normalizer.floor);
     const normalizer = n * config.normalizer.perSyllableCost;
-    let score = 1 - totalCost / normalizer;
-    score = Math.max(0, Math.min(1, score));
+    const clamp = (x) => Math.max(0, Math.min(1, x));
+    const defects = Math.max(0, totalCost - (licensedCost || 0));
+
+    const score = clamp(1 - defects / normalizer);
+    const rankScore = clamp(1 - totalCost / normalizer);
 
     let confidence = score;
     if (assumedVocalization) {
@@ -67,8 +102,10 @@ export function createScorer(config) {
     }
     return {
       score: round(score),
+      rankScore: round(rankScore),
       confidence: round(confidence),
-      cost: round(totalCost),
+      cost: round(defects),
+      licensedCost: round(licensedCost || 0),
       normalizer: round(normalizer),
     };
   }
@@ -103,6 +140,7 @@ export function createScorer(config) {
   return {
     substitutionCost,
     variationCost,
+    variationLicence,
     positionMultiplier,
     finalize,
     classify,

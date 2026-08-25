@@ -78,11 +78,19 @@ export function matchFootBoth(dag, from, pattern, scorer, at, cache) {
   const { dist, back, n, P } = runAlignment(dag, from, pattern, scorer);
   const key = (u, p) => u * (P + 1) + p;
 
+  // كلفةُ رخصِ القراءة داخلةٌ في `cost` لتوجّه المحاذاة، وتُخرَج معها
+  // مفردةً لتُطرح من الدرجة المعروضة: افتراضُ المحرك في القراءة ليس
+  // عيبًا في البيت.
+  const w = scorer.weights;
+  const licenceOf = (ops) =>
+    ops.reduce((sum, o) => sum + (o.edge ? licenceCost(o.edge, w) : 0), 0);
+
   const ends = new Map();
   for (let u = from; u <= n; u++) {
     const c = dist.get(key(u, P));
     if (c === undefined) continue;
-    ends.set(u, { cost: c, ...reconstruct(back, u, P, P, from) });
+    const built = reconstruct(back, u, P, P, from);
+    ends.set(u, { cost: c, licence: licenceOf(built.ops), ...built });
   }
 
   const prefixes = new Map();
@@ -90,7 +98,8 @@ export function matchFootBoth(dag, from, pattern, scorer, at, cache) {
     for (let p = 0; p < P; p++) {
       const c = dist.get(key(at, p));
       if (c === undefined) continue;
-      prefixes.set(p, { cost: c, ...reconstruct(back, at, p, P, from) });
+      const built = reconstruct(back, at, p, P, from);
+      prefixes.set(p, { cost: c, licence: licenceOf(built.ops), ...built });
     }
   }
   const out = { ends, prefixes };
