@@ -153,12 +153,32 @@ final class EngineTests: XCTestCase {
         }
     }
 
+    /// الزحاف المأذون فيه لا يُنقص الدرجة المعروضة، ويُرجَّح دونه.
+    ///
+    /// البيت الذي جاء على رخصةٍ مشروعة موزونٌ تامّ الوزن لا بيتٌ فيه
+    /// عيب. وإنما تُحسب للرخصة كلفةٌ في **درجة الترتيب** وحدها، ليتقدّم
+    /// السالم على المزاحَف عند تساوي كل شيء آخر.
     func testZihafAcceptedCheaply() throws {
         let engine = try makeEngine()
         let r = try engine.matchPattern(pattern("SLSLLLSLLSLL"), meter: "المسحوب")
-        XCTAssertGreaterThan(r.score, 0.9, "الخبن جائز")
-        XCTAssertLessThan(r.score, 1.0, "وليس مجانًا")
+        XCTAssertEqual(r.score, 1.0, "الخبن مأذون فيه فلا يُنقص الدرجة المعروضة")
         XCTAssertEqual(r.feet.first?.variantId, "khabn")
+
+        XCTAssertLessThan(r.rankScore, 1.0, "درجة الترتيب تنزل بالزحاف")
+        let salim = try engine.matchPattern(pattern("LLSLLLSLLSLL"), meter: "المسحوب")
+        XCTAssertEqual(salim.score, 1.0)
+        XCTAssertEqual(salim.rankScore, 1.0)
+        XCTAssertGreaterThan(salim.rankScore, r.rankScore, "السالم أعلى ترتيبًا")
+    }
+
+    /// وما وقع في غير موضعه ليس مأذونًا فيه: العلة في الحشو مخالفة
+    /// تُحاسَب كاملةً، فتنزل بالدرجة المعروضة.
+    func testIllaOutOfScopeIsADefect() throws {
+        let engine = try makeEngine()
+        let darb = try engine.matchPattern(pattern("LLSLLLSLLSLX"), meter: "المسحوب")
+        XCTAssertEqual(darb.score, 1.0, "التسبيغ في الضرب من البحر لا عليه")
+        let hashw = try engine.matchPattern(pattern("LSXLLSLLSLL"), meter: "المسحوب")
+        XCTAssertLessThan(hashw.score, 1.0, "وفي الحشو مخالفة تُحاسَب")
     }
 
     func testBrokenFootIsLocated() throws {
