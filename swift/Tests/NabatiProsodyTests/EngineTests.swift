@@ -67,6 +67,9 @@ final class EngineTests: XCTestCase {
             if let expected = c.expectedTafaeel {
                 XCTAssertEqual(r.tafaeel.map(\.tafila), expected, label)
             }
+            if let expected = c.expectedVerdict {
+                XCTAssertEqual(r.verdict, expected, label)
+            }
             if let range = c.expectedConfidenceRange, range.count == 2 {
                 let score = try XCTUnwrap(r.bestMeter?.score, label)
                 XCTAssertGreaterThanOrEqual(score, range[0], label)

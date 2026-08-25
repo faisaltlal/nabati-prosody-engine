@@ -39,6 +39,9 @@ describe('golden — أبيات كاملة', () => {
       if (c.expectedTafaeel?.length) {
         equal(r.tafaeel.map((f) => f.tafila), c.expectedTafaeel);
       }
+      if (c.expectedVerdict) {
+        equal(r.verdict, c.expectedVerdict, `«${c.input}» — ${c.why}`);
+      }
       if (c.expectedBrokenFeet) {
         equal(r.brokenFeet.map((b) => b.footIndex), c.expectedBrokenFeet);
       }

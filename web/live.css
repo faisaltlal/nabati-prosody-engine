@@ -98,6 +98,13 @@
 .foot.licensed { border-color: color-mix(in srgb, var(--warn) 50%, var(--line)); }
 .foot.licensed .foot-state { color: var(--warn); }
 
+/* رخصةٌ في حشو الشطر: شبهةُ كسر لا رخصة. */
+.foot.suspect {
+  border-color: var(--warn); border-style: dashed;
+  background: color-mix(in srgb, var(--warn) 8%, var(--bg));
+}
+.foot.suspect .foot-state { color: var(--warn); font-weight: 600; }
+
 .foot.broken {
   border-color: var(--bad);
   background: color-mix(in srgb, var(--bad) 7%, var(--bg));

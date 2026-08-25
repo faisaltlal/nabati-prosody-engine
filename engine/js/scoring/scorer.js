@@ -48,11 +48,35 @@ export function createScorer(config) {
    * وما وقع في غير موضعه ليس مأذونًا فيه: علّةٌ في الحشو مخالفة
    * تُحاسَب كاملةً — أصلُها وزيادتُها معًا.
    */
-  function variationLicence(variant, { isArudDarb }) {
+  function variationLicence(variant, { isFirst, isArudDarb }) {
     if (variant.scope === 'arud_darb' && !isArudDarb) return 0;
+    // ولا إذن في حشو الشطر أصلًا: النبطي يأذن بالرخص في التفعيلة
+    // الأولى وفي العروض والضرب، وما وقع بينهما شبهةُ كسر لا رخصة.
+    if (!isFirst && !isArudDarb) return 0;
     const base = w.variationKind[variant.kind] ?? w.variationKind.zihaf;
     const sev = w.severityMultiplier[String(variant.severity ?? 1)] ?? 1;
     return base * sev;
+  }
+
+  /** هل هذه صورةٌ وقعت في حشو الشطر؟ */
+  function isHashwVariation(variant, { isFirst, isArudDarb }) {
+    return variant.kind !== 'salim' && !isFirst && !isArudDarb;
+  }
+
+  /**
+   * كلفة الصورة في الحشو — حصّةٌ من البيت لا رقمٌ مطلق.
+   *
+   * المطلق يختلف أثره باختلاف طول البحر: خُمس البيت ينزل بالدرجة إلى
+   * ما دون ٨٠٪ في الطويل والقصير سواءً، وينزل مرّتين إن تكرّر.
+   */
+  function hashwPenalty(normalizer) {
+    return (w.hashwVariationShare || 0) * normalizer;
+  }
+
+  /** المقام: عدد مقاطع البحر (بحدٍّ أدنى) × كلفة المقطع الواحد. */
+  function normalizerFor(meterSyllableCount) {
+    return Math.max(meterSyllableCount, config.normalizer.floor)
+      * config.normalizer.perSyllableCost;
   }
 
   function positionMultiplier({ isFirst, isArudDarb }) {
@@ -87,11 +111,19 @@ export function createScorer(config) {
    * وخلطهما في رقم واحد كان يُنزل بيتًا سليمًا إلى ٩٨٪ لأن في ضربه
    * حذفًا — والحذف من البحر لا عليه.
    */
-  function finalize(totalCost, meterSyllableCount, { assumedVocalization, licensedCost } = {}) {
-    const n = Math.max(meterSyllableCount, config.normalizer.floor);
-    const normalizer = n * config.normalizer.perSyllableCost;
+  function finalize(
+    totalCost,
+    meterSyllableCount,
+    { assumedVocalization, licensedCost, hashwVariations = 0 } = {}
+  ) {
+    const normalizer = normalizerFor(meterSyllableCount);
     const clamp = (x) => Math.max(0, Math.min(1, x));
-    const defects = Math.max(0, totalCost - (licensedCost || 0));
+    // الصورة في حشو الشطر تدخل الدرجة المعروضة ولا تدخل الترتيب: هي
+    // حكمٌ على البيت لا على قربه من البحر. ولو دخلت الترتيب لصار زحافٌ
+    // واحد في الحشو أغلى من كسرين، فتُختار للبيت قراءةٌ ركيكة على بحرٍ
+    // بعيد بدل أن يُقال لصاحبه: بحرُك هذا، وفي حشوه شبهة.
+    const defects = Math.max(0, totalCost - (licensedCost || 0))
+      + hashwVariations * hashwPenalty(normalizer);
 
     const score = clamp(1 - defects / normalizer);
     const rankScore = clamp(1 - totalCost / normalizer);
@@ -118,7 +150,7 @@ export function createScorer(config) {
    * من وزن معناه أن أكثره صحيح. لذلك نسبة التفعيلات المختلّة تردّ الحكم
    * وإن لم تردّه الدرجة.
    */
-  function classify(score, { brokenFeet = 0, totalFeet = 0 } = {}) {
+  function classify(score, { brokenFeet = 0, totalFeet = 0, hashwVariations = 0 } = {}) {
     const t = config.thresholds;
     if (totalFeet > 0 && brokenFeet / totalFeet > t.maxBrokenFootRatio) {
       return 'unrecognized';
@@ -134,6 +166,11 @@ export function createScorer(config) {
     if (brokenFeet > 0 && (byScore === 'sound' || byScore === 'acceptable')) {
       return 'broken';
     }
+    // زحافٌ أو علّة في حشو الشطر: النبطي لا يأذن بهما إلا في التفعيلة
+    // الأولى وفي العروض والضرب. فالبيت **مشتبه** — لا هو موزون ولا
+    // يُقطَع بكسره، وإنما شبهةٌ تُعلَن لصاحبه لينظر فيها. وإن اجتمع
+    // معها كسرٌ في تفعيلة فالحكم للكسر، فهو أبين.
+    if (hashwVariations > 0 && brokenFeet === 0) return 'suspect';
     return byScore;
   }
 
@@ -141,6 +178,9 @@ export function createScorer(config) {
     substitutionCost,
     variationCost,
     variationLicence,
+    isHashwVariation,
+    hashwPenalty,
+    normalizerFor,
     positionMultiplier,
     finalize,
     classify,

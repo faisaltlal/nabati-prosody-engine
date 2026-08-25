@@ -108,6 +108,7 @@ label.check input { width: auto; }
 }
 .badge.sound { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
 .badge.acceptable { background: color-mix(in srgb, var(--good) 12%, transparent); color: var(--good); }
+.badge.suspect { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
 .badge.broken { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
 .badge.unrecognized { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
 
@@ -265,6 +266,13 @@ footer code { font-family: var(--mono); font-size: .95em; }
 
 .foot.licensed { border-color: color-mix(in srgb, var(--warn) 50%, var(--line)); }
 .foot.licensed .foot-state { color: var(--warn); }
+
+/* رخصةٌ في حشو الشطر: شبهةُ كسر لا رخصة. */
+.foot.suspect {
+  border-color: var(--warn); border-style: dashed;
+  background: color-mix(in srgb, var(--warn) 8%, var(--bg));
+}
+.foot.suspect .foot-state { color: var(--warn); font-weight: 600; }
 
 .foot.broken {
   border-color: var(--bad);
@@ -731,11 +739,35 @@ function createScorer(config) {
    * وما وقع في غير موضعه ليس مأذونًا فيه: علّةٌ في الحشو مخالفة
    * تُحاسَب كاملةً — أصلُها وزيادتُها معًا.
    */
-  function variationLicence(variant, { isArudDarb }) {
+  function variationLicence(variant, { isFirst, isArudDarb }) {
     if (variant.scope === 'arud_darb' && !isArudDarb) return 0;
+    // ولا إذن في حشو الشطر أصلًا: النبطي يأذن بالرخص في التفعيلة
+    // الأولى وفي العروض والضرب، وما وقع بينهما شبهةُ كسر لا رخصة.
+    if (!isFirst && !isArudDarb) return 0;
     const base = w.variationKind[variant.kind] ?? w.variationKind.zihaf;
     const sev = w.severityMultiplier[String(variant.severity ?? 1)] ?? 1;
     return base * sev;
+  }
+
+  /** هل هذه صورةٌ وقعت في حشو الشطر؟ */
+  function isHashwVariation(variant, { isFirst, isArudDarb }) {
+    return variant.kind !== 'salim' && !isFirst && !isArudDarb;
+  }
+
+  /**
+   * كلفة الصورة في الحشو — حصّةٌ من البيت لا رقمٌ مطلق.
+   *
+   * المطلق يختلف أثره باختلاف طول البحر: خُمس البيت ينزل بالدرجة إلى
+   * ما دون ٨٠٪ في الطويل والقصير سواءً، وينزل مرّتين إن تكرّر.
+   */
+  function hashwPenalty(normalizer) {
+    return (w.hashwVariationShare || 0) * normalizer;
+  }
+
+  /** المقام: عدد مقاطع البحر (بحدٍّ أدنى) × كلفة المقطع الواحد. */
+  function normalizerFor(meterSyllableCount) {
+    return Math.max(meterSyllableCount, config.normalizer.floor)
+      * config.normalizer.perSyllableCost;
   }
 
   function positionMultiplier({ isFirst, isArudDarb }) {
@@ -770,11 +802,19 @@ function createScorer(config) {
    * وخلطهما في رقم واحد كان يُنزل بيتًا سليمًا إلى ٩٨٪ لأن في ضربه
    * حذفًا — والحذف من البحر لا عليه.
    */
-  function finalize(totalCost, meterSyllableCount, { assumedVocalization, licensedCost } = {}) {
-    const n = Math.max(meterSyllableCount, config.normalizer.floor);
-    const normalizer = n * config.normalizer.perSyllableCost;
+  function finalize(
+    totalCost,
+    meterSyllableCount,
+    { assumedVocalization, licensedCost, hashwVariations = 0 } = {}
+  ) {
+    const normalizer = normalizerFor(meterSyllableCount);
     const clamp = (x) => Math.max(0, Math.min(1, x));
-    const defects = Math.max(0, totalCost - (licensedCost || 0));
+    // الصورة في حشو الشطر تدخل الدرجة المعروضة ولا تدخل الترتيب: هي
+    // حكمٌ على البيت لا على قربه من البحر. ولو دخلت الترتيب لصار زحافٌ
+    // واحد في الحشو أغلى من كسرين، فتُختار للبيت قراءةٌ ركيكة على بحرٍ
+    // بعيد بدل أن يُقال لصاحبه: بحرُك هذا، وفي حشوه شبهة.
+    const defects = Math.max(0, totalCost - (licensedCost || 0))
+      + hashwVariations * hashwPenalty(normalizer);
 
     const score = clamp(1 - defects / normalizer);
     const rankScore = clamp(1 - totalCost / normalizer);
@@ -801,7 +841,7 @@ function createScorer(config) {
    * من وزن معناه أن أكثره صحيح. لذلك نسبة التفعيلات المختلّة تردّ الحكم
    * وإن لم تردّه الدرجة.
    */
-  function classify(score, { brokenFeet = 0, totalFeet = 0 } = {}) {
+  function classify(score, { brokenFeet = 0, totalFeet = 0, hashwVariations = 0 } = {}) {
     const t = config.thresholds;
     if (totalFeet > 0 && brokenFeet / totalFeet > t.maxBrokenFootRatio) {
       return 'unrecognized';
@@ -817,6 +857,11 @@ function createScorer(config) {
     if (brokenFeet > 0 && (byScore === 'sound' || byScore === 'acceptable')) {
       return 'broken';
     }
+    // زحافٌ أو علّة في حشو الشطر: النبطي لا يأذن بهما إلا في التفعيلة
+    // الأولى وفي العروض والضرب. فالبيت **مشتبه** — لا هو موزون ولا
+    // يُقطَع بكسره، وإنما شبهةٌ تُعلَن لصاحبه لينظر فيها. وإن اجتمع
+    // معها كسرٌ في تفعيلة فالحكم للكسر، فهو أبين.
+    if (hashwVariations > 0 && brokenFeet === 0) return 'suspect';
     return byScore;
   }
 
@@ -824,6 +869,9 @@ function createScorer(config) {
     substitutionCost,
     variationCost,
     variationLicence,
+    isHashwVariation,
+    hashwPenalty,
+    normalizerFor,
     positionMultiplier,
     finalize,
     classify,
@@ -2205,7 +2253,7 @@ function matchMeter(dag, meter, scorer, options = {}) {
   const tailCost = minSyllablesToEnd(dag);
 
   // states: Map<unitIndex, {cost, chosen[]}>
-  let states = new Map([[0, { cost: 0, licensed: 0, chosen: [] }]]);
+  let states = new Map([[0, { cost: 0, licensed: 0, hashw: 0, chosen: [] }]]);
 
   for (let f = 0; f < feet.length; f++) {
     const foot = feet[f];
@@ -2217,12 +2265,14 @@ function matchMeter(dag, meter, scorer, options = {}) {
       for (const variant of foot.variants) {
         const vCost = scorer.variationCost(variant, posCtx);
         const vLicence = scorer.variationLicence(variant, posCtx);
+        const inHashw = scorer.isHashwVariation(variant, posCtx);
         const ends = matchFoot(dag, u, variant.syllables, scorer, options.cache);
         for (const [end, res] of ends) {
           let cost = state.cost + (vCost + res.cost) * posMult;
           if (end === u) cost += scorer.weights.unfilledFoot;
           // المأذون فيه من الكلفة يسير مع الحالة ليُطرح في آخرها.
           const licensed = state.licensed + (vLicence + (res.licence || 0)) * posMult;
+          const hashw = state.hashw + (inHashw ? 1 : 0);
 
           const prev = next.get(end);
           if (prev !== undefined && prev.cost <= cost + 1e-12) continue;
@@ -2230,6 +2280,7 @@ function matchMeter(dag, meter, scorer, options = {}) {
           next.set(end, {
             cost,
             licensed,
+            hashw,
             chosen: [
               ...state.chosen,
               {
@@ -2238,6 +2289,8 @@ function matchMeter(dag, meter, scorer, options = {}) {
                 tafila: foot.plain,
                 tafilaId: foot.tafilaId,
                 variant: { id: variant.id, name: variant.name, result: variant.result, kind: variant.kind },
+                // صورةٌ في حشو الشطر: شبهةُ كسر لا رخصة.
+                inHashw,
                 expected: variant.syllables,
                 actual: res.syllables.map((e) => e.weight),
                 unitSpan: [u, end],
@@ -2264,7 +2317,7 @@ function matchMeter(dag, meter, scorer, options = {}) {
     if (!Number.isFinite(leftover)) continue; // مسار لا يستهلك بقية البيت
     const total = state.cost + leftover * scorer.weights.unconsumedSyllable;
     if (!best || total < best.total - 1e-12) {
-      best = { total, licensed: state.licensed, state, endUnit: u, leftoverSyllables: leftover };
+      best = { total, licensed: state.licensed, hashw: state.hashw, state, endUnit: u, leftoverSyllables: leftover };
     }
   }
 
@@ -2297,7 +2350,13 @@ function matchMeter(dag, meter, scorer, options = {}) {
   const { score, rankScore, confidence, cost, licensedCost, normalizer } = scorer.finalize(
     total,
     meterSyllables,
-    { assumedVocalization: dag.assumedVocalization, licensedCost: licensed }
+    {
+      assumedVocalization: dag.assumedVocalization,
+      licensedCost: licensed,
+      // الصورة في حشو الشطر شبهةُ كسر لا رخصة، فتنزل بالدرجة المعروضة
+      // ولا تدخل الترتيب: البحر يبقى هو البحر، والحكم على البيت لا عليه.
+      hashwVariations: best.hashw,
+    }
   );
 
   const chosen = best.state.chosen;
@@ -2337,7 +2396,11 @@ function matchMeter(dag, meter, scorer, options = {}) {
     cost,
     licensedCost,
     normalizer,
-    verdict: scorer.classify(score, { brokenFeet: brokenFeet.length, totalFeet: chosen.length }),
+    verdict: scorer.classify(score, {
+      brokenFeet: brokenFeet.length, totalFeet: chosen.length, hashwVariations: best.hashw,
+    }),
+    // صورٌ وقعت في حشو الشطر — تُعلَن ولا تُطوى.
+    hashwVariations: best.hashw,
     feet: chosen,
     matchedPattern: chosen.flatMap((c) => c.expected).join(''),
     actualPattern: chosen.flatMap((c) => c.actual).join(''),
@@ -2446,12 +2509,12 @@ function rankMeters(dag, registry, scorer, options = {}) {
   const finalSukun = scorer.ranking.preferFinalSukun !== false;
   results.sort(
     (a, b) =>
-      // الدرجة المعروضة أوّلًا: بيتٌ سليمٌ جاء على رخصةٍ مأذون فيها
-      // أولى من بيتٍ فيه عيب حقيقي، وإن كانت رخصه أكثر.
-      b.score - a.score ||
-      // ثم درجة الترتيب: هي التي تفرّق بين المتساوين في السلامة —
-      // فتتقدّم القراءة السالمة على المزاحَفة، والزحاف على العلّة.
+      // الترتيب بدرجة الترتيب لا بالمعروضة: المعروضة حكمٌ على البيت،
+      // وهذه قياسُ قربه من البحر. ولو رُتّب بالمعروضة لتقدّم بحرٌ
+      // مكسورةٌ فيه تفعيلة على بحرٍ هو بحرُه حقًّا وفي حشوه شبهة —
+      // فيُقال لصاحبه «بحرُك ذاك» وليس به.
       b.rankScore - a.rankScore ||
+      b.score - a.score ||
       (finalSukun ? (a.assumedFinalVowels || 0) - (b.assumedFinalVowels || 0) : 0) ||
       sourceOrder(registry, a.meterId) - sourceOrder(registry, b.meterId) ||
       a.meterId.localeCompare(b.meterId)
@@ -2486,14 +2549,13 @@ function round(x) {
  * فلا يُتجاوَز الوزن — الترجيح عند التساوي وحده.
  */
 function betterForm(candidate, current, preferRole) {
-  if (candidate.score > current.score + 1e-12) return true;
-  if (candidate.score < current.score - 1e-12) return false;
-  // الدرجة المعروضة لا تفرّق بين الصدر والعجز: العجز هو الصدر مع
-  // زيادة ساكن، وتلك علّةٌ في الضرب مأذون فيها فلا تُحسب عيبًا.
-  // فيفرّق بينهما ترتيبُ الترجيح — الصيغة التي تبلغه سالمةً أولى من
-  // التي تبلغه بعلّة.
+  // بدرجة الترتيب لا بالمعروضة — لسببين: المعروضة لا تفرّق بين الصدر
+  // والعجز (الفرق بينهما علّةٌ في الضرب مأذون فيها)، وهي حكمٌ على
+  // البيت لا قياسٌ لقربه من الصيغة.
   if (candidate.rankScore > current.rankScore + 1e-12) return true;
   if (candidate.rankScore < current.rankScore - 1e-12) return false;
+  if (candidate.score > current.score + 1e-12) return true;
+  if (candidate.score < current.score - 1e-12) return false;
   if (!preferRole) return false;
   return candidate.formRole === preferRole && current.formRole !== preferRole;
 }
@@ -2586,6 +2648,8 @@ function linkFeetToWords(match, units, words, brokenThreshold) {
       expected: f.expected.join(''),
       actual: f.actual.join('') || '—',
       sound: f.alignCost < brokenThreshold,
+      // رخصةٌ وقعت في حشو الشطر — يُنبَّه عليها بعينها.
+      suspect: !!f.inHashw,
       words: wordIdx.map((i) => words[i]?.text).filter(Boolean),
       text: span.map((u) => u.c).join(''),
     };
@@ -2721,7 +2785,11 @@ function analyzeLine(input, engine, options = {}) {
     bestMeter: best
       ? {
           id: best.meterId, name: best.name, aliases: best.aliases,
-          score: best.score, confidence: best.confidence,
+          // المعروضة حكمٌ على البيت، والترتيبية قياسُ قربه من البحر.
+          score: best.score, rankScore: best.rankScore ?? best.score,
+          // صورٌ وقعت في حشو الشطر — بها يصير البيت مشتبهًا.
+          hashwVariations: best.hashwVariations || 0,
+          confidence: best.confidence,
           verdict: best.verdict, repeat: best.repeat, status: best.status,
           formRole: best.formRole || null,
           formRoles: best.formRoles || (best.formRole ? [best.formRole] : []),
@@ -2776,6 +2844,18 @@ function explain(best, verdict, scorer) {
       text: licensed.length
         ? `البيت موزون على ${best.name}؛ ودخلت ${licensed.length} من تفعيلاته صورٌ مزاحَفة أو معلولة وكلها جائزة: ${licensed.map((f) => `${f.tafila} ← ${f.variant.name}`).join('، ')}.`
         : `البيت موزون على ${best.name} بدرجة ${pct(best.score)}.`,
+    };
+  }
+  if (verdict === 'suspect') {
+    const inner = (best.feet || []).slice(1, -1)
+      .filter((f) => f.variant.kind === 'zihaf' || f.variant.kind === 'illa');
+    return {
+      case: 'B',
+      title: `مشتبه على ${best.name}`,
+      text: `تفعيلات البيت تفعيلاتُ ${best.name}، غير أن ${inner.length} من تفعيلاته الوسطى `
+        + `جاءت على رخصة: ${inner.map((f) => `${f.tafila} ← ${f.variant.name}`).join('، ')}. `
+        + 'والنبطي لا يأذن بالزحاف والعلّة إلا في التفعيلة الأولى وفي العروض والضرب، '
+        + `فما وقع منهما في الحشو شبهةُ كسر لا رخصة — والدرجة ${pct(best.score)}.`,
     };
   }
   if (verdict === 'broken') {
@@ -2942,21 +3022,22 @@ function matchMeterPartial(dag, meter, scorer, options = {}) {
   const end = dag.size; // موضع آخر وحدة كُتبت
   const tailCost = minSyllablesToEnd(dag);
 
-  let states = new Map([[0, { cost: 0, licensed: 0, chosen: [] }]]);
+  let states = new Map([[0, { cost: 0, licensed: 0, hashw: 0, chosen: [] }]]);
   let best = null;
 
   /** ينظر في مرشَّح انتهت عنده الكتابة، ويحتفظ بأقلّه كلفةً. */
-  const considerTerminal = (cost, licensed, chosen, footsDone, pending) => {
+  const considerTerminal = (cost, licensed, hashw, chosen, footsDone, pending) => {
     const typed = countTyped(chosen, pending);
     // مقياس الترتيب: الكلفة منسوبةً إلى ما كُتب. القسمة على طول البحر
     // كاملًا تُجازي البحور الطويلة على طولها لا على موافقتها.
     const norm = Math.max(typed, scorer.config.normalizer.floor);
     const unit = norm * scorer.config.normalizer.perSyllableCost;
     const scored = cost / unit;
-    // والمعروض عيوبُ ما كُتب وحدها — كما في المطابقة التامّة.
-    const defects = Math.max(0, cost - licensed) / unit;
+    // والمعروض عيوبُ ما كُتب وحدها — كما في المطابقة التامّة — وفيها
+    // شبهةُ الصورة في الحشو.
+    const defects = (Math.max(0, cost - licensed) + hashw * scorer.hashwPenalty(unit)) / unit;
     if (!best || scored < best.scored - 1e-12) {
-      best = { cost, licensed, chosen, footsDone, pending, typed, scored, defects };
+      best = { cost, licensed, hashw, chosen, footsDone, pending, typed, scored, defects };
     }
   };
 
@@ -2968,11 +3049,12 @@ function matchMeterPartial(dag, meter, scorer, options = {}) {
 
     for (const [u, state] of states) {
       // (أ) الكتابة بلغت هذا الحدّ تمامًا: التفعيلات الباقية لم تُكتب بعد.
-      if (u === end) considerTerminal(state.cost, state.licensed, state.chosen, f, null);
+      if (u === end) considerTerminal(state.cost, state.licensed, state.hashw, state.chosen, f, null);
 
       for (const variant of foot.variants) {
         const vCost = scorer.variationCost(variant, posCtx);
         const vLicence = scorer.variationLicence(variant, posCtx);
+        const inHashw = scorer.isHashwVariation(variant, posCtx) ? 1 : 0;
         // محاذاة واحدة تعطي التامّ والبادئة معًا — إجراؤها مرّتين كان
         // يضاعف كلفة أسخن حلقة في المحرك بلا فائدة.
         const { ends, prefixes } = matchFootBoth(
@@ -2988,6 +3070,7 @@ function matchMeterPartial(dag, meter, scorer, options = {}) {
             considerTerminal(
               state.cost + (vCost + res.cost) * posMult,
               state.licensed + (vLicence + (res.licence || 0)) * posMult,
+              state.hashw + inHashw,
               state.chosen,
               f,
               { footIndex: f, foot, variant, filled, res, unitSpan: [u, end], posMult, vCost }
@@ -3005,6 +3088,7 @@ function matchMeterPartial(dag, meter, scorer, options = {}) {
           next.set(to, {
             cost,
             licensed,
+            hashw: state.hashw + inHashw,
             chosen: [...state.chosen, describeFoot(f, foot, variant, res, [u, to], vCost, posMult)],
           });
         }
@@ -3017,7 +3101,7 @@ function matchMeterPartial(dag, meter, scorer, options = {}) {
 
   // الشطر اكتمل: كل تفعيلات الصيغة كُتبت.
   for (const [u, state] of states) {
-    if (u === end) considerTerminal(state.cost, state.licensed, state.chosen, feet.length, null);
+    if (u === end) considerTerminal(state.cost, state.licensed, state.hashw, state.chosen, feet.length, null);
   }
 
   // كُتب أكثر ممّا تسع الصيغة: الزائد يُحاسَب كما يحاسبه المطابق التامّ،
@@ -3028,7 +3112,7 @@ function matchMeterPartial(dag, meter, scorer, options = {}) {
     if (!Number.isFinite(leftover)) continue;
     considerTerminal(
       state.cost + leftover * scorer.weights.unconsumedSyllable,
-      state.licensed,
+      state.licensed, state.hashw,
       state.chosen, feet.length, null
     );
   }
@@ -3054,6 +3138,7 @@ function matchMeterPartial(dag, meter, scorer, options = {}) {
     progressScore: clamp01(round(1 - best.defects)),
     // والترتيب يبقى بالكلفة كاملةً، فيتقدّم السالم على المزاحَف.
     rankProgress: clamp01(round(1 - best.scored)),
+    hashwVariations: best.hashw,
     typedSyllables: best.typed,
     meterSyllables: feet.reduce((n, x) => n + (x.salim ? x.salim.length : 0), 0),
     complete,
@@ -3885,7 +3970,9 @@ function cardsFromFull(full, engine, letters) {
       name: plainName(f.realized) || f.tafila,
       syllables: [...f.expected],
       state: broken ? 'مكسورة' : cardState(engine, f.tafilaId, isSalim, f.variation),
-      kind: broken ? 'broken' : cardKind(engine, f.tafilaId, isSalim),
+      // الرخصة في الحشو تُلوَّن شبهةً لا رخصة: النبطي لا يأذن بها إلا
+      // في التفعيلة الأولى وفي العروض والضرب.
+      kind: broken ? 'broken' : f.suspect ? 'suspect' : cardKind(engine, f.tafilaId, isSalim),
       variation: isSalim ? null : f.variation,
       licence: isSalim
         ? addedSakinLicence(engine, f.tafilaId)
@@ -6456,6 +6543,7 @@ const DATA = {
         "2": 1.8
       },
       "scopeViolation": 0.5,
+      "hashwVariationShare": 0.2,
       "position": {
         "first": 1.1,
         "hashw": 1,
@@ -6505,7 +6593,8 @@ const DATA = {
       "written_madd_ignored": "الحرف المرسوم أولى بأن يُقرأ على أصله. والمخطّط يفترض حركاتٍ لم تُكتب وذاك أصل عمله، أمّا أن يُعرَض عن حرف مدٍّ رسمه الشاعر بيده — بقصره لسكونٍ مفترض («جحّاد» ← جِحْ‑حَدْ) أو بقراءته صامتًا بحركةٍ مفترضة («طيب» ← طِ‑يِبْ) — فرخصةٌ تُكلَّف. وقيمتها قيمةُ الزحاف: ترجّح القراءة المُبقية عند التساوي ولا تُسقط الأخرى. ولا تُحتسب حين يكون القصر مُلجَأً إليه — ساكنٌ معلوم بعده أو همزةُ وصلٍ ساقطة — فذاك حكمٌ لا اختيار. ولا يدخل فيها اللين («بَيْت»)، لأن الياء فيه قفلٌ للمقطع لا فاتحةٌ له.",
       "prefer_final_sukun": "عند التساوي التامّ في الدرجة تُرجَّح القراءة الأقلّ افتراضًا لحركةٍ على آخر الكلمة. وهذا ترجيحٌ لا كلفة: لا يمسّ درجةً ولا يُسقط قراءة، وإنما يحلّ محلّ ترتيب القائمة — وهو ترتيبٌ لا يدلّ على شيء. ومستنده أن النبطي يُسكّن الأواخر ولا إعراب فيه، فقراءة «الدهر جحّاد» دَ‑هَرْ‑جِحْ أولى من دَهْ‑رِ‑جِحْ. وهو مسجَّل NEEDS_VALIDATION في lexicon.nabatiDialect: مستنده تقطيعٌ مرجعيّ واحد، ويُثبته أو يُبطله عشرةُ أشطر مقطَّعة فيها كلمةٌ آخرها ساكنان.",
       "assumed_ishbaa": "إشباعُ حركةٍ مفترضة آخر الشطر رخصةٌ كسابقتها، وهو وجهُها الآخر: تلك تُعرض عن حرفٍ مرسوم، وهذا يزيد حرفًا لا رسم له ولا حركةَ تحته معلومة. والنبطي يُسكّن الأواخر، فقراءة «جلاده» جَ‑لَا‑دَهْ أولى من جَ‑لَا‑دَ‑هَا. ولا تُحتسب على حركةٍ شكّلها الشاعر: من كتب «كَتَبَ» فقد قرّر الحركة، وإشباعها حكمٌ عروضي لا افتراض. وهي كلفة لا منع: القراءة المُشبَعة تبقى مطروحة وتفوز إن لم يوافق البحرَ غيرُها — وبها تُقرأ القوافي المطلقة كلها. ومستندها مستندُ preferFinalSukun نفسه (NEEDS_VALIDATION).",
-      "licensed_vs_defect": "ما يُطرح من الدرجة المعروضة: الزحافُ والعلّةُ في موضعهما، ورخصُ القراءة (قصرُ المدّ، وقراءتُه صامتًا، والإشباعُ المفترض)، واتّساقُ قراءة الكلمة. وكلها إمّا رخصةٌ للشاعر أو افتراضٌ من المحرك — وليس شيء منها عيبًا في البيت. وما يبقى فيها: خللُ المحاذاة (إبدالٌ وزيادةٌ ونقص)، والمقاطعُ الفائضة، والتفعيلاتُ الخاوية، ووقوعُ العلّة في غير موضعها — وهذه عيوبٌ حقيقية."
+      "licensed_vs_defect": "ما يُطرح من الدرجة المعروضة: الزحافُ والعلّةُ في موضعهما، ورخصُ القراءة (قصرُ المدّ، وقراءتُه صامتًا، والإشباعُ المفترض)، واتّساقُ قراءة الكلمة. وكلها إمّا رخصةٌ للشاعر أو افتراضٌ من المحرك — وليس شيء منها عيبًا في البيت. وما يبقى فيها: خللُ المحاذاة (إبدالٌ وزيادةٌ ونقص)، والمقاطعُ الفائضة، والتفعيلاتُ الخاوية، ووقوعُ العلّة في غير موضعها — وهذه عيوبٌ حقيقية.",
+      "hashw_variation": "النبطي لا يأذن بالزحاف والعلّة إلا في التفعيلة الأولى وفي العروض والضرب. فما وقع منهما في حشو الشطر ليس رخصةً بل **شبهةُ كسر**: يُخرج البيت من «موزون» إلى «مشتبه»، وينزل بدرجته إلى ما دون ٨٠٪. وكلفتُه حصّةٌ من البيت لا رقمٌ مطلق (خُمسه)، لأن المطلق يختلف أثره باختلاف طول البحر — فتنزل الدرجة إلى ما دون ٨٠٪ في البحر الطويل والقصير سواءً، وتنزل مرّتين إن تكرّر. وهذا يقلب معامل الموضع في الصور خاصّةً: معاملُ الموضع يشدّد في العروض والضرب لأن **خلل المحاذاة** فيهما أشدّ على السمع، وهذا يشدّد في الحشو لأن **الرخصة** فيه غير مأذون بها."
     }
   },
   "encodings": {
@@ -7116,6 +7205,24 @@ const DATA = {
           1,
           1
         ]
+      },
+      {
+        "id": "hashw_variation_is_suspect",
+        "title": "الرخصة في حشو الشطر شبهةُ كسر لا رخصة",
+        "input": "البارحة رحْت و جيت بس مدري",
+        "expectedTafaeel": [
+          "مستفعلن",
+          "مستفعلن",
+          "مفعولن"
+        ],
+        "expectedVerdict": "suspect",
+        "expectedConfidenceRange": [
+          0,
+          0.8
+        ],
+        "why": "الطيّ في التفعيلة الوسطى. والنبطي لا يأذن بالزحاف والعلّة إلا في التفعيلة الأولى وفي العروض والضرب، فما وقع منهما في الحشو شبهةُ كسر. وكان المحرك يعطيه ١٠٠٪ «موزون».",
+        "meterNote": "البحر يبقى هو البحر: قربُ البيت منه لم يتغيّر (rankScore فوق ٠٫٩٧)، وإنما تغيّر الحكم عليه.",
+        "source": "user"
       }
     ],
     "pending": {
@@ -7224,6 +7331,8 @@ document.querySelector('.mode').addEventListener('click', (e) => {
 const VERDICT_LABEL = {
   sound: 'موزون',
   acceptable: 'موزون برخصة',
+  // رخصةٌ في حشو الشطر: لا هو موزون ولا يُقطَع بكسره.
+  suspect: 'مشتبه',
   broken: 'مكسور',
   unrecognized: 'غير محدَّد',
   writing: 'قيد الكتابة',

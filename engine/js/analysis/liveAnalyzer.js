@@ -386,7 +386,9 @@ function cardsFromFull(full, engine, letters) {
       name: plainName(f.realized) || f.tafila,
       syllables: [...f.expected],
       state: broken ? 'مكسورة' : cardState(engine, f.tafilaId, isSalim, f.variation),
-      kind: broken ? 'broken' : cardKind(engine, f.tafilaId, isSalim),
+      // الرخصة في الحشو تُلوَّن شبهةً لا رخصة: النبطي لا يأذن بها إلا
+      // في التفعيلة الأولى وفي العروض والضرب.
+      kind: broken ? 'broken' : f.suspect ? 'suspect' : cardKind(engine, f.tafilaId, isSalim),
       variation: isSalim ? null : f.variation,
       licence: isSalim
         ? addedSakinLicence(engine, f.tafilaId)

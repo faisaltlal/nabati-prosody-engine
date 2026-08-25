@@ -91,6 +91,8 @@ public struct ScoringConfig: Codable, Sendable {
         public let writtenMaddIgnored: Double?
         /// رخصة إشباع حركةٍ مفترضة آخر الشطر — زيادةُ حرفٍ لا رسم له.
         public let assumedIshbaa: Double?
+        /// حصّةُ البيت التي تنزلها صورةٌ وقعت في حشو الشطر — شبهةُ كسر.
+        public let hashwVariationShare: Double?
     }
     public struct Normalizer: Codable, Sendable {
         public let perSyllableCost: Double
@@ -214,6 +216,7 @@ public struct GoldenVerseCase: Codable, Sendable {
     public let expectedMeter: String?
     public let expectedTafaeel: [String]?
     public let expectedConfidenceRange: [Double]?
+    public let expectedVerdict: String?
     public let why: String
     public let source: String
 }

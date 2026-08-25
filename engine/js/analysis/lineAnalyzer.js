@@ -75,6 +75,8 @@ function linkFeetToWords(match, units, words, brokenThreshold) {
       expected: f.expected.join(''),
       actual: f.actual.join('') || '—',
       sound: f.alignCost < brokenThreshold,
+      // رخصةٌ وقعت في حشو الشطر — يُنبَّه عليها بعينها.
+      suspect: !!f.inHashw,
       words: wordIdx.map((i) => words[i]?.text).filter(Boolean),
       text: span.map((u) => u.c).join(''),
     };
@@ -210,7 +212,11 @@ export function analyzeLine(input, engine, options = {}) {
     bestMeter: best
       ? {
           id: best.meterId, name: best.name, aliases: best.aliases,
-          score: best.score, confidence: best.confidence,
+          // المعروضة حكمٌ على البيت، والترتيبية قياسُ قربه من البحر.
+          score: best.score, rankScore: best.rankScore ?? best.score,
+          // صورٌ وقعت في حشو الشطر — بها يصير البيت مشتبهًا.
+          hashwVariations: best.hashwVariations || 0,
+          confidence: best.confidence,
           verdict: best.verdict, repeat: best.repeat, status: best.status,
           formRole: best.formRole || null,
           formRoles: best.formRoles || (best.formRole ? [best.formRole] : []),
@@ -265,6 +271,18 @@ function explain(best, verdict, scorer) {
       text: licensed.length
         ? `البيت موزون على ${best.name}؛ ودخلت ${licensed.length} من تفعيلاته صورٌ مزاحَفة أو معلولة وكلها جائزة: ${licensed.map((f) => `${f.tafila} ← ${f.variant.name}`).join('، ')}.`
         : `البيت موزون على ${best.name} بدرجة ${pct(best.score)}.`,
+    };
+  }
+  if (verdict === 'suspect') {
+    const inner = (best.feet || []).slice(1, -1)
+      .filter((f) => f.variant.kind === 'zihaf' || f.variant.kind === 'illa');
+    return {
+      case: 'B',
+      title: `مشتبه على ${best.name}`,
+      text: `تفعيلات البيت تفعيلاتُ ${best.name}، غير أن ${inner.length} من تفعيلاته الوسطى `
+        + `جاءت على رخصة: ${inner.map((f) => `${f.tafila} ← ${f.variant.name}`).join('، ')}. `
+        + 'والنبطي لا يأذن بالزحاف والعلّة إلا في التفعيلة الأولى وفي العروض والضرب، '
+        + `فما وقع منهما في الحشو شبهةُ كسر لا رخصة — والدرجة ${pct(best.score)}.`,
     };
   }
   if (verdict === 'broken') {

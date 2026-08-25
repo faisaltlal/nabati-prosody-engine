@@ -97,6 +97,7 @@ label.check input { width: auto; }
 }
 .badge.sound { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
 .badge.acceptable { background: color-mix(in srgb, var(--good) 12%, transparent); color: var(--good); }
+.badge.suspect { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
 .badge.broken { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
 .badge.unrecognized { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
 

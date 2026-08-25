@@ -33,7 +33,7 @@ export function matchMeter(dag, meter, scorer, options = {}) {
   const tailCost = minSyllablesToEnd(dag);
 
   // states: Map<unitIndex, {cost, chosen[]}>
-  let states = new Map([[0, { cost: 0, licensed: 0, chosen: [] }]]);
+  let states = new Map([[0, { cost: 0, licensed: 0, hashw: 0, chosen: [] }]]);
 
   for (let f = 0; f < feet.length; f++) {
     const foot = feet[f];
@@ -45,12 +45,14 @@ export function matchMeter(dag, meter, scorer, options = {}) {
       for (const variant of foot.variants) {
         const vCost = scorer.variationCost(variant, posCtx);
         const vLicence = scorer.variationLicence(variant, posCtx);
+        const inHashw = scorer.isHashwVariation(variant, posCtx);
         const ends = matchFoot(dag, u, variant.syllables, scorer, options.cache);
         for (const [end, res] of ends) {
           let cost = state.cost + (vCost + res.cost) * posMult;
           if (end === u) cost += scorer.weights.unfilledFoot;
           // المأذون فيه من الكلفة يسير مع الحالة ليُطرح في آخرها.
           const licensed = state.licensed + (vLicence + (res.licence || 0)) * posMult;
+          const hashw = state.hashw + (inHashw ? 1 : 0);
 
           const prev = next.get(end);
           if (prev !== undefined && prev.cost <= cost + 1e-12) continue;
@@ -58,6 +60,7 @@ export function matchMeter(dag, meter, scorer, options = {}) {
           next.set(end, {
             cost,
             licensed,
+            hashw,
             chosen: [
               ...state.chosen,
               {
@@ -66,6 +69,8 @@ export function matchMeter(dag, meter, scorer, options = {}) {
                 tafila: foot.plain,
                 tafilaId: foot.tafilaId,
                 variant: { id: variant.id, name: variant.name, result: variant.result, kind: variant.kind },
+                // صورةٌ في حشو الشطر: شبهةُ كسر لا رخصة.
+                inHashw,
                 expected: variant.syllables,
                 actual: res.syllables.map((e) => e.weight),
                 unitSpan: [u, end],
@@ -92,7 +97,7 @@ export function matchMeter(dag, meter, scorer, options = {}) {
     if (!Number.isFinite(leftover)) continue; // مسار لا يستهلك بقية البيت
     const total = state.cost + leftover * scorer.weights.unconsumedSyllable;
     if (!best || total < best.total - 1e-12) {
-      best = { total, licensed: state.licensed, state, endUnit: u, leftoverSyllables: leftover };
+      best = { total, licensed: state.licensed, hashw: state.hashw, state, endUnit: u, leftoverSyllables: leftover };
     }
   }
 
@@ -125,7 +130,13 @@ export function matchMeter(dag, meter, scorer, options = {}) {
   const { score, rankScore, confidence, cost, licensedCost, normalizer } = scorer.finalize(
     total,
     meterSyllables,
-    { assumedVocalization: dag.assumedVocalization, licensedCost: licensed }
+    {
+      assumedVocalization: dag.assumedVocalization,
+      licensedCost: licensed,
+      // الصورة في حشو الشطر شبهةُ كسر لا رخصة، فتنزل بالدرجة المعروضة
+      // ولا تدخل الترتيب: البحر يبقى هو البحر، والحكم على البيت لا عليه.
+      hashwVariations: best.hashw,
+    }
   );
 
   const chosen = best.state.chosen;
@@ -165,7 +176,11 @@ export function matchMeter(dag, meter, scorer, options = {}) {
     cost,
     licensedCost,
     normalizer,
-    verdict: scorer.classify(score, { brokenFeet: brokenFeet.length, totalFeet: chosen.length }),
+    verdict: scorer.classify(score, {
+      brokenFeet: brokenFeet.length, totalFeet: chosen.length, hashwVariations: best.hashw,
+    }),
+    // صورٌ وقعت في حشو الشطر — تُعلَن ولا تُطوى.
+    hashwVariations: best.hashw,
     feet: chosen,
     matchedPattern: chosen.flatMap((c) => c.expected).join(''),
     actualPattern: chosen.flatMap((c) => c.actual).join(''),
@@ -274,12 +289,12 @@ export function rankMeters(dag, registry, scorer, options = {}) {
   const finalSukun = scorer.ranking.preferFinalSukun !== false;
   results.sort(
     (a, b) =>
-      // الدرجة المعروضة أوّلًا: بيتٌ سليمٌ جاء على رخصةٍ مأذون فيها
-      // أولى من بيتٍ فيه عيب حقيقي، وإن كانت رخصه أكثر.
-      b.score - a.score ||
-      // ثم درجة الترتيب: هي التي تفرّق بين المتساوين في السلامة —
-      // فتتقدّم القراءة السالمة على المزاحَفة، والزحاف على العلّة.
+      // الترتيب بدرجة الترتيب لا بالمعروضة: المعروضة حكمٌ على البيت،
+      // وهذه قياسُ قربه من البحر. ولو رُتّب بالمعروضة لتقدّم بحرٌ
+      // مكسورةٌ فيه تفعيلة على بحرٍ هو بحرُه حقًّا وفي حشوه شبهة —
+      // فيُقال لصاحبه «بحرُك ذاك» وليس به.
       b.rankScore - a.rankScore ||
+      b.score - a.score ||
       (finalSukun ? (a.assumedFinalVowels || 0) - (b.assumedFinalVowels || 0) : 0) ||
       sourceOrder(registry, a.meterId) - sourceOrder(registry, b.meterId) ||
       a.meterId.localeCompare(b.meterId)
@@ -314,14 +329,13 @@ function round(x) {
  * فلا يُتجاوَز الوزن — الترجيح عند التساوي وحده.
  */
 function betterForm(candidate, current, preferRole) {
-  if (candidate.score > current.score + 1e-12) return true;
-  if (candidate.score < current.score - 1e-12) return false;
-  // الدرجة المعروضة لا تفرّق بين الصدر والعجز: العجز هو الصدر مع
-  // زيادة ساكن، وتلك علّةٌ في الضرب مأذون فيها فلا تُحسب عيبًا.
-  // فيفرّق بينهما ترتيبُ الترجيح — الصيغة التي تبلغه سالمةً أولى من
-  // التي تبلغه بعلّة.
+  // بدرجة الترتيب لا بالمعروضة — لسببين: المعروضة لا تفرّق بين الصدر
+  // والعجز (الفرق بينهما علّةٌ في الضرب مأذون فيها)، وهي حكمٌ على
+  // البيت لا قياسٌ لقربه من الصيغة.
   if (candidate.rankScore > current.rankScore + 1e-12) return true;
   if (candidate.rankScore < current.rankScore - 1e-12) return false;
+  if (candidate.score > current.score + 1e-12) return true;
+  if (candidate.score < current.score - 1e-12) return false;
   if (!preferRole) return false;
   return candidate.formRole === preferRole && current.formRole !== preferRole;
 }

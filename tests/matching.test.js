@@ -69,8 +69,11 @@ describe('المطابقة', () => {
     const ranked = engine.stages.rankPattern(P('LLSLLLSLLSLL'));
     assert(ranked.length > 3, 'الترتيب يشمل كل البحور المطابِقة');
     equal(ranked[0].meterId, 'al_maskhub');
+    // الترتيب بدرجة الترتيب لا بالمعروضة: المعروضة حكمٌ على البيت،
+    // وقد ينزل بها بحرٌ هو أقربُ البحور إليه — لأن قربه منه يقتضي
+    // رخصةً في حشو الشطر، وتلك شبهةُ كسر لا رخصة.
     for (let i = 1; i < ranked.length; i++) {
-      assert(ranked[i - 1].score >= ranked[i].score, 'الترتيب تنازلي');
+      assert(ranked[i - 1].rankScore >= ranked[i].rankScore - 1e-12, 'الترتيب تنازلي');
     }
   });
 
@@ -203,6 +206,25 @@ describe('ترجيح القراءة — رخصةٌ وترجيح لا منع', ()
     const tail = known.letters[known.letters.length - 1];
     equal(tail.ch, 'ي', 'كسرةٌ مشكولة يُشبعها ياء');
     assert(tail.added, 'ويُعلَن مزيدًا وإن لم يُكلَّف');
+  });
+
+  it('الرخصة في حشو الشطر شبهةُ كسر لا رخصة', () => {
+    // النبطي يأذن بالزحاف والعلّة في التفعيلة الأولى وفي العروض
+    // والضرب. فالطيّ في التفعيلة الوسطى ليس رخصة.
+    const line = 'البارحة رحْت و جيت بس مدري';
+    const r = engine.analyze(line);
+    equal(r.verdict, 'suspect', 'البيت مشتبه لا موزون');
+    assert(r.bestMeter.score < 0.8, `الدرجة ${r.bestMeter.score} يجب أن تكون دون ٨٠٪`);
+    const middle = r.tafaeel.slice(1, -1).filter((f) => f.variation && f.variation !== 'سالم');
+    assert(middle.length > 0, 'وموضع الشبهة تفعيلةٌ في الحشو');
+
+    // والبحر يبقى هو البحر: الشبهة حكمٌ على البيت لا على قربه منه.
+    assert(r.bestMeter.rankScore > 0.9, 'قربه من البحر لم يتغيّر');
+
+    // وفي الأولى والأخيرة رخصةٌ مأذون فيها لا تُنقص شيئًا.
+    const first = engine.analyze('البارحه ما نمت من كثر شوقي');
+    assert(first.verdict !== 'suspect' || first.bestMeter.score === 1,
+      'ما جاء على رخصةٍ في موضعها يبقى موزونًا');
   });
 
   it('تسكين الأواخر يرجّح عند التساوي التامّ ولا يمسّ درجة', () => {

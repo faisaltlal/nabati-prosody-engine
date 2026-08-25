@@ -37,21 +37,22 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
   const end = dag.size; // موضع آخر وحدة كُتبت
   const tailCost = minSyllablesToEnd(dag);
 
-  let states = new Map([[0, { cost: 0, licensed: 0, chosen: [] }]]);
+  let states = new Map([[0, { cost: 0, licensed: 0, hashw: 0, chosen: [] }]]);
   let best = null;
 
   /** ينظر في مرشَّح انتهت عنده الكتابة، ويحتفظ بأقلّه كلفةً. */
-  const considerTerminal = (cost, licensed, chosen, footsDone, pending) => {
+  const considerTerminal = (cost, licensed, hashw, chosen, footsDone, pending) => {
     const typed = countTyped(chosen, pending);
     // مقياس الترتيب: الكلفة منسوبةً إلى ما كُتب. القسمة على طول البحر
     // كاملًا تُجازي البحور الطويلة على طولها لا على موافقتها.
     const norm = Math.max(typed, scorer.config.normalizer.floor);
     const unit = norm * scorer.config.normalizer.perSyllableCost;
     const scored = cost / unit;
-    // والمعروض عيوبُ ما كُتب وحدها — كما في المطابقة التامّة.
-    const defects = Math.max(0, cost - licensed) / unit;
+    // والمعروض عيوبُ ما كُتب وحدها — كما في المطابقة التامّة — وفيها
+    // شبهةُ الصورة في الحشو.
+    const defects = (Math.max(0, cost - licensed) + hashw * scorer.hashwPenalty(unit)) / unit;
     if (!best || scored < best.scored - 1e-12) {
-      best = { cost, licensed, chosen, footsDone, pending, typed, scored, defects };
+      best = { cost, licensed, hashw, chosen, footsDone, pending, typed, scored, defects };
     }
   };
 
@@ -63,11 +64,12 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
 
     for (const [u, state] of states) {
       // (أ) الكتابة بلغت هذا الحدّ تمامًا: التفعيلات الباقية لم تُكتب بعد.
-      if (u === end) considerTerminal(state.cost, state.licensed, state.chosen, f, null);
+      if (u === end) considerTerminal(state.cost, state.licensed, state.hashw, state.chosen, f, null);
 
       for (const variant of foot.variants) {
         const vCost = scorer.variationCost(variant, posCtx);
         const vLicence = scorer.variationLicence(variant, posCtx);
+        const inHashw = scorer.isHashwVariation(variant, posCtx) ? 1 : 0;
         // محاذاة واحدة تعطي التامّ والبادئة معًا — إجراؤها مرّتين كان
         // يضاعف كلفة أسخن حلقة في المحرك بلا فائدة.
         const { ends, prefixes } = matchFootBoth(
@@ -83,6 +85,7 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
             considerTerminal(
               state.cost + (vCost + res.cost) * posMult,
               state.licensed + (vLicence + (res.licence || 0)) * posMult,
+              state.hashw + inHashw,
               state.chosen,
               f,
               { footIndex: f, foot, variant, filled, res, unitSpan: [u, end], posMult, vCost }
@@ -100,6 +103,7 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
           next.set(to, {
             cost,
             licensed,
+            hashw: state.hashw + inHashw,
             chosen: [...state.chosen, describeFoot(f, foot, variant, res, [u, to], vCost, posMult)],
           });
         }
@@ -112,7 +116,7 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
 
   // الشطر اكتمل: كل تفعيلات الصيغة كُتبت.
   for (const [u, state] of states) {
-    if (u === end) considerTerminal(state.cost, state.licensed, state.chosen, feet.length, null);
+    if (u === end) considerTerminal(state.cost, state.licensed, state.hashw, state.chosen, feet.length, null);
   }
 
   // كُتب أكثر ممّا تسع الصيغة: الزائد يُحاسَب كما يحاسبه المطابق التامّ،
@@ -123,7 +127,7 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
     if (!Number.isFinite(leftover)) continue;
     considerTerminal(
       state.cost + leftover * scorer.weights.unconsumedSyllable,
-      state.licensed,
+      state.licensed, state.hashw,
       state.chosen, feet.length, null
     );
   }
@@ -149,6 +153,7 @@ export function matchMeterPartial(dag, meter, scorer, options = {}) {
     progressScore: clamp01(round(1 - best.defects)),
     // والترتيب يبقى بالكلفة كاملةً، فيتقدّم السالم على المزاحَف.
     rankProgress: clamp01(round(1 - best.scored)),
+    hashwVariations: best.hashw,
     typedSyllables: best.typed,
     meterSyllables: feet.reduce((n, x) => n + (x.salim ? x.salim.length : 0), 0),
     complete,
